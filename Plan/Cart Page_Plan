@@ -1,0 +1,72 @@
+Cart Page Plan
+
+A. Client field
+A1. Client Field at top of the page
+A2. Drop down with the list of all users clients
+A3. User must be signed in and have have clients - in order to use feature 
+A4. Should NOT be a required field
+
+B. Groups
+B1. Each group consists of the accounting codes entered in the user dashboard - accounting codes
+B2. If a client is selected in the client field, that clients accounting codes appear
+B2a. Should stay current with client accounting codes
+B3. Accounting codes are: Location, code 1, code 2
+B4. Should be able to add new groups, with different codes
+B5. Accounting Code drop down order, should match 
+B5a. User Account Setting: Accounting Codes order, or 
+B5b. If client selected, match the clients accounting codes order
+B6. Group dropdown should appear below each item
+B7. If user is not signed in - should give error message when entering a code into a group
+B8. Objective: the user can enter accounting codes one time for multiple items
+
+C. Items
+C1. Each item placed in the users cart should have basic item information on the same row:
+C1a. The Item Image
+C1b. The Item Name
+C1c. The Item Price
+C1d. The quantity of the user wants to purchase in a drop down field
+C1e. A remove item button
+
+D. Item codeing
+D1. Below the basic item information, each item should have a group dropdown field
+D1a. This field should correspond to the groups above
+D2. Items need to default to group 1 
+D3. If more than one group is entered above, user should be able to add additional group fields
+D3a. Should have a "+" sign to the right of the group, 
+D3a1. When pressed, should add a new group field
+D3b. New group field should appear to the right, of the previous group field
+D3b1. With a max of 2 per row - on mobile, before adding another row
+D3b2. With a max of 3 per row - on desktop, before adding another row
+D4. Should be able to assign multiple groups to item
+D5. If more than one group is selected for an item,
+D5a.  All group fields for the item should also have a qty field
+D5a1. This is inorder to ensure the correct qty of an item is assigned to the correct group
+D5b. Sum of each group qty must match the item qty 
+D5c. If group qty doesn't match item qty, user gets error message on checkout
+D6. When new group is added to an item,
+D6a. the new qty should default to 1
+D6b. All other groups should turn red, and should stay red until the user:
+D6b1. Changes the group qty's so that the sum of the group qty's, 
+D6b2. Matches the total item qty
+D7. Removed expense code groups DON’T reappear after page is reloaded - D&M 
+D8. Should be able to checkout without entering groups or expense codes  
+
+E. Cart Summary
+E1. The cart summary section should appear to the right of the items
+E2. The cart summary Section should have
+E3. A subtotal of all the items
+E4. Enter address for shipping options, or
+E4a. If user is signed and has an address in user dashboard:Account, this will be the default
+E5. Once the address has been entered, the user will have three options:  
+E5a. Pickup in Ada, OK
+E5a1. The charge for this will be 0
+E5b. Standard Shipping
+E5b1. The charge for this will be defined in the admin panel
+E5c. Same Day Oklahoma Delivery (If Order by 10am)
+E5c1. The charge for this will be defined in the admin panel
+E6. A total, which is the sum of the subtotal and shipping charge
+E7. A Checkout button, which leads to the checkout page
+
+F. Other
+F1. Continue shopping button needs to lead to previous screen - D&M
+F2. Back button leads back to previous screen
