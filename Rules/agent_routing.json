@@ -1,0 +1,130 @@
+{
+  "routes": [
+    {
+      "agent": "supervisor",
+      "primary": {
+        "provider": "openai",
+        "model": "gpt-4o"
+      },
+      "fallbacks": [
+        {
+          "provider": "anthropic",
+          "model": "claude-opus-4-6"
+        }
+      ],
+      "requirements": [
+        "code",
+        "execution"
+      ]
+    },
+    {
+      "agent": "planner",
+      "primary": {
+        "provider": "anthropic",
+        "model": "claude-opus-4-6"
+      },
+      "fallbacks": [
+        {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6"
+        }
+      ],
+      "requirements": [
+        "reasoning"
+      ]
+    },
+    {
+      "agent": "research",
+      "primary": {
+        "provider": "anthropic",
+        "model": "claude-opus-4-6"
+      },
+      "fallbacks": [
+        {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6"
+        }
+      ],
+      "requirements": [
+        "reasoning",
+        "analysis"
+      ]
+    },
+    {
+      "agent": "diagnostic",
+      "primary": {
+        "provider": "anthropic",
+        "model": "claude-opus-4-6"
+      },
+      "fallbacks": [
+        {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6"
+        }
+      ],
+      "requirements": [
+        "reasoning",
+        "analysis"
+      ]
+    },
+    {
+      "agent": "memory_curator",
+      "primary": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6"
+      },
+      "fallbacks": [],
+      "requirements": [
+        "reasoning"
+      ]
+    },
+    {
+      "agent": "implementation",
+      "primary": {
+        "provider": "openai",
+        "model": "gpt-4o"
+      },
+      "fallbacks": [
+        {
+          "provider": "anthropic",
+          "model": "claude-opus-4-6"
+        }
+      ],
+      "requirements": [
+        "code"
+      ]
+    },
+    {
+      "agent": "validation",
+      "primary": {
+        "provider": "openai",
+        "model": "gpt-4o"
+      },
+      "fallbacks": [
+        {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6"
+        }
+      ],
+      "requirements": [
+        "code"
+      ]
+    },
+    {
+      "agent": "web_search",
+      "primary": {
+        "provider": "openai",
+        "model": "gpt-4o"
+      },
+      "fallbacks": [
+        {
+          "provider": "anthropic",
+          "model": "claude-opus-4-6"
+        }
+      ],
+      "requirements": [
+        "web_search"
+      ]
+    }
+  ]
+}
