@@ -1,0 +1,62 @@
+# Environment configuration (contains sensitive credentials)
+.env
+
+# User uploads (may contain sensitive files)
+/uploads/*
+!/uploads/.gitkeep
+
+# Server logs (may contain sensitive data)
+php-server.out.log
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Node / Playwright
+node_modules/
+playwright-report/
+test-results/
+.playwright/
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Deployment keys (mentioned in git status)
+deploy_key
+deploy_key.pub
+*.key
+*.pem
+
+# Agent/AI tooling directories
+.agent_learning/
+.agent_mem/
+.agent_runs/
+
+# Windows null device artifact
+nul
+
+# RUDI runtime (auto-generated)
+Providers/
+Rules/
+State/
+Memory/
+Agents/
+Tools/
+RUDI.md
+.env

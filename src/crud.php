@@ -2,9 +2,31 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/db_conn.php';
 require_once __DIR__ . '/api_helpers.php';
 require_once __DIR__ . '/auth.php';
+
+function opd_table_columns(string $table): array
+{
+    static $cache = [];
+    if (isset($cache[$table])) {
+        return $cache[$table];
+    }
+
+    $pdo = opd_db();
+    $stmt = $pdo->prepare(
+        'SELECT COLUMN_NAME FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ?'
+    );
+    $stmt->execute([$table]);
+    $columns = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $name) {
+        if (is_string($name) && $name !== '') {
+            $columns[$name] = true;
+        }
+    }
+    $cache[$table] = $columns;
+    return $columns;
+}
 
 function opd_handle_crud(
     string $table,
@@ -18,10 +40,32 @@ function opd_handle_crud(
 {
     $pdo = opd_db();
     $method = $_SERVER['REQUEST_METHOD'];
+    $availableColumns = opd_table_columns($table);
+    if ($availableColumns) {
+        $columns = array_values(array_filter($columns, fn($column) => isset($availableColumns[$column])));
+    }
+    $hasCreatedAt = $hasCreatedAt && isset($availableColumns['createdAt']);
+    $hasUpdatedAt = isset($availableColumns['updatedAt']);
 
     if ($method === 'GET') {
         opd_require_role($readRoles);
-        $stmt = $pdo->query("SELECT * FROM {$table} ORDER BY updatedAt DESC");
+        $orderBy = '';
+        if ($hasUpdatedAt) {
+            $orderBy = ' ORDER BY updatedAt DESC';
+        } elseif (isset($availableColumns['id'])) {
+            $orderBy = ' ORDER BY id DESC';
+        }
+        // Only select specified columns plus id to avoid exposing sensitive fields
+        $selectColumns = array_merge(['id'], $columns);
+        if ($hasUpdatedAt) {
+            $selectColumns[] = 'updatedAt';
+        }
+        if ($hasCreatedAt) {
+            $selectColumns[] = 'createdAt';
+        }
+        $selectColumns = array_unique($selectColumns);
+        $selectList = implode(', ', $selectColumns);
+        $stmt = $pdo->query("SELECT {$selectList} FROM {$table}{$orderBy}");
         $items = $stmt->fetchAll();
         opd_json_response(['items' => $items, 'total' => count($items)]);
     }
@@ -31,10 +75,13 @@ function opd_handle_crud(
         opd_require_csrf();
         $payload = opd_read_json();
         opd_validate_payload($payload, $validators);
-        $id = $idPrefix . '-' . random_int(1000, 99999);
+        $id = $idPrefix . '-' . bin2hex(random_bytes(16));
         $now = gmdate('Y-m-d H:i:s');
 
-        $insertColumns = array_merge(['id'], $columns, ['updatedAt']);
+        $insertColumns = array_merge(['id'], $columns);
+        if ($hasUpdatedAt) {
+            $insertColumns[] = 'updatedAt';
+        }
         if ($hasCreatedAt) {
             $insertColumns[] = 'createdAt';
         }
@@ -45,7 +92,9 @@ function opd_handle_crud(
         foreach ($columns as $column) {
             $values[] = $payload[$column] ?? null;
         }
-        $values[] = $now;
+        if ($hasUpdatedAt) {
+            $values[] = $now;
+        }
         if ($hasCreatedAt) {
             $values[] = $now;
         }
@@ -68,14 +117,22 @@ function opd_handle_crud(
         }
         $now = gmdate('Y-m-d H:i:s');
 
+        // Only update fields that are explicitly provided to avoid nulling unknown/new columns
         $setParts = [];
         $values = [];
         foreach ($columns as $column) {
-            $setParts[] = "{$column} = ?";
-            $values[] = $payload[$column] ?? null;
+            if (array_key_exists($column, $payload)) {
+                $setParts[] = "{$column} = ?";
+                $values[] = $payload[$column];
+            }
         }
-        $setParts[] = "updatedAt = ?";
-        $values[] = $now;
+        if (!$setParts) {
+            opd_json_response(['error' => 'No writable columns'], 400);
+        }
+        if ($hasUpdatedAt) {
+            $setParts[] = "updatedAt = ?";
+            $values[] = $now;
+        }
         $values[] = $id;
 
         $sql = sprintf('UPDATE %s SET %s WHERE id = ?', $table, implode(', ', $setParts));

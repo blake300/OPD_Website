@@ -159,3 +159,8 @@ All admin panels talk to these endpoints:
 - `/api/integrations.php`
 - `/api/settings.php`
 - `/api/reliability.php`
+
+## Brain Tool
+
+See [BRAIN_TOOL](BRAIN_TOOL.md) for quick start and usage.
+

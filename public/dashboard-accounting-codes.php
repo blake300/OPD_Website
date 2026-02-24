@@ -33,7 +33,7 @@ $csrf = site_csrf_token();
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Accounting Codes - Oil Patch Depot</title>
-  <link rel="stylesheet" href="/assets/css/site.css" />
+  <link rel="stylesheet" href="/assets/css/site.css?v=20260211a" />
 </head>
 <body>
   <?php require __DIR__ . '/partials/site-header.php'; ?>
@@ -47,81 +47,127 @@ $csrf = site_csrf_token();
           <h2>Accounting codes</h2>
           <p>Manage three top-level categories. Each item may have up to two nested sublevels (children and grandchildren).</p>
 
-          <div class="upload-card">
-            <h3>Upload accounting codes</h3>
-            <p class="meta">Import a JSON export or a CSV with columns: category, level1, level2, level3.</p>
-            <div class="form-grid cols-2">
-              <div class="span-2">
-                <label for="accounting-upload">File</label>
-                <input id="accounting-upload" type="file" accept=".json,.csv" />
-              </div>
-              <label class="checkbox-row span-2" for="upload-save">
-                <input id="upload-save" type="checkbox" checked />
-                Save to server after import
-              </label>
-              <div class="span-2 form-actions">
-                <button id="import-structure" class="btn-outline" type="button">Import file</button>
-                <button id="download-template" class="btn-outline" type="button">Download CSV template</button>
-              </div>
-            </div>
-          </div>
+          <div id="acct-notification" class="notice" style="display:none;" role="alert"></div>
 
           <div id="accounting-hierarchy">
             <div class="hier-row">
-              <h3>Location</h3>
+              <div class="hier-header">
+                <h3>Location</h3>
+                <div class="hier-header-actions">
+                  <button class="btn-outline import-btn" type="button" data-import-button="location" title="CSV columns: Location, Sub Location, Sub Sub Location">Excel Import</button>
+                  <button class="btn-outline template-btn" type="button" data-template="location">Excel Template</button>
+                  <input id="import-location" class="import-input" type="file" accept=".csv" data-import-category="location" data-import-label="Location" data-import-child="Sub Location" data-import-grandchild="Sub Sub Location" />
+                  <label class="require-sub-label">
+                    <input type="checkbox" id="require-sub-location" data-category="location" />
+                    <span>Require Sub</span>
+                  </label>
+                </div>
+              </div>
               <div class="hier-list" data-key="location"></div>
               <div class="hier-actions">
-                <button class="btn" data-action="add" data-target="location">Add item</button>
+                <button class="btn" type="button" data-action="add" data-target="location">Add item</button>
               </div>
             </div>
 
             <div class="hier-row">
-              <h3>Code 1</h3>
+              <div class="hier-header">
+                <h3>Code 1</h3>
+                <div class="hier-header-actions">
+                  <button class="btn-outline import-btn" type="button" data-import-button="code1" title="CSV columns: Code 1, Sub Code 1, Sub Sub Code 1">Excel Import</button>
+                  <button class="btn-outline template-btn" type="button" data-template="code1">Excel Template</button>
+                  <input id="import-code1" class="import-input" type="file" accept=".csv" data-import-category="code1" data-import-label="Code 1" data-import-child="Sub Code 1" data-import-grandchild="Sub Sub Code 1" />
+                  <label class="require-sub-label">
+                    <input type="checkbox" id="require-sub-code1" data-category="code1" />
+                    <span>Require Sub</span>
+                  </label>
+                </div>
+              </div>
               <div class="hier-list" data-key="code1"></div>
               <div class="hier-actions">
-                <button class="btn" data-action="add" data-target="code1">Add item</button>
+                <button class="btn" type="button" data-action="add" data-target="code1">Add item</button>
               </div>
             </div>
 
             <div class="hier-row">
-              <h3>Code 2</h3>
+              <div class="hier-header">
+                <h3>Code 2</h3>
+                <div class="hier-header-actions">
+                  <button class="btn-outline import-btn" type="button" data-import-button="code2" title="CSV columns: Code 2, Sub Code 2, Sub Sub Code 2">Excel Import</button>
+                  <button class="btn-outline template-btn" type="button" data-template="code2">Excel Template</button>
+                  <input id="import-code2" class="import-input" type="file" accept=".csv" data-import-category="code2" data-import-label="Code 2" data-import-child="Sub Code 2" data-import-grandchild="Sub Sub Code 2" />
+                  <label class="require-sub-label">
+                    <input type="checkbox" id="require-sub-code2" data-category="code2" />
+                    <span>Require Sub</span>
+                  </label>
+                </div>
+              </div>
               <div class="hier-list" data-key="code2"></div>
               <div class="hier-actions">
-                <button class="btn" data-action="add" data-target="code2">Add item</button>
+                <button class="btn" type="button" data-action="add" data-target="code2">Add item</button>
               </div>
             </div>
 
             <div style="margin-top:1rem;">
-              <button id="save-structure" class="btn">Save (local)</button>
-              <button id="save-server" class="btn">Save to server</button>
-              <button id="export-structure" class="btn-outline">Export JSON</button>
-              <button id="clear-structure" class="btn-danger">Clear</button>
+              <button id="save-structure" class="btn">Save</button>
             </div>
           </div>
 
           <style>
-            .upload-card { margin-bottom: 1rem; border: 1px dashed #e2e2e2; padding: 1rem; border-radius: 6px; background: #fcfcfc }
-            .upload-card h3 { margin: 0 0 0.25rem }
-            .upload-card .meta { margin: 0 0 0.75rem }
             .hier-row { margin-bottom: 1rem; border: 1px solid #e6e6e6; padding: 0.75rem; border-radius:4px }
+            .template-btn { height: 28px; padding: 4px 10px; font-size: 12px; border-radius: 6px }
+            .hier-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; gap: 12px; flex-wrap: wrap }
+            .hier-header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap }
+            .import-btn { height: 28px; padding: 4px 10px; font-size: 12px; border-radius: 6px; background: #16a34a; color: #fff; border-color: #16a34a }
+            .import-btn:hover { background: #15803d; border-color: #15803d }
+            .import-input { display: none }
+            .hier-header h3 { margin: 0 }
+            .require-sub-label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #666; cursor: pointer }
+            .require-sub-label input { margin: 0 }
+            .require-sub-label span { user-select: none }
             .hier-list { margin-top:0.5rem }
             .hier-item { padding:8px; border:1px solid #ddd; margin:6px 0; border-radius:4px; background:#fff }
-            .hier-item-row { display:flex; align-items:center; gap:8px }
-            .hier-item-row input[type="text"] { flex:1 }
+            .hier-item-row { display:flex; align-items:center; gap:8px; flex-wrap:nowrap }
+            .hier-item-row .btn-outline { height: 32px; padding: 5px 10px; font-size: 12px; border-radius: 6px; white-space: nowrap }
+            .hier-item-row input[type="text"] { flex:1; min-width:120px }
+            .hier-item-row input[type="text"]::placeholder { color:#999; opacity:1 }
+            .hier-item-row .location-extras { display:flex; gap:8px; align-items:center; flex-wrap:nowrap }
+            .hier-item-row .location-extras input { flex:0 0 auto; width:100px }
+            .hier-item-row .location-extras input.coord-input { width:150px }
+            [data-category="location"] > .hier-item-row > input[type="text"] { flex:2; min-width:180px }
             .hier-children { margin-left:1.25rem; margin-top:8px; padding-left:12px; border-left:2px solid #f0f0f0 }
             .hier-item.is-collapsed > .hier-children { display:none }
-            .hier-toggle { width:24px; height:24px; padding:0; font-size:12px; line-height:1; display:inline-flex; align-items:center; justify-content:center }
+            .hier-toggle { width:28px; height:28px; padding:0; font-size:12px; line-height:1; display:inline-flex; align-items:center; justify-content:center; border-radius:6px; flex-shrink:0 }
             .hier-actions { margin-top:0.5rem }
-            .btn-danger { background:#e04; color:#fff; border:none; padding:6px 10px; border-radius:4px }
+            .btn-danger { background:#e04; color:#fff; border:none; padding:5px 10px; border-radius:6px; font-size:12px }
+            .hier-item-row .btn-outline:last-of-type { color:#b91c1c; border-color:#fecaca }
+            .hier-item-row .btn-outline:last-of-type:hover { background:#fef2f2; border-color:#f87171 }
+            @media (max-width: 720px) {
+              .hier-item-row { flex-wrap: wrap }
+              .hier-item-row .location-extras { flex-wrap: wrap; width: 100% }
+              .hier-item-row input[type="text"] { min-width: 0; width: 100% }
+              .hier-item-row .location-extras input { width: 100% }
+              .hier-item-row .location-extras input.coord-input { width: 100% }
+            }
           </style>
 
           <script>
             (function(){
-              const STORAGE_KEY = 'accounting_hierarchy_v1';
               const maxDepth = 2; // root = 0, child =1, grandchild=2
 
-              const uploadInput = document.getElementById('accounting-upload');
-              const uploadSave = document.getElementById('upload-save');
+              function showAcctNotice(msg, isError) {
+                var el = document.getElementById('acct-notification');
+                if (el) {
+                  el.textContent = msg;
+                  el.className = 'notice' + (isError ? ' is-error' : '');
+                  el.style.display = '';
+                  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                  setTimeout(function() { el.style.display = 'none'; }, 5000);
+                }
+              }
+
+              const importButtons = Array.from(document.querySelectorAll('[data-import-button]'));
+              const templateButtons = Array.from(document.querySelectorAll('[data-template]'));
+              const importInputs = Array.from(document.querySelectorAll('input[data-import-category]'));
 
               function makeInput(value=''){
                 const input = document.createElement('input');
@@ -131,18 +177,19 @@ $csrf = site_csrf_token();
                 return input;
               }
 
-              function makeItem(nodeData, depth){
+              function makeItem(nodeData, depth, category){
                 const item = document.createElement('div');
-                item.className = 'hier-item';
+                item.className = 'hier-item is-collapsed';
+                item.dataset.category = category;
                 const row = document.createElement('div');
                 row.className = 'hier-item-row';
                 const toggleBtn = document.createElement('button');
                 toggleBtn.type = 'button';
                 toggleBtn.className = 'btn-outline hier-toggle';
-                toggleBtn.textContent = 'v';
-                toggleBtn.setAttribute('aria-expanded', 'true');
-                toggleBtn.setAttribute('aria-label', 'Collapse');
-                toggleBtn.title = 'Collapse';
+                toggleBtn.textContent = '^';
+                toggleBtn.setAttribute('aria-expanded', 'false');
+                toggleBtn.setAttribute('aria-label', 'Expand');
+                toggleBtn.title = 'Expand';
                 toggleBtn.addEventListener('click', () => {
                   const collapsed = item.classList.toggle('is-collapsed');
                   toggleBtn.textContent = collapsed ? '^' : 'v';
@@ -155,13 +202,36 @@ $csrf = site_csrf_token();
                 const input = makeInput(nodeData.label || '');
                 row.appendChild(input);
 
+                // Add extra fields for location category
+                if (category === 'location') {
+                  const extras = document.createElement('div');
+                  extras.className = 'location-extras';
+
+                  const zipInput = document.createElement('input');
+                  zipInput.type = 'text';
+                  zipInput.placeholder = 'Zip (optional)';
+                  zipInput.value = nodeData.zip || '';
+                  zipInput.dataset.field = 'zip';
+                  extras.appendChild(zipInput);
+
+                  const coordInput = document.createElement('input');
+                  coordInput.type = 'text';
+                  coordInput.placeholder = 'Coordinates (optional)';
+                  coordInput.value = nodeData.coordinate || '';
+                  coordInput.dataset.field = 'coordinate';
+                  coordInput.className = 'coord-input';
+                  extras.appendChild(coordInput);
+
+                  row.appendChild(extras);
+                }
+
                 const addBtn = document.createElement('button');
                 addBtn.type = 'button';
                 addBtn.className = 'btn-outline';
                 addBtn.textContent = 'Add child';
                 if (depth < maxDepth) {
                   addBtn.addEventListener('click', ()=>{
-                    const child = makeItem({label:''}, depth+1);
+                    const child = makeItem({label:''}, depth+1, category);
                     let wrap = item.querySelector('.hier-children');
                     if (!wrap){ wrap = document.createElement('div'); wrap.className='hier-children'; item.appendChild(wrap); }
                     wrap.appendChild(child);
@@ -183,7 +253,7 @@ $csrf = site_csrf_token();
 
                 if (nodeData.children && nodeData.children.length){
                   const wrap = document.createElement('div'); wrap.className='hier-children';
-                  nodeData.children.forEach(child=> wrap.appendChild(makeItem(child, depth+1)));
+                  nodeData.children.forEach(child=> wrap.appendChild(makeItem(child, depth+1, category)));
                   item.appendChild(wrap);
                 }
 
@@ -202,19 +272,43 @@ $csrf = site_csrf_token();
                     data[key].push(serializeItem(el));
                   });
                 });
+                // Include requireSub settings
+                data.requireSub = {
+                  location: document.getElementById('require-sub-location')?.checked || false,
+                  code1: document.getElementById('require-sub-code1')?.checked || false,
+                  code2: document.getElementById('require-sub-code2')?.checked || false
+                };
                 return data;
               }
 
               function serializeItem(el){
-                const label = (el.querySelector('input[type=text]')||{value:''}).value;
+                const label = (el.querySelector(':scope > .hier-item-row > input[type=text]')||{value:''}).value;
                 const res = { label };
+
+                // Capture location extra fields if present
+                const extras = el.querySelector(':scope > .hier-item-row > .location-extras');
+                if (extras) {
+                  const zipInput = extras.querySelector('input[data-field="zip"]');
+                  const coordInput = extras.querySelector('input[data-field="coordinate"]');
+                  if (zipInput && zipInput.value) res.zip = zipInput.value;
+                  if (coordInput && coordInput.value) res.coordinate = coordInput.value;
+                }
+
                 const wrap = el.querySelector(':scope > .hier-children');
                 if (wrap){ res.children = []; wrap.querySelectorAll(':scope > .hier-item').forEach(c=> res.children.push(serializeItem(c))); }
                 return res;
               }
 
               function loadStructure(data){
-                document.querySelectorAll('.hier-list').forEach(list=>{ list.innerHTML=''; const key=list.dataset.key; const arr=(data&&data[key])||[]; arr.forEach(item=> list.appendChild(makeItem(item,0))); });
+                document.querySelectorAll('.hier-list').forEach(list=>{ list.innerHTML=''; const key=list.dataset.key; const arr=(data&&data[key])||[]; arr.forEach(item=> list.appendChild(makeItem(item,0,key))); });
+                // Load requireSub settings
+                const requireSub = data && data.requireSub ? data.requireSub : {};
+                const locCheckbox = document.getElementById('require-sub-location');
+                const code1Checkbox = document.getElementById('require-sub-code1');
+                const code2Checkbox = document.getElementById('require-sub-code2');
+                if (locCheckbox) locCheckbox.checked = !!requireSub.location;
+                if (code1Checkbox) code1Checkbox.checked = !!requireSub.code1;
+                if (code2Checkbox) code2Checkbox.checked = !!requireSub.code2;
               }
 
               function saveStructureToServer(structure){
@@ -232,94 +326,86 @@ $csrf = site_csrf_token();
                 });
               }
 
-              document.addEventListener('click', (e)=>{
-                const btn = e.target.closest('button[data-action]');
-                if (!btn) return;
-                const target = btn.dataset.target;
-                if (btn.dataset.action === 'add'){
-                  const list = document.querySelector('.hier-list[data-key="'+target+'"]');
-                  list.appendChild(makeItem({label:''},0));
-                }
+              const addButtons = document.querySelectorAll('button[data-action="add"][data-target]');
+              addButtons.forEach((btn) => {
+                btn.addEventListener('click', () => {
+                  const target = btn.dataset.target || '';
+                  if (!target) return;
+                  const list = document.querySelector(`.hier-list[data-key="${target}"]`);
+                  if (!list) return;
+                  list.appendChild(makeItem({ label: '' }, 0, target));
+                });
               });
 
-              document.getElementById('save-structure').addEventListener('click', ()=>{
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(getStructure()));
-                alert('Saved locally');
+              importButtons.forEach((btn) => {
+                btn.addEventListener('click', () => {
+                  const category = btn.dataset.importButton || '';
+                  if (!category) return;
+                  const input = importInputs.find((el) => el.dataset.importCategory === category);
+                  if (!input) return;
+                  input.value = '';
+                  input.click();
+                });
               });
 
-              document.getElementById('save-server').addEventListener('click', async ()=>{
+              importInputs.forEach((input) => {
+                input.addEventListener('change', async () => {
+                  const file = input.files && input.files[0];
+                  if (!file) return;
+                  const lowerName = (file.name || '').toLowerCase();
+                  if (!lowerName.endsWith('.csv')) {
+                    showAcctNotice('Please upload a CSV file (.csv).', true);
+                    input.value = '';
+                    return;
+                  }
+                  const category = input.dataset.importCategory || '';
+                  if (!category) return;
+                  try {
+                    const text = await file.text();
+                    const labels = [
+                      input.dataset.importLabel || '',
+                      input.dataset.importChild || '',
+                      input.dataset.importGrandchild || ''
+                    ];
+                    const structure = mergeCategoryFromCsv(category, text, labels);
+                    await saveStructureToServer(structure);
+                    showAcctNotice('Import complete and saved.', false);
+                  } catch (err) {
+                    showAcctNotice('Import error: ' + err.message, true);
+                  } finally {
+                    input.value = '';
+                  }
+                });
+              });
+
+              document.getElementById('save-structure').addEventListener('click', async ()=>{
                 try{
                   await saveStructureToServer(getStructure());
-                  alert('Saved to server');
-                }catch(err){ alert('Save error: '+err.message); }
+                  showAcctNotice('Accounting codes saved.', false);
+                }catch(err){ showAcctNotice('Save error: ' + err.message, true); }
               });
 
-              document.getElementById('export-structure').addEventListener('click', ()=>{
-                const blob = new Blob([JSON.stringify(getStructure(),null,2)],{type:'application/json'});
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a'); a.href=url; a.download='accounting-structure.json'; a.click(); URL.revokeObjectURL(url);
+              const categoryTemplates = {
+                location: { file: 'location-template.csv', headers: ['Location', 'Sub Location', 'Sub Sub Location'], example: ['Warehouse A', 'Zone 1', 'Shelf 3'] },
+                code1: { file: 'code1-template.csv', headers: ['Code 1', 'Sub Code 1', 'Sub Sub Code 1'], example: ['Division A', 'Team 2', ''] },
+                code2: { file: 'code2-template.csv', headers: ['Code 2', 'Sub Code 2', 'Sub Sub Code 2'], example: ['Project X', 'Phase 1', 'Task 5'] }
+              };
+
+              templateButtons.forEach((btn) => {
+                btn.addEventListener('click', () => {
+                  const category = btn.dataset.template || '';
+                  const tmpl = categoryTemplates[category];
+                  if (!tmpl) return;
+                  const csv = [tmpl.headers.join(','), tmpl.example.join(',')].join('\n');
+                  const blob = new Blob([csv], { type: 'text/csv' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = tmpl.file;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                });
               });
-
-              document.getElementById('clear-structure').addEventListener('click', ()=>{
-                if (!confirm('Clear saved structure and UI?')) return; localStorage.removeItem(STORAGE_KEY); loadStructure({});
-              });
-
-              document.getElementById('download-template').addEventListener('click', ()=>{
-                const template = [
-                  'category,level1,level2,level3',
-                  'location,Warehouse A,Zone 1,Shelf 3',
-                  'code1,Division A,Team 2,',
-                  'code2,Project X,Phase 1,Task 5'
-                ].join('\\n');
-                const blob = new Blob([template], {type: 'text/csv'});
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'accounting-codes-template.csv';
-                a.click();
-                URL.revokeObjectURL(url);
-              });
-
-              document.getElementById('import-structure').addEventListener('click', async ()=>{
-                const file = uploadInput && uploadInput.files ? uploadInput.files[0] : null;
-                if (!file) {
-                  alert('Choose a JSON or CSV file to import.');
-                  return;
-                }
-                try{
-                  const text = await file.text();
-                  const lowerName = file.name.toLowerCase();
-                  let structure = null;
-                  if (lowerName.endsWith('.json')) {
-                    structure = JSON.parse(text);
-                  } else if (lowerName.endsWith('.csv')) {
-                    structure = buildStructureFromCsv(text);
-                  } else {
-                    throw new Error('Unsupported file type. Use .json or .csv.');
-                  }
-
-                  validateStructure(structure);
-                  loadStructure(structure);
-
-                  if (uploadSave && uploadSave.checked) {
-                    await saveStructureToServer(structure);
-                    alert('Import complete and saved to server.');
-                  } else {
-                    alert('Import complete. Click Save to server to persist.');
-                  }
-                }catch(err){
-                  alert('Import error: ' + err.message);
-                }
-              });
-
-              function normalizeCategory(raw){
-                const value = String(raw || '').trim().toLowerCase();
-                if (!value) return '';
-                if (value === 'location' || value === 'loc') return 'location';
-                if (value === 'code1' || value === 'code 1' || value === 'code_1') return 'code1';
-                if (value === 'code2' || value === 'code 2' || value === 'code_2') return 'code2';
-                return '';
-              }
 
               function parseCsv(text){
                 const rows = [];
@@ -342,8 +428,8 @@ $csrf = site_csrf_token();
                     field = '';
                     continue;
                   }
-                  if ((ch === '\\n' || ch === '\\r') && !inQuotes) {
-                    if (ch === '\\r' && text[i + 1] === '\\n') {
+                  if ((ch === '\n' || ch === '\r') && !inQuotes) {
+                    if (ch === '\r' && text[i + 1] === '\n') {
                       i++;
                     }
                     row.push(field);
@@ -363,6 +449,19 @@ $csrf = site_csrf_token();
                 return rows;
               }
 
+              function normalizeHeaderToken(value){
+                return String(value || '')
+                  .trim()
+                  .toLowerCase()
+                  .replace(/[^a-z0-9]/g, '');
+              }
+
+              function isHeaderRow(row, labels){
+                if (!row || row.length < 2) return false;
+                const tokens = row.slice(0, 3).map(normalizeHeaderToken);
+                return labels.every((label, index) => tokens[index] === normalizeHeaderToken(label));
+              }
+
               function ensureNode(list, label){
                 const name = label.trim();
                 if (!name) return null;
@@ -373,21 +472,22 @@ $csrf = site_csrf_token();
                 return node;
               }
 
-              function buildStructureFromCsv(text){
+              function mergeCategoryFromCsv(category, text, labels){
                 const rows = parseCsv(text);
                 if (!rows.length) throw new Error('CSV is empty.');
-                const first = rows[0].map(cell => cell.trim().toLowerCase());
-                const hasHeader = first[0] === 'category';
-                const dataRows = hasHeader ? rows.slice(1) : rows;
-                const structure = { location: [], code1: [], code2: [] };
-
+                const dataRows = isHeaderRow(rows[0], labels) ? rows.slice(1) : rows;
+                if (!dataRows.length) throw new Error('CSV has no data rows.');
+                const structure = getStructure();
+                if (!Array.isArray(structure[category])) {
+                  structure[category] = [];
+                }
+                const target = structure[category];
                 dataRows.forEach((row) => {
-                  const category = normalizeCategory(row[0] || '');
-                  const level1 = (row[1] || '').trim();
-                  const level2 = (row[2] || '').trim();
-                  const level3 = (row[3] || '').trim();
-                  if (!category || !level1) return;
-                  const root = ensureNode(structure[category], level1);
+                  const level1 = (row[0] || '').trim();
+                  const level2 = (row[1] || '').trim();
+                  const level3 = (row[2] || '').trim();
+                  if (!level1) return;
+                  const root = ensureNode(target, level1);
                   if (!root) return;
                   if (level2) {
                     root.children = root.children || [];
@@ -398,22 +498,11 @@ $csrf = site_csrf_token();
                     }
                   }
                 });
-
+                loadStructure(structure);
                 return structure;
               }
 
-              function validateStructure(structure){
-                if (!structure || typeof structure !== 'object') {
-                  throw new Error('Invalid structure.');
-                }
-                ['location','code1','code2'].forEach((key) => {
-                  if (!Array.isArray(structure[key])) {
-                    throw new Error('Missing or invalid key: ' + key);
-                  }
-                });
-              }
-
-              // init: load from server first, fallback to local
+              // init: load from server
               (async function(){
                 try{
                   const resp = await fetch('/api/accounting_structure.php');
@@ -423,10 +512,7 @@ $csrf = site_csrf_token();
                     return;
                   }
                 }catch(e){ /* ignore */ }
-                try{
-                  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-                  if (saved) loadStructure(saved);
-                }catch(e){ /* ignore */ }
+                loadStructure({ location: [], code1: [], code2: [] });
               })();
             })();
           </script>

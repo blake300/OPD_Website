@@ -28,7 +28,10 @@ if (!$user) {
 $method = $_SERVER['REQUEST_METHOD'];
 if ($method === 'GET') {
     header('Content-Type: application/json');
-    $data = site_get_accounting_structure($user['id']);
+    header('Cache-Control: no-cache, no-store, must-revalidate');
+    $clientId = $_GET['clientId'] ?? null;
+    $clientId = is_string($clientId) && $clientId !== '' ? $clientId : null;
+    $data = site_get_accounting_structure_for_client($user['id'], $clientId);
     echo json_encode($data);
     exit;
 }
@@ -43,13 +46,19 @@ if ($method === 'POST') {
         exit;
     }
     // basic validation: keys must exist
-    $allowed = ['location','code1','code2'];
-    foreach ($allowed as $k) {
+    $required = ['location','code1','code2'];
+    foreach ($required as $k) {
         if (!isset($json[$k]) || !is_array($json[$k])) {
             http_response_code(400);
             echo json_encode(['error' => "Missing or invalid key: $k"]);
             exit;
         }
+    }
+    // requireSub is optional but should be an object if present
+    if (isset($json['requireSub']) && !is_array($json['requireSub'])) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid requireSub format']);
+        exit;
     }
     site_save_accounting_structure($user['id'], $json);
     header('Content-Type: application/json');

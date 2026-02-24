@@ -1,0 +1,5 @@
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/BlakeC@gbr.rmg.mybluehost.me/public_html/website_2fca6081
+    - /bin/rm -rf $DEPLOYPATH/*
+    - /bin/cp -R site/* $DEPLOYPATH

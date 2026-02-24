@@ -23,10 +23,13 @@ function resolve_client_id(string $userId, $clientId): ?string
         return null;
     }
     $pdo = opd_db();
-    $stmt = $pdo->prepare('SELECT id FROM clients WHERE id = ? AND userId = ? LIMIT 1');
+    $stmt = $pdo->prepare('SELECT id, status FROM clients WHERE id = ? AND userId = ? LIMIT 1');
     $stmt->execute([$clientId, $userId]);
     $row = $stmt->fetch();
-    return $row ? $clientId : null;
+    if (!$row || !site_client_is_billable($row)) {
+        return null;
+    }
+    return $clientId;
 }
 
 $user = site_current_user();

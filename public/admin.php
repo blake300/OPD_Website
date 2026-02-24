@@ -6,6 +6,10 @@ require_once __DIR__ . '/../src/auth.php';
 
 $user = opd_require_role(['admin', 'manager']);
 $csrf = opd_csrf_token();
+
+// Prevent browser from caching this page so stale sessions don't confuse users
+header('Cache-Control: no-store, no-cache, must-revalidate');
+header('Pragma: no-cache');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -14,7 +18,7 @@ $csrf = opd_csrf_token();
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>OPD Admin</title>
   <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf, ENT_QUOTES); ?>" />
-  <link rel="stylesheet" href="/assets/css/admin.css" />
+  <link rel="stylesheet" href="/assets/css/admin.css?v=20260218a" />
 </head>
 <body>
   <header class="top-bar">
@@ -30,6 +34,7 @@ $csrf = opd_csrf_token();
       <span class="user-pill"><?php echo htmlspecialchars($user['name'] ?? 'User', ENT_QUOTES); ?></span>
       <button class="primary-btn">New Product</button>
       <button class="ghost-btn">Run Report</button>
+      <a class="ghost-btn" href="/admin-charge.php">Manual Charge</a>
       <a class="ghost-btn" href="/admin-logout.php">Logout</a>
     </div>
   </header>
@@ -63,6 +68,10 @@ $csrf = opd_csrf_token();
           </div>
           <div class="panel-actions">
             <input id="products-search" placeholder="Search name, SKU, category" />
+            <select id="products-category-filter" aria-label="Filter by category"></select>
+            <button class="ghost-btn" id="products-add" type="button">Add New Product</button>
+            <button class="ghost-btn" id="products-move" type="button">Move</button>
+            <button class="primary-btn" id="products-save" type="button">Save Changes</button>
             <button class="ghost-btn" data-refresh="products">Refresh</button>
           </div>
         </div>
@@ -70,9 +79,142 @@ $csrf = opd_csrf_token();
       </section>
 
       <section class="resource-stack" id="resource-stack"></section>
+
+      <section id="pages" class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="eyebrow">Content</div>
+            <h2>Page Builder</h2>
+            <p>Create and manage custom pages with text, images, videos, and headlines.</p>
+          </div>
+          <div class="panel-actions">
+            <button class="ghost-btn" id="pages-add" type="button">+ New Page</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div id="pages-list"></div>
+        </div>
+      </section>
+
+      <section id="page-editor" class="panel" style="display: none;">
+        <div class="panel-header">
+          <div>
+            <div class="eyebrow">Page Builder</div>
+            <h2 id="page-editor-title">Create Page</h2>
+          </div>
+          <div class="panel-actions">
+            <button class="ghost-btn" id="page-editor-cancel" type="button">Cancel</button>
+            <button class="primary-btn" id="page-editor-save" type="button">Save Page</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="form-grid cols-2" style="margin-bottom: 24px;">
+            <div>
+              <label for="page-title">Page Title</label>
+              <input type="text" id="page-title" placeholder="Enter page title" />
+            </div>
+            <div>
+              <label for="page-slug">Page Address (URL)</label>
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <span style="color: #666;">/page/</span>
+                <input type="text" id="page-slug" placeholder="my-page" style="flex: 1;" />
+              </div>
+            </div>
+            <div>
+              <label for="page-template">Template</label>
+              <select id="page-template">
+                <option value="custom">Custom Layout</option>
+                <option value="single-column">Single Column</option>
+                <option value="two-column">Two Column</option>
+                <option value="hero-content">Hero + Content</option>
+              </select>
+            </div>
+            <div>
+              <label for="page-status">Status</label>
+              <select id="page-status">
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+              </select>
+            </div>
+            <div class="span-2">
+              <label for="page-meta">Meta Description</label>
+              <textarea id="page-meta" rows="2" placeholder="Brief description for search engines"></textarea>
+            </div>
+          </div>
+
+          <div class="page-builder-layout">
+            <div class="page-builder-editor">
+              <h3 style="margin: 0 0 16px; font-size: 15px; color: #333;">Page Rows</h3>
+
+              <div class="page-builder-controls">
+                <div class="page-builder-control">
+                  <label for="page-row-count">Number of Rows</label>
+                  <input type="number" id="page-row-count" min="1" value="1" />
+                </div>
+                <div class="page-builder-control">
+                  <button class="ghost-btn" id="page-row-add" type="button">+ Add Row</button>
+                </div>
+              </div>
+
+              <div id="page-rows-list"></div>
+            </div>
+
+            <div class="page-builder-preview">
+              <div class="page-builder-preview-header">
+                <span>Live Preview</span>
+              </div>
+              <div class="page-builder-preview-content" id="page-preview-content">
+                <div class="page-builder-preview-empty">Add sections to see a preview</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="used-equipment" class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="eyebrow">Marketplace</div>
+            <h2>Used Equipment</h2>
+            <p>Review and approve user-submitted equipment listings.</p>
+          </div>
+          <div class="panel-actions">
+            <button class="ghost-btn" id="used-equip-refresh" type="button">Refresh</button>
+          </div>
+        </div>
+        <div class="panel-body" id="used-equip-panel"></div>
+      </section>
+
+      <section id="sales-tax" class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="eyebrow">Finance</div>
+            <h2>Sales Tax Rates</h2>
+            <p>Manage tax rates by zip code group.</p>
+          </div>
+          <div class="panel-actions">
+            <button class="ghost-btn" id="tax-add-group" type="button">+ Add Rate Group</button>
+          </div>
+        </div>
+        <div class="panel-body" id="tax-panel"></div>
+      </section>
+
+      <section id="db-health" class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="eyebrow">Database</div>
+            <h2>Schema Health Check</h2>
+            <p>Verify required tables and columns before changes go live.</p>
+          </div>
+          <div class="panel-actions">
+            <button class="ghost-btn" id="db-health-run" type="button">Run Check</button>
+          </div>
+        </div>
+        <div class="panel-body" id="db-health-panel"></div>
+      </section>
     </main>
   </div>
 
-  <script src="/assets/js/admin.js"></script>
+  <script src="/assets/js/admin.js?v=20260220a"></script>
 </body>
 </html>
