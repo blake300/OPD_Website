@@ -1,5 +1,5 @@
 # Oil Patch Depot - Complete Site Workflows
-# Date: 2026-03-14
+# Date: 2026-03-15
 
 ================================================================================
 TABLE OF CONTENTS
@@ -44,11 +44,23 @@ TABLE OF CONTENTS
 38. BACKEND - SMS / Invitation System
 39. BACKEND - Authentication & Security
 40. DATABASE - Schema Overview
+41. ADMIN - Invoices
+42. BACKEND - Invoice System
+43. BACKEND - SEO System
+44. BACKEND - Sitemap & Robots
+45. FRONTEND - AccordionDropdown Component
+46. DEVOPS - Deployment & Caching
 
 ================================================================================
 1. STOREFRONT - Homepage
 ================================================================================
 File: public/index.php
+
+SEO:
+- Title: "Oil Patch Depot | Oilfield Equipment, Tools & Supplies"
+- Meta description, Open Graph tags, Twitter Cards, canonical URL, favicon
+- Organization JSON-LD structured data
+- CSS cache-busted with version query string
 
 WORKFLOW:
 1. Page loads, calls site_get_featured_products(12) to fetch 12 featured items
@@ -57,7 +69,7 @@ WORKFLOW:
 4. Responsive breakpoints: 3 or 6 slides per view
 5. Category shortcut buttons displayed:
    - AutoBailer Artificial Lift, Parts, Tools, Services, Supplies, Used Equipment
-   - Each links to /category.php?cat={category}
+   - Each links to /category.php?category={category}
 6. "How it Works" marketing section with graphic
 7. Value proposition cards (Field-first workflows, Accountable spend, Reliable supply)
 8. Favorites module initialized (heart buttons on featured products)
@@ -65,7 +77,7 @@ WORKFLOW:
 
 USER INTERACTIONS:
 - Click featured product -> /product.php?id={id}
-- Click category button -> /category.php?cat={category}
+- Click category button -> /category.php?category={category}
 - Click heart -> Favorites dropdown (if signed in) or sign-in prompt
 - Carousel auto-scrolls, manual prev/next/dot navigation
 
@@ -73,6 +85,11 @@ USER INTERACTIONS:
 2. STOREFRONT - Product Listing & Search
 ================================================================================
 File: public/products.php
+
+SEO:
+- Search-aware title/description via opd_seo_meta()
+- Search results pages marked noindex
+- Canonical URL added
 
 WORKFLOW:
 1. User enters search term in header search bar
@@ -84,7 +101,9 @@ WORKFLOW:
 3. On form submit or suggestion click -> /products.php?q={term}
 4. Server calls site_get_products(null, $search, 48)
 5. Up to 48 products rendered in 3-column grid
-6. Each card: image, name, price, favorites heart, "View details" link
+6. H1 heading for page hierarchy
+7. Search query reflection: shows "Showing results for: {term} (X found)" when searching
+8. Each card: image (loading="lazy"), name, price, favorites heart, "View details" link
 
 USER INTERACTIONS:
 - Type in search bar -> predictive suggestions dropdown
@@ -98,13 +117,19 @@ USER INTERACTIONS:
 ================================================================================
 File: public/category.php
 
+SEO:
+- Dynamic category name in title via opd_seo_meta()
+- Canonical URL with category parameter
+- Images have loading="lazy"
+
 WORKFLOW:
 1. Category selected via dropdown or URL param ?cat={category}
 2. Server calls site_get_products($category, null, 78) for initial 78 products
 3. Products rendered in grid with quick-add or "View details" buttons
-4. Quick-add available only for simple products (no variants, no associations)
-5. Quantity selector (1-25) with quick-add button
-6. "Load more" button at bottom for pagination:
+4. H1 heading showing selected category name
+5. Quick-add available only for simple products (no variants, no associations)
+6. Quantity input (number input, not dropdown) with quick-add button
+7. "Load more" button at bottom for pagination:
    a. AJAX call to /api/category_products.php?category=X&offset=Y&limit=Z
    b. Returns JSON: {items, nextOffset, hasMore}
    c. New product cards appended to grid dynamically
@@ -120,6 +145,12 @@ SPECIAL RULES:
 ================================================================================
 File: public/product.php
 
+SEO:
+- Product JSON-LD schema (name, sku, price, availability, image)
+- BreadcrumbList JSON-LD schema
+- og:type=product, dynamic meta description from shortDescription
+- Canonical URL
+
 WORKFLOW:
 1. Product loaded via ?id={productId}
 2. If product inactive or sold out (Used Equipment) -> 404
@@ -127,8 +158,11 @@ WORKFLOW:
    - Primary image displayed large
    - Thumbnail strip for multiple images
    - Click thumbnail to swap main image
-4. Product details: name, SKU, price, descriptions
-5. Variant handling:
+4. Product details: H1 for product name, SKU, price, descriptions
+5. Long descriptions render HTML (bold, lists, links) instead of escaping
+   - Handles literal \n strings in descriptions
+   - Prevents extra spacing in HTML lists
+6. Variant handling:
    a. site_get_product_variants($productId)
    b. Filters out inactive variants and out-of-stock (when backorders disabled)
    c. Variants displayed in collapsible table: name, price, qty selector, add button
@@ -169,10 +203,14 @@ CLIENT & ACCOUNTING WORKFLOW:
 3. Accounting groups section:
    a. Groups header with "Reset" button
    b. Multi-item assignment UI
-   c. Location, Code 1, Code 2 cascading dropdowns
-   d. Each item assigned to accounting codes
+   c. Location, Code 1, Code 2 use AccordionDropdown component
+      (colored bars, auto-collapse, thick left border on open child,
+       hover preview, leaf-only display in input)
+   d. Fallback to native select if AccordionDropdown not loaded
+   e. Each item assigned to accounting codes
 4. Reset button: clears all assignments, restores default groups
 5. Accounting saved to cart_accounting table via AJAX
+6. CSS cache-busted with version query string
 
 SHIPPING CALCULATION:
 1. Shipping method selection: Pickup or Delivery
@@ -208,6 +246,9 @@ STEP-BY-STEP:
    a. Client card: if client-billable and client has linked payment method
    b. User saved cards: dropdown of saved payment methods
    c. Stripe payment element: new card entry via Stripe Elements
+   d. Pay by Invoice: shown when vendor's client has allowInvoice=1
+      - Skips Stripe, creates order with paymentMethod='invoice'
+      - Auto-generates PDF invoice and emails it to user
 5. Promo code input (optional):
    - Validates against promotions table
    - Applies discount to order
@@ -217,7 +258,7 @@ STEP-BY-STEP:
 9. "Place Order" button:
    a. Form submitted with all data
    b. Server calls site_place_order(data)
-   c. Payment processed via Stripe (or client card)
+   c. Payment processed via Stripe (or client card, or invoice)
    d. Order created in orders table
    e. Order items inserted in order_items table
    f. Inventory decremented via site_reduce_inventory()
@@ -226,6 +267,7 @@ STEP-BY-STEP:
    i. Order confirmation email sent
    j. Admin notification email sent
    k. Redirect to order confirmation page
+10. Remember-me uses site_remember_me() function (sets cookie params before session start)
 
 ================================================================================
 7. STOREFRONT - Favorites (Heart System)
@@ -252,9 +294,14 @@ WORKFLOW:
 ================================================================================
 File: public/login.php
 
+SEO:
+- Meta tags added via opd_seo_meta()
+- Dynamic site name
+- CSS cache-busted with version query string
+
 LOGIN WORKFLOW:
 1. User enters email + password
-2. Optional "Remember me" checkbox
+2. Optional "Remember me" checkbox (uses site_remember_me() function)
 3. POST action=login with CSRF token
 4. Server: site_login(email, password)
    a. Rate limit check
@@ -285,6 +332,10 @@ CONTEXT BANNERS:
 9. AUTH - Forgot / Reset Password
 ================================================================================
 Files: public/forgot-password.php, public/reset-password.php
+
+Password reset functions: site_request_password_reset(), site_validate_reset_token(),
+site_apply_password_reset()
+Dynamic site name throughout.
 
 FORGOT PASSWORD WORKFLOW:
 1. User enters email
@@ -318,6 +369,10 @@ RESET PASSWORD WORKFLOW:
 10. CMS - Dynamic Pages
 ================================================================================
 Files: public/page.php, admin page builder
+
+SEO:
+- Meta tags via opd_seo_meta() helper
+- Canonical URLs
 
 RENDER WORKFLOW:
 1. Request: /page.php?slug={slug}
@@ -398,6 +453,9 @@ ORDER VIEWING WORKFLOW:
 3. Click row to expand/collapse order details
 4. Details show: item list, quantities, prices, accounting splits
 5. Tax and shipping distribution calculations per item
+6. Accounting code dropdowns use AccordionDropdown component (fallback to native select)
+7. Invoice download link shown for each order (if invoice exists)
+8. CSS cache-busted with version query string
 
 FILTERING WORKFLOW:
 1. Time filters: All Time, Last 30 Days, Last 3 Months, Current Year, Last Year, Custom
@@ -431,7 +489,8 @@ FAVORITES MANAGEMENT:
 ACCOUNTING SPLITS WORKFLOW:
 1. Each favorite item can have accounting splits
 2. Click to expand split editor
-3. Cascading dropdowns: Location -> Code 1 -> Code 2
+3. Cascading dropdowns use AccordionDropdown component (fallback to native select):
+   Location -> Code 1 -> Code 2
 4. Add multiple split rows (different accounting codes)
 5. Each split has quantity field
 6. Validation: sum of split quantities must equal item quantity
@@ -730,6 +789,8 @@ API: /api/import.php
 
 THREE IMPORT TYPES:
 
+Import modal restored to admin.php with overlay styling.
+
 A. IMPORT PRODUCTS:
 1. Click "Import Products" button
 2. Modal opens with: Mode (Add New / Update Existing), CSV file input, Example download
@@ -757,11 +818,17 @@ C. IMPORT IMAGES:
 4. POST /api/import.php with importType='images'
 5. Primary images: set isPrimary=1, update product.imageUrl
 6. Creates entries in product_images table
+7. Auto-promotes first image to primary if product has no images yet
+
+ERROR HANDLING:
+- Catches non-JSON responses and shows server error text
 
 ================================================================================
 25. ADMIN - Product Export (CSV)
 ================================================================================
 File: public/assets/js/admin.js
+
+Export modal restored to admin.php with overlay styling.
 
 WORKFLOW:
 1. Click "Export" button in products panel
@@ -795,6 +862,8 @@ ORDER MANAGEMENT:
    DeliveryZone, DeliveryClass, ServiceArrivalDate, Updated, etc.
 2. Click expand arrow to open inline edit panel
 3. Edit order fields directly
+   - number and customerName fields are readonly
+   - Fulfillment status is a select dropdown (Unfulfilled/Fulfilled)
 4. Order items section loaded on expand:
    - Table: Product, Qty, Price, Total, Arrival Date
    - Summary: item count, total quantity, total amount
@@ -857,11 +926,12 @@ WORKFLOW:
 1. Users listed in table: Name, Email, Role, Status, Company, Last Login
 2. Click to expand inline edit form
 3. Fields: First Name, Last Name, Email (required), Role, Status, Company
-4. Billing address block
-5. Shipping address block
-6. Bio/Notes textarea
-7. Password input (for setting new password)
-8. Last Login (readonly)
+4. allowInvoice checkbox (permits pay-by-invoice for this user's clients)
+5. Billing address block
+6. Shipping address block
+7. Bio/Notes textarea
+8. Password input (for setting new password)
+9. Last Login (readonly)
 
 CRUD:
 - Create: POST /api/users.php (email required)
@@ -1070,6 +1140,9 @@ WORKFLOW:
 File: public/assets/js/admin.js
 API: /api/reports.php
 
+Import/Export/Reports functions restored (were lost during editing).
+initImport(), initExport(), initReports() called on init.
+
 REPORT TABS: Sales Volume | Product Sales
 
 SALES VOLUME REPORT:
@@ -1130,6 +1203,8 @@ SECURITY:
 37. BACKEND - Email Service
 ================================================================================
 File: src/email_service.php
+
+Dynamic site name/email from config via opd_site_name() and opd_site_email().
 
 FUNCTIONS:
 - opd_create_mailer(): Initializes PHPMailer with SMTP config
@@ -1194,6 +1269,11 @@ SESSION SECURITY:
 - Strict SameSite policy
 - Session regeneration on login
 
+API REQUEST HANDLING:
+- site_is_api_request(): detects /api/ requests
+- site_require_auth(): returns JSON 401 for API requests instead of HTML redirects
+- site_require_csrf(): returns JSON 403 for API requests
+
 CSRF PROTECTION:
 - Token stored in session
 - Validated via X-CSRF-TOKEN header or _csrf POST field
@@ -1212,6 +1292,14 @@ PASSWORD SECURITY:
 - Dummy hash for non-existent users (prevents timing attacks)
 - Reset tokens: SHA256 hashed, 30-min expiry, single-use
 
+GUEST REGISTRATION (guest_register.php):
+- CSRF validation added
+- Password strength rules enforced
+- Fixed session key
+
+GIT SECURITY:
+- .env purged from git history
+
 ID GENERATION:
 - opd_generate_id(prefix): prefix-{32 hex chars} (128-bit random)
 
@@ -1221,7 +1309,7 @@ ID GENERATION:
 File: database/schema.sql
 
 CORE TABLES:
-- users: id, email, passwordHash, role, status, stripeCustomerId, addresses
+- users: id, email, passwordHash, role, status, stripeCustomerId, addresses, allowInvoice
 - products: id, sku, name, category, price, inventory, imageUrl, featured, status
 - product_variants: id, productId, sku, name, price, inventory
 - product_images: id, productId, url, isPrimary, sortOrder
@@ -1261,6 +1349,13 @@ CONFIG TABLES:
 - rate_limit: id, identifier, type, attempts, locked_until
 - password_reset_tokens: id, userId, tokenHash, expiresAt, usedAt
 
+INVOICE TABLES:
+- invoices: id, orderId, userId, invoiceNumber, amount, status, dueDate, pdfPath, createdAt, updatedAt
+- invoice_sequence: sequential invoice number generation
+
+MIGRATIONS:
+- Category rename: 'Artifical' -> 'Artificial'
+
 ADDITIONAL TABLES:
 - shipments: id, orderId, carrier, tracking, status
 - customers: id, name, email, tags
@@ -1268,6 +1363,133 @@ ADDITIONAL TABLES:
 - analytics_reports: id, name, period, metric, value
 - integrations: id, name, type, status, lastSync
 - reliability: id, type, status, message
+
+================================================================================
+41. ADMIN - Invoices
+================================================================================
+Files: public/admin.php (Invoices section), api/invoices.php
+
+WORKFLOW:
+1. Admin panel section to view/manage all invoices
+2. List view with status filter (All/Pending/Paid/Overdue)
+3. Click invoice row to view details
+
+ACTIONS:
+- Mark as Paid button: POST /api/invoices.php with action=mark_paid
+- Resend invoice email button: POST /api/invoices.php with action=resend
+- View/download PDF link
+
+API:
+- GET /api/invoices.php: list all invoices (filterable by status)
+- POST /api/invoices.php with action=mark_paid: update invoice status
+- POST /api/invoices.php with action=resend: re-email invoice to user
+
+================================================================================
+42. BACKEND - Invoice System
+================================================================================
+Files: src/invoice_service.php, vendor/fpdf/
+
+PDF GENERATION:
+- Uses FPDF library for PDF creation
+- Invoice includes:
+  - Company logo
+  - Invoice number (INV-YYYY-NNNN format)
+  - Billing info (company, address, contact)
+  - Line items with quantities and prices
+  - Tax, shipping, total
+  - Net 30 payment terms
+  - Due date (30 days from order)
+
+WORKFLOW:
+1. Auto-generated on checkout when payment method is 'invoice'
+2. PDF stored in uploads/invoices/
+3. Emailed to user automatically after order placement
+4. Sequential invoice numbering via invoice_sequence table
+
+================================================================================
+43. BACKEND - SEO System
+================================================================================
+File: src/seo.php
+
+SHARED HELPER:
+- opd_seo_meta(): renders all meta tags in one call
+  - Meta descriptions (auto-truncated to 160 chars)
+  - Open Graph tags (title, description, image, url, type, site_name)
+  - Twitter Card tags (summary_large_image)
+  - Canonical URLs
+  - Favicon reference
+
+JSON-LD HELPERS:
+- opd_product_jsonld(): Product schema (name, sku, price, availability, image)
+- opd_organization_jsonld(): Organization schema for homepage
+- opd_breadcrumb_jsonld(): BreadcrumbList schema for product pages
+
+URL HELPER:
+- opd_site_url(): generates absolute URLs from relative paths
+
+================================================================================
+44. BACKEND - Sitemap & Robots
+================================================================================
+Files: public/sitemap.php, public/robots.txt
+
+SITEMAP (sitemap.php):
+- Dynamic XML sitemap
+- Includes: all products, categories, CMS pages
+- Each entry has lastmod date
+- Content-Type: application/xml
+
+ROBOTS (robots.txt):
+- Allows all crawlers
+- Blocks: /api/, admin pages, debug pages
+- References sitemap URL
+
+================================================================================
+45. FRONTEND - AccordionDropdown Component
+================================================================================
+File: public/assets/js/site.js (AccordionDropdown global)
+
+COMPONENT API:
+- AccordionDropdown.create(container, nodes, opts)
+- Supports 1-3 level hierarchy, any level selectable as leaf
+
+FEATURES:
+- Inline input trigger (click to open dropdown panel)
+- Auto-collapse sections (opening one closes others)
+- Colored bars: blue parent, light blue child
+- Thick left border on open child section
+- Hover preview on items
+- Leaf-only display in input field
+
+MOBILE OPTIMIZATION:
+- 48px touch targets
+- 16px font size (prevents iOS zoom)
+- Responsive panel height
+
+USED ON:
+- cart.php (accounting code dropdowns)
+- dashboard-orders.php (accounting code dropdowns)
+- dashboard-favorites.php (accounting split dropdowns)
+
+CSS:
+- .accdd-* classes in site.css
+- Mobile media query for responsive behavior
+
+================================================================================
+46. DEVOPS - Deployment & Caching
+================================================================================
+
+CACHE BUSTING:
+- All CSS/JS files use version query strings (e.g., ?v=20260315c)
+- Ensures browsers load updated assets after deployments
+
+GITIGNORE:
+- Excludes: product images, uploads, zips, debug pages, agent cache
+
+GIT HISTORY:
+- .env purged from history with git-filter-repo
+
+API PROXY STUBS:
+- Missing stubs created: db_health, guest_register, user_shipping
 
 ================================================================================
 END OF DOCUMENT
