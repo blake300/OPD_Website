@@ -38,3 +38,18 @@ function opd_generate_id(string $prefix): string
 {
     return $prefix . '-' . bin2hex(random_bytes(16));
 }
+
+/**
+ * Get a config value. Caches the config array on first call.
+ */
+function opd_config(string $key, string $default = ''): string
+{
+    static $config = null;
+    if ($config === null) {
+        $config = require __DIR__ . '/../config/config.php';
+    }
+    return (string) ($config[$key] ?? $default);
+}
+
+// opd_site_name() and opd_site_email() are defined in config/config.php
+// which is loaded before this file via the .env loader

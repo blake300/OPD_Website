@@ -9,6 +9,9 @@ require_once __DIR__ . '/../src/api_helpers.php';
 // Only allow POST
 opd_require_method('POST');
 
+// CSRF protection
+site_require_csrf();
+
 // Parse JSON body
 $data = opd_read_json();
 
@@ -21,8 +24,15 @@ if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     opd_json_response(['error' => 'Valid email is required'], 400);
 }
 
-if (strlen($password) < 6) {
-    opd_json_response(['error' => 'Password must be at least 6 characters'], 400);
+// Use the same password validation as main registration
+$passwordErrors = opd_validate_password($password);
+if (!empty($passwordErrors)) {
+    opd_json_response(['error' => implode('. ', $passwordErrors)], 400);
+}
+
+// Sanitize name
+if ($name !== '') {
+    $name = opd_sanitize_name($name);
 }
 
 // Check if email already exists
@@ -36,7 +46,7 @@ if ($check->fetch()) {
 // Create the user
 $userId = opd_generate_id('usr');
 $now = gmdate('Y-m-d H:i:s');
-$passwordHash = password_hash($password, PASSWORD_BCRYPT);
+$passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
 $insert = $pdo->prepare(
     'INSERT INTO users (id, email, passwordHash, name, address, city, state, zip, cellPhone, role, status, createdAt, updatedAt)
@@ -59,8 +69,15 @@ $insert->execute([
     $now,
 ]);
 
-// Auto-login the user
+// Auto-login the user with proper session structure
 site_start_session();
-$_SESSION['site_user_id'] = $userId;
+session_regenerate_id(true);
+$_SESSION['site_user'] = [
+    'id' => $userId,
+    'name' => $name,
+    'email' => $email,
+    'role' => 'customer',
+];
+$_SESSION['site_csrf'] = bin2hex(random_bytes(32));
 
 opd_json_response(['ok' => true, 'userId' => $userId]);

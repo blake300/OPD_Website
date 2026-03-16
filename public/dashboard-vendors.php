@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = 'Vendor phone must be a valid 10-digit US number.';
             $messageClass = 'notice is-error';
         } elseif (!$termsAgree) {
-            $message = 'You must agree to the Oil Patch Depot terms.';
+            $message = 'You must agree to the ' . opd_site_name() . ' terms.';
             $messageClass = 'notice is-error';
         } elseif ($action === 'invite' && !$smsConsent) {
             $message = 'SMS consent is required to send an invite.';
@@ -286,8 +286,8 @@ $csrf = site_csrf_token();
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Vendors - Oil Patch Depot</title>
-  <link rel="stylesheet" href="/assets/css/site.css?v=20260128b" />
+  <title>Vendors - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
+  <link rel="stylesheet" href="/assets/css/site.css?v=20260315c" />
   <style>
     .vendor-section-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .vendor-section-header h2 { margin: 0; }
@@ -499,7 +499,7 @@ $csrf = site_csrf_token();
             </label>
             <label class="checkbox-row span-2" for="terms_agree">
               <input id="terms_agree" name="terms_agree" type="checkbox" value="1" required <?php echo $isFormError && !empty($_POST['terms_agree']) ? 'checked' : ''; ?> />
-              Agree to Oil Patch Depot Terms
+              Agree to <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?> Terms
             </label>
             <div class="span-2 form-actions">
               <button class="btn" type="submit" name="action" value="invite">Send Invite</button>

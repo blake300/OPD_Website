@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../src/auth.php';
+require_once __DIR__ . '/../config/config.php';
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -38,7 +39,7 @@ $csrf = opd_csrf_token();
         <span class="brand-badge">OPD</span>
         <div>
           <div class="brand-title">Admin Access</div>
-          <div class="brand-sub">Oil Patch Depot</div>
+          <div class="brand-sub"><?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></div>
         </div>
       </div>
       <h1>Sign in</h1>

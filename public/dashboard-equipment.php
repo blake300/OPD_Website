@@ -108,7 +108,7 @@ if ($editId !== '') {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>My Equipment - Oil Patch Depot</title>
+  <title>My Equipment - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
   <link rel="stylesheet" href="/assets/css/site.css" />
   <style>
     .equip-info-text {

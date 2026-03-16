@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Colored Bar + Child Open Indicator — 10 Variations</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; padding: 32px; color: #333; }
+    h1 { margin-bottom: 8px; font-size: 22px; }
+    .subtitle { color: #888; margin-bottom: 32px; font-size: 14px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 1200px; }
+    .card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; }
+    .card h2 { font-size: 15px; margin-bottom: 4px; }
+    .card .desc { font-size: 12px; color: #999; margin-bottom: 12px; }
+    .card > label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .result { margin-top: 10px; font-size: 12px; color: #2563eb; min-height: 18px; font-weight: 500; }
+
+    .dd-wrap { position: relative; }
+    .dd-input { width: 100%; padding: 8px 32px 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; cursor: pointer; background: #fff; outline: none; }
+    .dd-input:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,.15); }
+    .dd-chev { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 10px; color: #999; pointer-events: none; }
+    .dd-panel { display: none; position: absolute; top: calc(100% + 2px); left: 0; right: 0; z-index: 10; background: #fff; border: 1px solid #ccc; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,.12); max-height: 300px; overflow-y: auto; }
+    .dd-panel.open { display: block; }
+
+    .ps { border-bottom: 1px solid #f0f0f0; }
+    .ps:last-child { border-bottom: none; }
+    .pt { padding: 8px 12px; cursor: pointer; font-size: 13px; font-weight: 600; display: flex; align-items: center; user-select: none; }
+    .pt:hover { background: #f5f7fa; }
+    .pt-bar { width: 4px; height: 14px; background: #2563eb; border-radius: 2px; margin-right: 8px; flex-shrink: 0; }
+    .pt-label { flex: 1; }
+    .pa { font-size: 10px; color: #aaa; transition: transform .2s; }
+    .pa.open { transform: rotate(90deg); }
+    .pm { overflow: hidden; max-height: 0; transition: max-height .25s ease; }
+    .pm.open { max-height: 500px; }
+    .pc { padding: 6px 12px 6px 24px; cursor: pointer; font-size: 13px; display: flex; align-items: center; transition: all .15s; }
+    .pc:hover { background: #e8f0fe; }
+    .pc-bar { width: 3px; height: 10px; background: #93c5fd; border-radius: 1px; margin-right: 8px; flex-shrink: 0; transition: all .15s; }
+    .pc-text { flex: 1; transition: all .15s; }
+    .pgw { overflow: hidden; max-height: 0; transition: max-height .25s ease; }
+    .pgw.open { max-height: 300px; }
+    .pg { padding: 5px 12px 5px 42px; cursor: pointer; font-size: 12px; color: #666; display: flex; align-items: center; transition: background .1s; }
+    .pg:hover { background: #e8f0fe; color: #333; }
+    .pg-dot { width: 6px; height: 6px; background: #dbeafe; border-radius: 50%; margin-right: 8px; flex-shrink: 0; transition: background .15s; }
+    .pg:hover .pg-dot { background: #2563eb; }
+    .badge { background: #e8f0fe; color: #2563eb; font-size: 10px; padding: 1px 6px; border-radius: 8px; margin-left: 6px; font-weight: 400; }
+
+    /* ── Mobile ── */
+    @media (max-width: 768px) {
+      body { padding: 14px; }
+      h1 { font-size: 18px; }
+      .subtitle { font-size: 13px; margin-bottom: 20px; }
+      .grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+      .card { padding: 14px; }
+      .card h2 { font-size: 14px; }
+      .card .desc { font-size: 11px; margin-bottom: 10px; }
+
+      .dd-input { font-size: 16px; padding: 12px 38px 12px 12px; -webkit-appearance: none; border-radius: 6px; }
+      .dd-chev { right: 14px; font-size: 12px; }
+      .dd-panel { max-height: 55vh; border-radius: 10px; -webkit-overflow-scrolling: touch; }
+
+      .ps { border-bottom: 1px solid #eee; }
+      .pt { padding: 14px; font-size: 16px; min-height: 48px; }
+      .pt-bar { width: 5px; height: 20px; margin-right: 10px; }
+      .pa { font-size: 14px; }
+
+      .pc { padding: 14px 14px 14px 32px; font-size: 15px; min-height: 48px; }
+      .pc-bar { width: 4px; height: 16px; margin-right: 10px; }
+
+      .pg { padding: 14px 14px 14px 50px; font-size: 15px; min-height: 48px; }
+      .pg-dot { width: 8px; height: 8px; margin-right: 10px; }
+
+      .badge { font-size: 11px; padding: 2px 8px; }
+      .result { font-size: 13px; margin-top: 8px; }
+    }
+
+    @media (max-width: 420px) {
+      .grid { grid-template-columns: 1fr; gap: 12px; }
+      body { padding: 8px; }
+      .card { padding: 10px; }
+      .dd-panel { max-height: 65vh; }
+      .pt { padding: 14px 10px; }
+      .pc { padding: 14px 10px 14px 26px; }
+      .pg { padding: 14px 10px 14px 42px; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Child Open Indicator</h1>
+  <p class="subtitle">Clicking a child immediately shows it as "open/active" before any grandchild is picked. Closing it removes the indicator.</p>
+
+  <div class="grid" id="grid"></div>
+
+<script>
+var hierarchy = [
+  { label: 'Operations', children: [
+    { label: 'Field Labor', children: [{ label: 'Overtime' }, { label: 'Regular' }] },
+    { label: 'Equipment', children: [{ label: 'Rental' }, { label: 'Purchase' }] },
+    { label: 'Chemicals', children: [{ label: 'Treatment' }, { label: 'Inhibitor' }] }
+  ]},
+  { label: 'Maintenance', children: [
+    { label: 'Wellhead', children: [{ label: 'Repair' }, { label: 'Replace' }] },
+    { label: 'Downhole', children: [{ label: 'Pump' }, { label: 'Rods' }] },
+    { label: 'Surface', children: [{ label: 'Flowline' }, { label: 'Tank' }] }
+  ]},
+  { label: 'Capital', children: [
+    { label: 'New Well', children: [{ label: 'Drilling' }, { label: 'Completion' }] },
+    { label: 'Infrastructure', children: [{ label: 'Pipeline' }, { label: 'Facility' }] }
+  ]}
+]
+
+function countLeaves(n) { if (!n.children) return 1; var c = 0; n.children.forEach(function (ch) { c += countLeaves(ch) }); return c }
+
+var variations = [
+  { num: 1, title: 'Blue Background',
+    desc: 'Open child gets solid blue bg with white text. Closes back to normal.',
+    onStyle: 'background:#2563eb;color:#fff;font-weight:600;border-radius:4px;margin:2px 4px;padding:6px 10px;',
+    onBar: 'background:#fff;' },
+  { num: 2, title: 'Thick Left Border',
+    desc: 'Open child gets a thick blue left border with light blue bg.',
+    onStyle: 'border-left:4px solid #2563eb;padding-left:20px;font-weight:600;color:#1e40af;background:#f0f5ff;' },
+  { num: 3, title: 'Bar Grows Solid',
+    desc: 'The child bar grows thicker and turns solid blue when open.',
+    onStyle: 'font-weight:600;color:#1e40af;',
+    onBar: 'width:5px;height:14px;background:#2563eb;border-radius:2px;' },
+  { num: 4, title: 'Chevron Down',
+    desc: 'A ▾ chevron replaces the bar when open. Reverts to bar when closed.',
+    onStyle: 'font-weight:600;color:#1e40af;',
+    onBarHide: true,
+    onPrefix: '▾ ' },
+  { num: 5, title: 'Pill Shape',
+    desc: 'Open child wraps in a rounded blue pill background.',
+    onStyle: 'background:#dbeafe;color:#1e40af;font-weight:600;border-radius:14px;margin:2px 6px;padding:5px 14px;',
+    onBarHide: true },
+  { num: 6, title: 'Underline',
+    desc: 'Open child gets a blue underline beneath the text.',
+    onStyle: 'font-weight:600;color:#1e40af;',
+    onUnderline: true },
+  { num: 7, title: 'Arrow + Bold',
+    desc: 'A ▸ arrow appears before the open child name. Bold blue text.',
+    onStyle: 'font-weight:600;color:#2563eb;',
+    onBarHide: true,
+    onPrefix: '▸ ' },
+  { num: 8, title: 'Glow Shadow',
+    desc: 'Open child gets a soft blue glow ring around it.',
+    onStyle: 'font-weight:600;color:#1e40af;box-shadow:0 0 0 2px rgba(37,99,235,.25);border-radius:5px;margin:2px 4px;padding:6px 10px;' },
+  { num: 9, title: 'Color + Bar Darkens',
+    desc: 'Simple: text turns bold blue, bar turns solid dark blue.',
+    onStyle: 'font-weight:700;color:#2563eb;',
+    onBar: 'background:#2563eb;' },
+  { num: 10, title: 'Open Tag',
+    desc: 'A small [OPEN] tag appears next to the child name when expanded.',
+    onStyle: 'font-weight:600;color:#1e40af;',
+    onSuffix: ' <span style="background:#2563eb;color:#fff;font-size:9px;padding:1px 5px;border-radius:3px;margin-left:4px;font-weight:400;">OPEN</span>' }
+]
+
+var grid = document.getElementById('grid')
+
+variations.forEach(function (v) {
+  var card = document.createElement('div'); card.className = 'card'
+  var wId = 'w' + v.num, iId = 'i' + v.num, pId = 'p' + v.num, rId = 'r' + v.num
+
+  card.innerHTML = '<h2>' + v.title + '</h2><p class="desc">' + v.desc + '</p><label>Accounting Code</label>' +
+    '<div class="dd-wrap" id="' + wId + '">' +
+    '<input class="dd-input" id="' + iId + '" readonly placeholder="Select accounting code..." />' +
+    '<span class="dd-chev">▼</span>' +
+    '<div class="dd-panel" id="' + pId + '"></div>' +
+    '</div>' +
+    '<div class="result" id="' + rId + '"></div>'
+  grid.appendChild(card)
+
+  var wrap = document.getElementById(wId)
+  var input = document.getElementById(iId)
+  var panel = document.getElementById(pId)
+  var committed = ''
+
+  input.addEventListener('click', function () { panel.classList.toggle('open') })
+  document.addEventListener('click', function (e) { if (!wrap.contains(e.target)) panel.classList.remove('open') })
+
+  var allBodies = [], allArrows = []
+
+  hierarchy.forEach(function (top) {
+    var sec = document.createElement('div'); sec.className = 'ps'
+    var hdr = document.createElement('div'); hdr.className = 'pt'
+    var topCount = countLeaves(top)
+    hdr.innerHTML = '<span class="pt-bar"></span><span class="pt-label">' + top.label + '</span><span class="pa">▶</span>'
+    var body = document.createElement('div'); body.className = 'pm'
+    var arr = hdr.querySelector('.pa')
+    allBodies.push(body); allArrows.push(arr)
+
+    hdr.addEventListener('click', function () {
+      var was = body.classList.contains('open')
+      allBodies.forEach(function (b) { b.classList.remove('open') })
+      allArrows.forEach(function (a) { a.classList.remove('open') })
+      if (!was) { body.classList.add('open'); arr.classList.add('open') }
+    })
+
+    var secGcWraps = [], secPcs = [], secBars = [], secTexts = []
+
+    ;(top.children || []).forEach(function (child) {
+      var cDiv = document.createElement('div'); cDiv.className = 'pc'
+      var cBar = document.createElement('span'); cBar.className = 'pc-bar'
+      var cText = document.createElement('span'); cText.className = 'pc-text'
+      var origHtml = child.label
+      cText.innerHTML = origHtml
+      cText.dataset.orig = origHtml
+      cDiv.appendChild(cBar); cDiv.appendChild(cText)
+      secPcs.push(cDiv); secBars.push(cBar); secTexts.push(cText)
+
+      var gcW = document.createElement('div'); gcW.className = 'pgw'
+      secGcWraps.push(gcW)
+
+      var myIdx = secPcs.length - 1
+
+      function clearAllChildren() {
+        secPcs.forEach(function (c, idx) {
+          c.style.cssText = ''
+          c.className = 'pc'
+          secBars[idx].style.cssText = ''
+          secBars[idx].className = 'pc-bar'
+          secBars[idx].style.display = ''
+          secTexts[idx].innerHTML = secTexts[idx].dataset.orig
+        })
+      }
+
+      function applyOpen(idx) {
+        var c = secPcs[idx], b = secBars[idx], t = secTexts[idx]
+        if (!c || !b || !t) return
+        var orig = t.dataset.orig
+        if (v.onStyle) c.style.cssText = v.onStyle
+        if (v.onBar) b.style.cssText = v.onBar
+        if (v.onBarHide) b.style.display = 'none'
+        if (v.onPrefix || v.onSuffix) {
+          t.innerHTML = (v.onPrefix || '') + orig + (v.onSuffix || '')
+        }
+        if (v.onUnderline) {
+          t.innerHTML = '<span style="text-decoration:underline;text-decoration-color:#2563eb;text-underline-offset:4px;text-decoration-thickness:2px;">' + orig + '</span>'
+        }
+      }
+
+      cDiv.addEventListener('click', function () {
+        var was = gcW.classList.contains('open')
+        // close all sibling grandchild wraps
+        secGcWraps.forEach(function (w) { w.classList.remove('open') })
+        // clear all sibling child styles
+        clearAllChildren()
+
+        if (!was) {
+          gcW.classList.add('open')
+          applyOpen(myIdx)
+        }
+      })
+
+      ;(child.children || []).forEach(function (gc) {
+        var g = document.createElement('div'); g.className = 'pg'
+        var gDot = document.createElement('span'); gDot.className = 'pg-dot'
+        var gText = document.createElement('span'); gText.style.flex = '1'; gText.textContent = gc.label
+        g.appendChild(gDot); g.appendChild(gText)
+
+        var fullPath = top.label + ' > ' + child.label + ' > ' + gc.label
+
+        g.addEventListener('mouseenter', function () {
+          input.value = gc.label; input.style.color = '#aaa'
+        })
+        g.addEventListener('mouseleave', function () {
+          input.value = committed; input.style.color = ''
+        })
+        g.addEventListener('click', function (e) {
+          e.stopPropagation()
+          committed = gc.label
+          input.value = gc.label; input.style.color = ''
+          panel.classList.remove('open')
+          document.getElementById(rId).textContent = 'Selected: ' + fullPath
+        })
+        gcW.appendChild(g)
+      })
+      body.appendChild(cDiv); body.appendChild(gcW)
+    })
+    sec.appendChild(hdr); sec.appendChild(body); panel.appendChild(sec)
+  })
+})
+</script>
+</body>
+</html>

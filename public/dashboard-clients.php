@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = 'Client phone must be a valid 10-digit US number.';
             $messageClass = 'notice is-error';
         } elseif (!$termsAgree) {
-            $message = 'You must agree to the Oil Patch Depot terms.';
+            $message = 'You must agree to the ' . opd_site_name() . ' terms.';
             $messageClass = 'notice is-error';
         } elseif ($action === 'invite' && !$smsConsent) {
             $message = 'SMS consent is required to send an invite.';
@@ -222,7 +222,7 @@ $csrf = site_csrf_token();
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Clients - Oil Patch Depot</title>
+  <title>Clients - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
   <link rel="stylesheet" href="/assets/css/site.css" />
   <style>
     .client-email-col { word-break: break-word; max-width: 200px; min-width: 100px; }
@@ -266,7 +266,7 @@ $csrf = site_csrf_token();
             </label>
             <label class="checkbox-row span-2" for="terms_agree">
               <input id="terms_agree" name="terms_agree" type="checkbox" value="1" required />
-              Agree to Oil Patch Depot Terms
+              Agree to <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?> Terms
             </label>
             <div style="grid-column: 1 / -1;">
               <label for="notes">Notes</label>

@@ -193,11 +193,12 @@ const resources = [
       { name: 'shippingCity', label: 'City (Shipping)' },
       { name: 'shippingState', label: 'State (Shipping)' },
       { name: 'shippingPostcode', label: 'Postcode (Shipping)' },
+      { name: 'allowInvoice', label: 'Allow Invoice', type: 'checkbox' },
       { name: 'bioNotes', label: 'Biographical Notes', type: 'textarea' },
       { name: 'password', label: 'Password', type: 'password' },
       { name: 'lastLogin', label: 'Last Login', readonly: true }
     ],
-    columns: ['firstName', 'lastName', 'email', 'role', 'status', 'lastLogin']
+    columns: ['firstName', 'lastName', 'email', 'role', 'status', 'allowInvoice', 'lastLogin']
   },
   {
     id: 'settings',
@@ -5259,9 +5260,389 @@ async function init() {
     }
   }
 
-  // Load used equipment and tax groups after other resources
+  // Load used equipment, tax groups, and invoices after other resources
   loadUsedEquipment()
   loadTaxGroups()
+  loadInvoices()
 }
+
+// ========== Invoices ==========
+
+async function loadInvoices() {
+  const panel = document.getElementById('invoice-panel')
+  if (!panel) return
+  const filterEl = document.getElementById('invoice-status-filter')
+  const status = filterEl?.value || ''
+  const url = '/api/invoices.php' + (status ? '?status=' + encodeURIComponent(status) : '')
+
+  panel.innerHTML = '<div class="loading">Loading invoices...</div>'
+  try {
+    const res = await fetch(url)
+    const data = await res.json()
+    if (!res.ok) {
+      panel.innerHTML = `<div class="notice is-error">${escapeHtml(data.error || 'Failed to load')}</div>`
+      return
+    }
+    const items = data.items || []
+    if (!items.length) {
+      panel.innerHTML = '<div class="notice">No invoices found.</div>'
+      return
+    }
+    renderInvoiceTable(panel, items)
+  } catch (err) {
+    panel.innerHTML = '<div class="notice is-error">Failed to load invoices.</div>'
+  }
+}
+
+function renderInvoiceTable(panel, items) {
+  let html = '<div class="table invoice-table">'
+  html += '<div class="table-row table-header" style="grid-template-columns: 120px 100px 150px 180px 90px 90px 80px 140px;">'
+  html += '<div class="header-cell">Invoice #</div>'
+  html += '<div class="header-cell">Order #</div>'
+  html += '<div class="header-cell">Customer</div>'
+  html += '<div class="header-cell">Email</div>'
+  html += '<div class="header-cell">Amount</div>'
+  html += '<div class="header-cell">Due Date</div>'
+  html += '<div class="header-cell">Status</div>'
+  html += '<div class="header-cell">Actions</div>'
+  html += '</div>'
+
+  items.forEach((inv) => {
+    const statusClass = inv.status === 'paid' ? 'is-success' : inv.status === 'overdue' ? 'is-error' : ''
+    const statusLabel = (inv.status || 'pending').charAt(0).toUpperCase() + (inv.status || 'pending').slice(1)
+    const dueDate = inv.dueDate ? new Date(inv.dueDate + 'T00:00:00').toLocaleDateString() : ''
+    html += `<div class="table-row" style="grid-template-columns: 120px 100px 150px 180px 90px 90px 80px 140px;">`
+    html += `<div class="table-cell">${escapeHtml(inv.invoiceNumber || '')}</div>`
+    html += `<div class="table-cell">${escapeHtml(inv.orderNumber || '')}</div>`
+    html += `<div class="table-cell">${escapeHtml(inv.customerName || '')}</div>`
+    html += `<div class="table-cell">${escapeHtml(inv.customerEmail || '')}</div>`
+    html += `<div class="table-cell">$${Number(inv.amount || 0).toFixed(2)}</div>`
+    html += `<div class="table-cell">${dueDate}</div>`
+    html += `<div class="table-cell"><span class="tag ${statusClass}">${statusLabel}</span></div>`
+    html += `<div class="table-cell">`
+    html += `<a class="ghost-btn" href="/api/invoices.php?download=1&id=${encodeURIComponent(inv.id)}" target="_blank" title="View PDF">PDF</a>`
+    if (inv.status !== 'paid') {
+      html += ` <button class="ghost-btn" onclick="markInvoicePaid('${escapeHtml(inv.id)}')" title="Mark Paid">Paid</button>`
+    }
+    html += ` <button class="ghost-btn" onclick="resendInvoice('${escapeHtml(inv.id)}')" title="Resend Email">Resend</button>`
+    html += `</div></div>`
+  })
+  html += '</div>'
+  panel.innerHTML = html
+}
+
+async function markInvoicePaid(invoiceId) {
+  if (!confirm('Mark this invoice as paid?')) return
+  try {
+    const res = await fetch('/api/invoices.php?id=' + encodeURIComponent(invoiceId), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+      body: JSON.stringify({ action: 'mark_paid' })
+    })
+    const data = await res.json()
+    if (!res.ok) { alert(data.error || 'Failed'); return }
+    loadInvoices()
+  } catch (err) { alert('Failed to update invoice.') }
+}
+
+async function resendInvoice(invoiceId) {
+  if (!confirm('Resend invoice email?')) return
+  try {
+    const res = await fetch('/api/invoices.php?id=' + encodeURIComponent(invoiceId), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+      body: JSON.stringify({ action: 'resend' })
+    })
+    const data = await res.json()
+    if (!res.ok || !data.ok) { alert(data.error || 'Failed to send'); return }
+    alert('Invoice email sent.')
+  } catch (err) { alert('Failed to resend.') }
+}
+
+function initInvoices() {
+  document.getElementById('invoice-refresh')?.addEventListener('click', () => loadInvoices())
+  document.getElementById('invoice-status-filter')?.addEventListener('change', () => loadInvoices())
+}
+
+initInvoices()
+
+// Add Invoices nav link
+;(function () {
+  const nav = document.querySelector('.admin-nav, nav')
+  if (!nav) return
+  const taxLink = nav.querySelector('a[href="#sales-tax"]')
+  if (taxLink) {
+    const invoiceLink = document.createElement('a')
+    invoiceLink.href = '#invoices'
+    invoiceLink.innerHTML = '<span class="nav-dot"></span>Invoices'
+    taxLink.parentNode.insertBefore(invoiceLink, taxLink.nextSibling)
+  }
+})()
+
+// ========== CSV Import ==========
+
+let currentImportType = ''
+
+const importConfig = {
+  products: { title: 'Import Products', exampleUrl: '/uploads/examples/import-products-example.csv' },
+  variants: { title: 'Import Product Variants', exampleUrl: '/uploads/examples/import-variants-example.csv' },
+  images: { title: 'Import Images', exampleUrl: '/uploads/examples/import-images-example.csv' }
+}
+
+function openImportModal(importType) {
+  const config = importConfig[importType]
+  if (!config) return
+  currentImportType = importType
+  const modal = document.getElementById('import-modal')
+  const title = document.getElementById('import-modal-title')
+  const exampleLink = document.getElementById('import-example-link')
+  const fileInput = document.getElementById('import-csv-file')
+  const message = document.getElementById('import-modal-message')
+  title.textContent = config.title
+  exampleLink.href = config.exampleUrl
+  fileInput.value = ''
+  message.style.display = 'none'
+  message.textContent = ''
+  message.className = 'import-modal-message'
+  modal.style.display = ''
+}
+
+function closeImportModal() {
+  document.getElementById('import-modal').style.display = 'none'
+  currentImportType = ''
+}
+
+async function submitImport() {
+  const fileInput = document.getElementById('import-csv-file')
+  const mode = document.getElementById('import-mode')?.value || 'add'
+  const message = document.getElementById('import-modal-message')
+  const submitBtn = document.getElementById('import-modal-submit')
+  if (!fileInput.files || !fileInput.files[0]) {
+    message.textContent = 'Please select a CSV file.'
+    message.className = 'import-modal-message is-error'
+    message.style.display = ''
+    return
+  }
+  submitBtn.disabled = true
+  submitBtn.textContent = 'Importing...'
+  message.textContent = 'Processing...'
+  message.className = 'import-modal-message'
+  message.style.display = ''
+  try {
+    const formData = new FormData()
+    formData.append('csv', fileInput.files[0])
+    formData.append('importType', currentImportType)
+    formData.append('mode', mode)
+    const res = await fetch('/api/import.php', { method: 'POST', headers: { 'X-CSRF-TOKEN': csrfToken }, body: formData })
+    const responseText = await res.text()
+    let data
+    try { data = JSON.parse(responseText) } catch (e) {
+      message.textContent = 'Server error: ' + responseText.substring(0, 200)
+      message.className = 'import-modal-message is-error'
+      message.style.display = ''
+      return
+    }
+    if (!res.ok) {
+      message.textContent = data.error || 'Import failed.'
+      message.className = 'import-modal-message is-error'
+      message.style.display = ''
+      return
+    }
+    let summary = []
+    if (data.created > 0) summary.push(data.created + ' created')
+    if (data.updated > 0) summary.push(data.updated + ' updated')
+    if (data.skipped > 0) summary.push(data.skipped + ' skipped')
+    let msg = 'Import complete: ' + (summary.join(', ') || 'no changes') + ' (' + data.total + ' rows processed).'
+    if (data.errors && data.errors.length > 0) msg += '\n' + data.errors.join('\n')
+    message.textContent = msg
+    message.style.whiteSpace = 'pre-line'
+    message.className = 'import-modal-message is-success'
+    message.style.display = ''
+    if (currentImportType === 'products' || currentImportType === 'images') refreshResource(productsResource).catch(() => {})
+  } catch (err) {
+    message.textContent = err.message || 'Import failed.'
+    message.className = 'import-modal-message is-error'
+    message.style.display = ''
+  } finally {
+    submitBtn.disabled = false
+    submitBtn.textContent = 'Import'
+  }
+}
+
+function initImport() {
+  document.getElementById('import-products-btn')?.addEventListener('click', () => openImportModal('products'))
+  document.getElementById('import-variants-btn')?.addEventListener('click', () => openImportModal('variants'))
+  document.getElementById('import-images-btn')?.addEventListener('click', () => openImportModal('images'))
+  document.getElementById('import-modal-close')?.addEventListener('click', closeImportModal)
+  document.getElementById('import-modal-cancel')?.addEventListener('click', closeImportModal)
+  document.getElementById('import-modal-submit')?.addEventListener('click', submitImport)
+  document.getElementById('import-modal')?.addEventListener('click', (e) => { if (e.target.id === 'import-modal') closeImportModal() })
+}
+
+// ========== Product Export ==========
+
+const exportableFields = [
+  { key: 'sku', label: 'SKU' }, { key: 'name', label: 'Name' }, { key: 'category', label: 'Category' },
+  { key: 'status', label: 'Status' }, { key: 'productType', label: 'Type' }, { key: 'price', label: 'Price' },
+  { key: 'inventory', label: 'Inventory' }, { key: 'invStockTo', label: 'Inv Stock To' }, { key: 'invMin', label: 'Inv Min' },
+  { key: 'posNum', label: 'Position' }, { key: 'shortDescription', label: 'Short Desc' }, { key: 'longDescription', label: 'Long Desc' },
+  { key: 'wgt', label: 'Weight' }, { key: 'lng', label: 'Length' }, { key: 'wdth', label: 'Width' }, { key: 'hght', label: 'Height' },
+  { key: 'tags', label: 'Tags' }, { key: 'vnName', label: 'Vendor Name' }, { key: 'vnPrice', label: 'Vendor Price' },
+  { key: 'compName', label: 'Comp Name' }, { key: 'compPrice', label: 'Comp Price' }, { key: 'shelfNum', label: 'Shelf #' }
+]
+const variantExportKeys = ['sku','name','price','inventory','invStockTo','invMin','status','wgt','lng','wdth','hght','shortDescription','longDescription']
+
+function openExportModal() {
+  const modal = document.getElementById('export-modal')
+  const fieldsList = document.getElementById('export-fields-list')
+  const catsList = document.getElementById('export-categories-list')
+  const typesList = document.getElementById('export-types-list')
+  if (fieldsList && !fieldsList.children.length) {
+    exportableFields.forEach(f => {
+      const label = document.createElement('label'); label.className = 'export-checkbox'
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = true; cb.dataset.key = f.key
+      label.appendChild(cb); label.appendChild(document.createTextNode(' ' + f.label)); fieldsList.appendChild(label)
+    })
+  }
+  if (catsList && !catsList.children.length) {
+    const cats = productsResource.fields.find(f => f.name === 'category')?.options || []
+    cats.forEach(c => {
+      const label = document.createElement('label'); label.className = 'export-checkbox'
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = true; cb.dataset.cat = c
+      label.appendChild(cb); label.appendChild(document.createTextNode(' ' + c)); catsList.appendChild(label)
+    })
+  }
+  if (typesList && !typesList.children.length) {
+    ;['Simple','Variant','Associated','Combo'].forEach(t => {
+      const label = document.createElement('label'); label.className = 'export-checkbox'
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = true; cb.dataset.type = t
+      label.appendChild(cb); label.appendChild(document.createTextNode(' ' + t)); typesList.appendChild(label)
+    })
+  }
+  modal.style.display = ''
+}
+
+function closeExportModal() { document.getElementById('export-modal').style.display = 'none' }
+
+function csvSafe(val) {
+  if (val == null) return ''
+  const s = String(val)
+  if (s.includes(',') || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"'
+  return s
+}
+
+async function exportProductsCsv() {
+  const selectedFields = []; document.querySelectorAll('#export-fields-list input:checked').forEach(cb => selectedFields.push(cb.dataset.key))
+  const selectedCats = []; document.querySelectorAll('#export-categories-list input:checked').forEach(cb => selectedCats.push(cb.dataset.cat))
+  const selectedTypes = []; document.querySelectorAll('#export-types-list input:checked').forEach(cb => selectedTypes.push(cb.dataset.type))
+  const includeVariants = document.getElementById('export-include-variants')?.checked || false
+  if (!selectedFields.length) { alert('Select at least one field.'); return }
+  const entry = state.products
+  if (!entry?.items?.length) { alert('No products loaded.'); return }
+  let items = entry.items.filter(p => {
+    if (selectedCats.length && !selectedCats.includes(p.category)) return false
+    if (selectedTypes.length && !selectedTypes.includes(p.productType || 'Simple')) return false
+    return true
+  })
+  const headers = includeVariants ? ['Row Type', 'Parent SKU', ...selectedFields] : [...selectedFields]
+  const rows = [headers]
+  let variants = {}
+  if (includeVariants) {
+    try {
+      const res = await fetch('/api/product_variants.php', { headers: { 'X-CSRF-Token': csrfToken } })
+      const data = await res.json()
+      if (Array.isArray(data.items)) data.items.forEach(v => { if (!variants[v.productId]) variants[v.productId] = []; variants[v.productId].push(v) })
+    } catch (e) { console.error('Failed to fetch variants', e) }
+  }
+  items.forEach(p => {
+    const row = includeVariants ? ['Product', ''] : []
+    selectedFields.forEach(key => row.push(csvSafe(p[key])))
+    rows.push(row)
+    if (includeVariants && variants[p.id]) {
+      variants[p.id].forEach(v => {
+        const vRow = ['Variant', p.sku || '']
+        selectedFields.forEach(key => vRow.push(variantExportKeys.includes(key) ? csvSafe(v[key]) : ''))
+        rows.push(vRow)
+      })
+    }
+  })
+  const csv = rows.map(r => r.join(',')).join('\n')
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a'); a.href = url; a.download = 'products-export.csv'; a.click()
+  URL.revokeObjectURL(url)
+  closeExportModal()
+}
+
+function initExport() {
+  document.getElementById('export-products-btn')?.addEventListener('click', openExportModal)
+  document.getElementById('export-modal-close')?.addEventListener('click', closeExportModal)
+  document.getElementById('export-modal-cancel')?.addEventListener('click', closeExportModal)
+  document.getElementById('export-modal-submit')?.addEventListener('click', exportProductsCsv)
+  document.getElementById('export-modal')?.addEventListener('click', (e) => { if (e.target.id === 'export-modal') closeExportModal() })
+}
+
+// ========== Reports ==========
+
+function initReports() {
+  document.getElementById('run-report-btn')?.addEventListener('click', generateReport)
+  document.querySelectorAll('.report-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.report-tab').forEach(t => t.classList.remove('active'))
+      tab.classList.add('active')
+      document.querySelectorAll('.report-panel').forEach(p => p.style.display = 'none')
+      const target = document.getElementById(tab.dataset.target)
+      if (target) target.style.display = ''
+    })
+  })
+}
+
+async function generateReport() {
+  const activeTab = document.querySelector('.report-tab.active')
+  const reportType = activeTab?.dataset.report || 'sales-volume'
+  const period = document.getElementById('report-period')?.value || 'last7'
+  const resultArea = document.getElementById('report-results')
+  if (!resultArea) return
+  resultArea.innerHTML = '<div class="report-loading">Loading...</div>'
+  try {
+    let url = '/api/reports.php?type=' + reportType + '&period=' + period
+    if (reportType === 'product-sales') {
+      const search = document.getElementById('report-product-search')?.value || ''
+      if (search) url += '&search=' + encodeURIComponent(search)
+    }
+    const res = await fetch(url, { headers: { 'X-CSRF-Token': csrfToken } })
+    const data = await res.json()
+    if (!res.ok) { resultArea.innerHTML = '<div class="notice is-error">' + (data.error || 'Report failed') + '</div>'; return }
+    if (reportType === 'sales-volume') renderSalesVolumeReport(data, resultArea)
+    else if (reportType === 'product-sales') renderProductSalesReport(data, resultArea)
+  } catch (err) { resultArea.innerHTML = '<div class="notice is-error">' + err.message + '</div>' }
+}
+
+function renderSalesVolumeReport(data, container) {
+  let html = '<div class="report-kpi-grid">'
+  html += '<div class="report-kpi"><div class="report-kpi-value">$' + Number(data.totalRevenue || 0).toFixed(2) + '</div><div class="report-kpi-label">Total Revenue</div></div>'
+  html += '<div class="report-kpi"><div class="report-kpi-value">' + (data.orderCount || 0) + '</div><div class="report-kpi-label">Orders</div></div>'
+  html += '<div class="report-kpi"><div class="report-kpi-value">$' + Number(data.avgOrderValue || 0).toFixed(2) + '</div><div class="report-kpi-label">Avg Order Value</div></div>'
+  html += '<div class="report-kpi"><div class="report-kpi-value">' + (data.itemsSold || 0) + '</div><div class="report-kpi-label">Items Sold</div></div>'
+  html += '</div>'
+  if (data.daily && data.daily.length) {
+    html += '<table class="report-table"><thead><tr><th>Date</th><th>Orders</th><th>Revenue</th></tr></thead><tbody>'
+    data.daily.forEach(d => { html += '<tr><td>' + d.date + '</td><td>' + d.orders + '</td><td>$' + Number(d.revenue).toFixed(2) + '</td></tr>' })
+    html += '</tbody></table>'
+  }
+  container.innerHTML = html
+}
+
+function renderProductSalesReport(data, container) {
+  if (!data.products || !data.products.length) { container.innerHTML = '<div class="notice">No products found.</div>'; return }
+  let html = '<table class="report-table"><thead><tr><th>Product</th><th>SKU</th><th>Qty Sold</th><th>Revenue</th></tr></thead><tbody>'
+  data.products.forEach(p => { html += '<tr><td>' + (p.name || '') + '</td><td>' + (p.sku || '') + '</td><td>' + (p.qtySold || 0) + '</td><td>$' + Number(p.revenue || 0).toFixed(2) + '</td></tr>' })
+  html += '</tbody></table>'
+  container.innerHTML = html
+}
+
+initImport()
+initExport()
+initReports()
 
 init()

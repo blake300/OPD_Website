@@ -1,0 +1,5 @@
+sku,imageLocation,imageType
+EXAMPLE-001,/uploads/products/example-product-main.jpg,primary
+EXAMPLE-001,/uploads/products/example-product-side.jpg,secondary
+EXAMPLE-001,/uploads/products/example-product-back.jpg,secondary
+EXAMPLE-002,/uploads/products/another-product-main.png,primary

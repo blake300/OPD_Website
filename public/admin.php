@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../src/auth.php';
+require_once __DIR__ . '/../config/config.php';
 
 $user = opd_require_role(['admin', 'manager']);
 $csrf = opd_csrf_token();
@@ -18,7 +19,7 @@ header('Pragma: no-cache');
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>OPD Admin</title>
   <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf, ENT_QUOTES); ?>" />
-  <link rel="stylesheet" href="/assets/css/admin.css?v=20260218a" />
+  <link rel="stylesheet" href="/assets/css/admin.css?v=20260315d" />
 </head>
 <body>
   <header class="top-bar">
@@ -26,7 +27,7 @@ header('Pragma: no-cache');
       <span class="brand-badge">OPD</span>
       <div>
         <div class="brand-title">Admin Command</div>
-        <div class="brand-sub">Oil Patch Depot</div>
+        <div class="brand-sub"><?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></div>
       </div>
     </div>
     <div class="top-actions">
@@ -69,6 +70,10 @@ header('Pragma: no-cache');
           <div class="panel-actions">
             <input id="products-search" placeholder="Search name, SKU, category" />
             <select id="products-category-filter" aria-label="Filter by category"></select>
+            <button class="ghost-btn" id="import-products-btn" type="button">Import Products</button>
+            <button class="ghost-btn" id="import-variants-btn" type="button">Import Variants</button>
+            <button class="ghost-btn" id="import-images-btn" type="button">Import Images</button>
+            <button class="ghost-btn" id="export-products-btn" type="button">Export</button>
             <button class="ghost-btn" id="products-add" type="button">Add New Product</button>
             <button class="ghost-btn" id="products-move" type="button">Move</button>
             <button class="primary-btn" id="products-save" type="button">Save Changes</button>
@@ -77,6 +82,68 @@ header('Pragma: no-cache');
         </div>
         <div class="panel-body" id="products-panel"></div>
       </section>
+
+      <!-- Import Modal -->
+      <div id="import-modal" class="import-modal-overlay" style="display:none;">
+        <div class="import-modal">
+          <div class="import-modal-header">
+            <h3 id="import-modal-title">Import</h3>
+            <button class="import-modal-close" id="import-modal-close" type="button">&times;</button>
+          </div>
+          <div class="import-modal-body">
+            <div class="import-modal-field">
+              <label>Mode</label>
+              <select id="import-mode">
+                <option value="add">Add New (skip existing)</option>
+                <option value="update">Update Existing (skip new)</option>
+              </select>
+            </div>
+            <div class="import-modal-field">
+              <label>CSV File</label>
+              <input type="file" id="import-csv-file" accept=".csv" />
+            </div>
+            <div class="import-modal-field">
+              <a id="import-example-link" href="#" class="import-example-link" download>Download Example CSV</a>
+            </div>
+            <div id="import-modal-message" class="import-modal-message" style="display:none;"></div>
+          </div>
+          <div class="import-modal-footer">
+            <button class="ghost-btn" id="import-modal-cancel" type="button">Cancel</button>
+            <button class="primary-btn" id="import-modal-submit" type="button">Import</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Export Products Modal -->
+      <div id="export-modal" class="import-modal-overlay" style="display:none;">
+        <div class="import-modal export-modal">
+          <div class="import-modal-header">
+            <h3>Export Products</h3>
+            <button class="import-modal-close" id="export-modal-close" type="button">&times;</button>
+          </div>
+          <div class="import-modal-body">
+            <div class="import-modal-field">
+              <label>Fields to Export</label>
+              <div class="export-checkbox-grid" id="export-fields-list"></div>
+            </div>
+            <div class="import-modal-field">
+              <label>Categories to Export</label>
+              <div class="export-checkbox-grid" id="export-categories-list"></div>
+            </div>
+            <div class="import-modal-field">
+              <label>Types to Export</label>
+              <div class="export-checkbox-grid" id="export-types-list"></div>
+            </div>
+            <div class="import-modal-field">
+              <label class="export-checkbox"><input type="checkbox" id="export-include-variants" /> Include Variants</label>
+            </div>
+          </div>
+          <div class="import-modal-footer">
+            <button class="ghost-btn" id="export-modal-cancel" type="button">Cancel</button>
+            <button class="primary-btn" id="export-modal-submit" type="button">Export CSV</button>
+          </div>
+        </div>
+      </div>
 
       <section class="resource-stack" id="resource-stack"></section>
 
@@ -199,6 +266,26 @@ header('Pragma: no-cache');
         <div class="panel-body" id="tax-panel"></div>
       </section>
 
+      <section id="invoices" class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="eyebrow">Finance</div>
+            <h2>Invoices</h2>
+            <p>Track and manage invoice payments.</p>
+          </div>
+          <div class="panel-actions">
+            <select id="invoice-status-filter">
+              <option value="">All</option>
+              <option value="pending">Pending</option>
+              <option value="overdue">Overdue</option>
+              <option value="paid">Paid</option>
+            </select>
+            <button class="ghost-btn" id="invoice-refresh" type="button">Refresh</button>
+          </div>
+        </div>
+        <div class="panel-body" id="invoice-panel"></div>
+      </section>
+
       <section id="db-health" class="panel">
         <div class="panel-header">
           <div>
@@ -215,6 +302,6 @@ header('Pragma: no-cache');
     </main>
   </div>
 
-  <script src="/assets/js/admin.js?v=20260220a"></script>
+  <script src="/assets/js/admin.js?v=20260315d"></script>
 </body>
 </html>

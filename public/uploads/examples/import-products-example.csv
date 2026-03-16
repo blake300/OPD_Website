@@ -1,0 +1,3 @@
+sku,name,category,price,status,inventory,invStockTo,invMin,posNum,featured,service,largeDelivery,daysOut,shortDescription,longDescription,wgt,lng,wdth,hght,tags,vnName,vnContact,vnPrice,compName,compPrice,shelfNum
+EXAMPLE-001,Example Product,Parts,29.99,active,100,150,10,1,0,0,0,3,Short description here,Long description with more detail here,2.50,12.00,6.00,4.00,tag1 tag2,Vendor Inc,John Doe,19.99,Competitor Co,34.99,A1-01
+EXAMPLE-002,Another Product,Tools,149.99,active,50,75,5,2,1,0,1,5,Another short desc,Another long description,15.00,24.00,12.00,8.00,heavy tools,Vendor Inc,Jane Doe,99.99,Competitor Co,169.99,B2-03

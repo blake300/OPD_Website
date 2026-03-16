@@ -31,7 +31,7 @@ $csrf = site_csrf_token();
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Create Account - Oil Patch Depot</title>
+  <title>Create Account - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
   <link rel="stylesheet" href="/assets/css/site.css" />
 </head>
 <body>

@@ -15,7 +15,7 @@ $csrf = site_csrf_token();
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Oil Patch Depot</title>
+  <title><?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
   <link rel="stylesheet" href="/assets/css/site.css" />
 </head>
 <body>
@@ -143,7 +143,7 @@ $csrf = site_csrf_token();
     <?php endif; ?>
 
     <section class="panel">
-      <h2>Why Oil Patch Depot</h2>
+      <h2>Why <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></h2>
       <div class="grid cols-3">
         <div class="card">
           <h3>Field-first workflows</h3>

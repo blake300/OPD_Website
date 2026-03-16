@@ -32,8 +32,8 @@ $csrf = site_csrf_token();
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Accounting Codes - Oil Patch Depot</title>
-  <link rel="stylesheet" href="/assets/css/site.css?v=20260211a" />
+  <title>Accounting Codes - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
+  <link rel="stylesheet" href="/assets/css/site.css?v=20260315c" />
 </head>
 <body>
   <?php require __DIR__ . '/partials/site-header.php'; ?>

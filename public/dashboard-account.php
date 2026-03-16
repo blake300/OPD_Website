@@ -285,8 +285,8 @@ $csrf = site_csrf_token();
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Account - Oil Patch Depot</title>
-  <link rel="stylesheet" href="/assets/css/site.css?v=20260128b" />
+  <title>Account - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
+  <link rel="stylesheet" href="/assets/css/site.css?v=20260315c" />
   <style>
     .shipping-address-fields {
       transition: opacity 0.2s ease;

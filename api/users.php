@@ -29,6 +29,7 @@ $writeColumns = [
     'shippingPostcode',
     'shippingPhone',
     'bioNotes',
+    'allowInvoice',
     'role',
     'status',
 ];

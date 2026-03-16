@@ -16,7 +16,7 @@ $equipment = site_simple_list('equipment', $user['id']);
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Dashboard - Oil Patch Depot</title>
+  <title>Dashboard - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
   <link rel="stylesheet" href="/assets/css/site.css" />
 </head>
 <body>

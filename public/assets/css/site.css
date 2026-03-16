@@ -3427,3 +3427,43 @@ input[type="number"]::-webkit-outer-spin-button {
     padding: 6px 8px;
   }
 }
+
+/* ── Accordion Dropdown ── */
+.accdd-wrap { position: relative; }
+.accdd-input { width: 100%; padding: 8px 32px 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; cursor: pointer; background: #fff; outline: none; text-overflow: ellipsis; }
+.accdd-input:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,.15); }
+.accdd-chev { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 10px; color: #999; pointer-events: none; }
+.accdd-panel { display: none; position: absolute; top: calc(100% + 2px); left: 0; right: 0; z-index: 20; background: #fff; border: 1px solid #ccc; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,.12); max-height: 260px; overflow-y: auto; }
+.accdd-panel.open { display: block; }
+.accdd-sec { border-bottom: 1px solid #f0f0f0; }
+.accdd-sec:last-child { border-bottom: none; }
+.accdd-top { padding: 8px 12px; cursor: pointer; font-size: 13px; font-weight: 600; display: flex; align-items: center; user-select: none; }
+.accdd-top:hover { background: #f5f7fa; }
+.accdd-bar { width: 4px; height: 14px; background: #2563eb; border-radius: 2px; margin-right: 8px; flex-shrink: 0; }
+.accdd-lbl { flex: 1; }
+.accdd-arr { font-size: 10px; color: #aaa; transition: transform .2s; }
+.accdd-arr.open { transform: rotate(90deg); }
+.accdd-mid { overflow: hidden; max-height: 0; transition: max-height .25s ease; }
+.accdd-mid.open { max-height: 500px; }
+.accdd-child { padding: 6px 12px 6px 24px; cursor: pointer; font-size: 13px; display: flex; align-items: center; transition: all .15s; }
+.accdd-child:hover { background: #e8f0fe; }
+.accdd-child-bar { width: 3px; height: 10px; background: #93c5fd; border-radius: 1px; margin-right: 8px; flex-shrink: 0; transition: all .15s; }
+.accdd-child-text { flex: 1; }
+.accdd-child-open { border-left: 4px solid #2563eb; padding-left: 20px; font-weight: 600; color: #1e40af; background: #f0f5ff; }
+.accdd-gcw { overflow: hidden; max-height: 0; transition: max-height .25s ease; }
+.accdd-gcw.open { max-height: 300px; }
+.accdd-gc { padding: 5px 12px 5px 42px; cursor: pointer; font-size: 12px; color: #666; display: flex; align-items: center; transition: background .1s; }
+.accdd-gc:hover { background: #e8f0fe; color: #333; }
+.accdd-dot { width: 6px; height: 6px; background: #dbeafe; border-radius: 50%; margin-right: 8px; flex-shrink: 0; transition: background .15s; }
+.accdd-gc:hover .accdd-dot { background: #2563eb; }
+
+@media (max-width: 768px) {
+  .accdd-input { font-size: 16px; padding: 12px 38px 12px 12px; -webkit-appearance: none; }
+  .accdd-panel { max-height: 55vh; border-radius: 8px; -webkit-overflow-scrolling: touch; }
+  .accdd-top { padding: 14px; font-size: 15px; min-height: 48px; }
+  .accdd-bar { width: 5px; height: 18px; margin-right: 10px; }
+  .accdd-child { padding: 14px 14px 14px 30px; font-size: 15px; min-height: 48px; }
+  .accdd-child-bar { width: 4px; height: 14px; margin-right: 10px; }
+  .accdd-gc { padding: 14px 14px 14px 48px; font-size: 14px; min-height: 48px; }
+  .accdd-dot { width: 8px; height: 8px; margin-right: 10px; }
+}

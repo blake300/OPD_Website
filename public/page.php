@@ -136,7 +136,7 @@ $user = site_current_user();
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title><?php echo htmlspecialchars($page['title'], ENT_QUOTES); ?> - Oil Patch Depot</title>
+  <title><?php echo htmlspecialchars($page['title'], ENT_QUOTES); ?> - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
   <?php if (!empty($page['metaDescription'])): ?>
     <meta name="description" content="<?php echo htmlspecialchars($page['metaDescription'], ENT_QUOTES); ?>" />
   <?php endif; ?>

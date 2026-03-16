@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../src/store.php';
 require_once __DIR__ . '/../src/site_auth.php';
+require_once __DIR__ . '/../src/invoice_service.php';
 
 $user = site_require_auth();
 $message = '';
@@ -61,6 +62,22 @@ $paymentMethods = [];
 $vendorNames = [];
 $clientNames = [];
 $csrf = site_csrf_token();
+
+// Load invoice data for all user orders
+$invoicesByOrder = [];
+opd_ensure_invoice_tables();
+if ($orders) {
+    $invPdo = opd_db();
+    $orderIdsForInv = array_filter(array_map(fn($o) => $o['id'] ?? null, $orders));
+    if ($orderIdsForInv) {
+        $placeholders = implode(',', array_fill(0, count($orderIdsForInv), '?'));
+        $invStmt = $invPdo->prepare("SELECT id, orderId, invoiceNumber, status, pdfPath FROM invoices WHERE orderId IN ({$placeholders})");
+        $invStmt->execute(array_values($orderIdsForInv));
+        foreach ($invStmt->fetchAll() as $inv) {
+            $invoicesByOrder[$inv['orderId']] = $inv;
+        }
+    }
+}
 
 if ($orders) {
     $pdo = opd_db();
@@ -236,8 +253,8 @@ sort($uniqueClientNames);
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Orders - Oil Patch Depot</title>
-  <link rel="stylesheet" href="/assets/css/site.css?v=20260211b" />
+  <title>Orders - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
+  <link rel="stylesheet" href="/assets/css/site.css?v=20260315c" />
 </head>
 <body>
   <?php require __DIR__ . '/partials/site-header.php'; ?>
@@ -332,6 +349,7 @@ sort($uniqueClientNames);
                     <th>Total</th>
                     <th>Date</th>
                     <th>Approval</th>
+                    <th>Invoice</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -413,9 +431,17 @@ sort($uniqueClientNames);
                           <span class="badge badge-muted">&mdash;</span>
                         <?php endif; ?>
                       </td>
+                      <td>
+                        <?php
+                        $orderInvoice = $invoicesByOrder[$orderId] ?? null;
+                        if ($orderInvoice):
+                        ?>
+                          <a href="/api/invoices.php?download=1&id=<?php echo urlencode($orderInvoice['id']); ?>" target="_blank" class="btn-outline btn-sm" title="Download Invoice <?php echo htmlspecialchars($orderInvoice['invoiceNumber'], ENT_QUOTES); ?>">Invoice</a>
+                        <?php endif; ?>
+                      </td>
                     </tr>
                     <tr class="order-details-row" data-order-details-row data-order-id="<?php echo htmlspecialchars($orderId, ENT_QUOTES); ?>" hidden>
-                      <td colspan="8">
+                      <td colspan="9">
                         <div id="<?php echo htmlspecialchars($detailsId, ENT_QUOTES); ?>" class="order-details-box" data-order-details-box>
                           <div class="order-details-loading">Click on an order row above to view details and manage the order.</div>
                         </div>
@@ -688,34 +714,41 @@ sort($uniqueClientNames);
         title.textContent = label
         field.appendChild(title)
 
-        var select = document.createElement('select')
-        select.className = 'accounting-cascading-select'
-        select.dataset.category = category
-
         var currentValue = (state.groups[groupIndex] || {})[category] || ''
-        rebuildCascadingSelect(select, structure, category, currentValue)
+        var nodes = Array.isArray(structure[category]) ? structure[category] : []
 
-        select.addEventListener('change', function (event) {
-          var newValue = event.target.value
-          var group = state.groups[groupIndex] || {}
-          group[category] = newValue
-          state.groups[groupIndex] = group
-          queueSave(orderId)
-          rebuildCascadingSelect(select, structure, category, newValue)
+        if (typeof AccordionDropdown !== 'undefined') {
+          AccordionDropdown.create(field, nodes, {
+            value: currentValue,
+            placeholder: 'Select ' + label.toLowerCase() + '...',
+            onChange: function (path) {
+              var group = state.groups[groupIndex] || {}
+              group[category] = path
+              state.groups[groupIndex] = group
+              queueSave(orderId)
+            }
+          })
+        } else {
+          var select = document.createElement('select')
+          select.className = 'accounting-cascading-select'
+          select.dataset.category = category
+          rebuildCascadingSelect(select, structure, category, currentValue)
+          select.addEventListener('change', function (event) {
+            var group = state.groups[groupIndex] || {}
+            group[category] = event.target.value
+            state.groups[groupIndex] = group
+            queueSave(orderId)
+            rebuildCascadingSelect(select, structure, category, event.target.value)
+            if (event.target.value && !isAtDeepestLevel(structure, category, event.target.value)) {
+              setTimeout(function () { expandCascadingSelect(select) }, 50)
+            } else {
+              collapseCascadingSelect(select)
+            }
+          })
+          select.addEventListener('blur', function () { collapseCascadingSelect(select) })
+          field.appendChild(select)
+        }
 
-          // Auto-expand dropdown if selection has children
-          if (newValue && !isAtDeepestLevel(structure, category, newValue)) {
-            setTimeout(function () { expandCascadingSelect(select) }, 50)
-          } else {
-            collapseCascadingSelect(select)
-          }
-        })
-
-        select.addEventListener('blur', function () {
-          collapseCascadingSelect(select)
-        })
-
-        field.appendChild(select)
         return field
       }
 

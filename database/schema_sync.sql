@@ -1828,3 +1828,42 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'reliability' AND column_name = 'updatedAt');
 SET @sql := IF(@col_exists = 0, 'ALTER TABLE `reliability` ADD COLUMN `updatedAt` DATETIME', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- Invoice feature: allowInvoice on users
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'users' AND column_name = 'allowInvoice');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `users` ADD COLUMN `allowInvoice` TINYINT(1) DEFAULT 0', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- Invoice feature: paymentMethod on orders (card, invoice, etc.)
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'orders' AND column_name = 'paymentMethod');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `orders` ADD COLUMN `paymentMethod` VARCHAR(50) DEFAULT ''card''', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- Invoices table
+CREATE TABLE IF NOT EXISTS invoices (
+  id VARCHAR(64) PRIMARY KEY,
+  orderId VARCHAR(64) NOT NULL,
+  userId VARCHAR(64),
+  invoiceNumber VARCHAR(50) NOT NULL,
+  amount DECIMAL(10,2) NOT NULL,
+  status VARCHAR(20) DEFAULT 'pending',
+  dueDate DATE NOT NULL,
+  pdfPath VARCHAR(255),
+  paidAt DATETIME,
+  createdAt DATETIME,
+  updatedAt DATETIME,
+  UNIQUE KEY uq_invoice_number (invoiceNumber),
+  INDEX idx_order_id (orderId),
+  INDEX idx_user_id (userId),
+  INDEX idx_status (status)
+);
+
+-- Invoice sequence counter
+CREATE TABLE IF NOT EXISTS invoice_sequence (
+  id INT PRIMARY KEY DEFAULT 1,
+  nextNumber INT NOT NULL DEFAULT 1
+);
+INSERT IGNORE INTO invoice_sequence (id, nextNumber) VALUES (1, 1);
+
+-- NOTE: If switching Stripe API keys, run this ONCE manually then remove:
+-- UPDATE users SET stripeCustomerId = NULL WHERE stripeCustomerId IS NOT NULL;

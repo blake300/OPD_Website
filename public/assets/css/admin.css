@@ -2147,3 +2147,87 @@ body {
     max-height: none;
   }
 }
+
+/* ── Import/Export Modals ── */
+.import-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,.4);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.import-modal {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.2);
+  width: 480px;
+  max-width: 90vw;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.import-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #eee;
+}
+.import-modal-header h3 { margin: 0; font-size: 16px; }
+.import-modal-close {
+  background: none; border: none; font-size: 22px; cursor: pointer; color: #999; padding: 0 4px;
+}
+.import-modal-close:hover { color: #333; }
+.import-modal-body { padding: 16px 20px; }
+.import-modal-field { margin-bottom: 14px; }
+.import-modal-field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.import-modal-field select,
+.import-modal-field input[type="file"] { width: 100%; padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
+.import-modal-message { padding: 10px 12px; border-radius: 4px; font-size: 13px; margin-top: 8px; background: #f8f9fa; }
+.import-modal-message.is-error { background: #fef2f2; color: #b91c1c; }
+.import-modal-message.is-success { background: #f0fdf4; color: #166534; }
+.import-modal-footer {
+  display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid #eee;
+}
+.import-example-link { font-size: 13px; color: #2563eb; }
+
+/* Export modal extras */
+.export-modal { width: 560px; }
+.export-checkbox-grid { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.export-checkbox { font-size: 13px; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+.export-checkbox input { margin: 0; }
+
+/* ── Report Styles ── */
+.report-tabs { display: flex; gap: 0; border-bottom: 2px solid #eee; margin-bottom: 16px; }
+.report-tab { padding: 8px 16px; cursor: pointer; font-size: 13px; font-weight: 600; color: #666; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+.report-tab:hover { color: #333; }
+.report-tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+.report-filters { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+.report-filter-row { display: flex; gap: 8px; align-items: center; }
+.report-filter-row label { font-size: 13px; font-weight: 600; }
+.report-filter-row select, .report-filter-row input { padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
+.report-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.report-kpi { background: #f8f9fa; border-radius: 6px; padding: 14px; text-align: center; }
+.report-kpi-value { font-size: 22px; font-weight: 700; color: #1e40af; }
+.report-kpi-label { font-size: 12px; color: #888; margin-top: 4px; }
+.report-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.report-table th { text-align: left; padding: 8px 10px; border-bottom: 2px solid #eee; font-weight: 600; color: #666; }
+.report-table td { padding: 6px 10px; border-bottom: 1px solid #f0f0f0; }
+.report-table tr:hover td { background: #f8f9fa; }
+.report-loading { padding: 20px; text-align: center; color: #999; }
+
+/* ── Refund Panel ── */
+.refund-trigger { font-size: 12px; color: #2563eb; cursor: pointer; background: none; border: none; padding: 2px 0; }
+.refund-trigger:hover { text-decoration: underline; }
+.refund-panel { background: #f8f9fa; border: 1px solid #eee; border-radius: 6px; padding: 14px; margin-top: 8px; }
+.refund-type-tabs { display: flex; gap: 0; margin-bottom: 12px; border-bottom: 1px solid #ddd; }
+.refund-type-tab { padding: 6px 14px; cursor: pointer; font-size: 12px; color: #666; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.refund-type-tab.active { color: #2563eb; border-bottom-color: #2563eb; font-weight: 600; }
+.refund-qty-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; font-size: 13px; }
+.refund-qty-input { width: 50px; padding: 4px 6px; border: 1px solid #ccc; border-radius: 3px; text-align: center; font-size: 13px; }
+.refund-amount-input { width: 100px; padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
+.refund-method-section { margin: 10px 0; }
+.refund-method-section label { font-size: 12px; display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.refund-checkbox { display: flex; align-items: center; gap: 6px; font-size: 12px; margin: 8px 0; }
+.refund-submit { margin-top: 10px; }

@@ -13,7 +13,7 @@ $csrf = site_csrf_token();
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Favorites - Oil Patch Depot</title>
+  <title>Favorites - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
   <link rel="stylesheet" href="/assets/css/site.css" />
 </head>
 <body>
@@ -301,44 +301,39 @@ $csrf = site_csrf_token();
         title.textContent = label;
         field.appendChild(title);
 
-        var pathParts = parseAccountingPath(split[category] || '');
-        var select = document.createElement('select');
-        select.className = 'favorite-split-select accounting-cascading-select';
-        select.dataset.category = category;
+        var currentValue = split[category] || '';
+        var nodes = Array.isArray(accountingStructure[category]) ? accountingStructure[category] : [];
 
-        var blank = document.createElement('option');
-        blank.value = '';
-        blank.textContent = 'Select';
-        select.appendChild(blank);
-
-        var rootNodes = Array.isArray(accountingStructure[category]) ? accountingStructure[category] : [];
-        var fragment = document.createDocumentFragment();
-        buildCascadingOptions(rootNodes, pathParts, 0, fragment);
-        select.appendChild(fragment);
-
-        // Set selected value
-        var currentValue = joinAccountingPath(pathParts);
-        if (currentValue) {
-          select.value = currentValue;
+        if (typeof AccordionDropdown !== 'undefined') {
+          AccordionDropdown.create(field, nodes, {
+            value: currentValue,
+            placeholder: 'Select ' + label.toLowerCase() + '...',
+            onChange: function (path) {
+              split[category] = path;
+              renderItems();
+            }
+          });
+        } else {
+          var pathParts = parseAccountingPath(currentValue);
+          var select = document.createElement('select');
+          select.className = 'favorite-split-select accounting-cascading-select';
+          select.dataset.category = category;
+          var blank = document.createElement('option');
+          blank.value = ''; blank.textContent = 'Select';
+          select.appendChild(blank);
+          var rootNodes = Array.isArray(accountingStructure[category]) ? accountingStructure[category] : [];
+          var fragment = document.createDocumentFragment();
+          buildCascadingOptions(rootNodes, pathParts, 0, fragment);
+          select.appendChild(fragment);
+          var cv = joinAccountingPath(pathParts);
+          if (cv) select.value = cv;
+          select.addEventListener('change', function (event) {
+            split[category] = event.target.value;
+            renderItems();
+          });
+          field.appendChild(select);
         }
 
-        select.addEventListener('change', function (event) {
-          var newValue = event.target.value;
-          split[category] = newValue;
-          renderItems();
-
-          // Auto-expand dropdown if selection has children
-          if (newValue && !isAtDeepestLevel(category, newValue)) {
-            setTimeout(function () {
-              var newSelect = event.target.closest('.favorite-split-row').querySelector('select[data-category="' + category + '"]');
-              if (newSelect && typeof newSelect.showPicker === 'function') {
-                try { newSelect.showPicker(); } catch (e) { /* ignore */ }
-              }
-            }, 50);
-          }
-        });
-
-        field.appendChild(select);
         return field;
       }
 

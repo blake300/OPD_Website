@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../src/site_auth.php';
+require_once __DIR__ . '/../../src/api_helpers.php';
 $siteUser = site_current_user();
+$_siteName = opd_site_name();
 ?>
 <div class="site-header-wrapper">
   <div class="topbar<?php echo $siteUser ? ' topbar--signed-in' : ''; ?>">
@@ -22,7 +24,7 @@ $siteUser = site_current_user();
   <header class="site-header">
     <div class="site-header-inner">
       <a class="logo" href="/index.php">
-        <img src="/assets/Oil-Patch-Depot-Logo_New.jpg" alt="Oil Patch Depot" class="logo-image">
+        <img src="/assets/Oil-Patch-Depot-Logo_New.jpg" alt="<?php echo htmlspecialchars($_siteName, ENT_QUOTES); ?>" class="logo-image">
       </a>
 
       <form class="search-bar" action="/products.php" method="get" role="search">

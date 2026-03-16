@@ -128,8 +128,8 @@ if ($user) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Shopping Cart - Oil Patch Depot</title>
-  <link rel="stylesheet" href="/assets/css/site.css?v=20260211a" />
+  <title>Shopping Cart - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
+  <link rel="stylesheet" href="/assets/css/site.css?v=20260315c" />
   <style>
     /* Cart UX Improvements */
     .cart-count {
@@ -1831,87 +1831,150 @@ if ($user) {
         }
       }
 
+      function findChildNode(nodes, label) {
+        const target = normalizeNodeLabel(label);
+        if (!target) return null;
+        for (let i = 0; i < (nodes || []).length; i++) {
+          if (normalizeNodeLabel(nodes[i].label) === target) return nodes[i];
+        }
+        return null;
+      }
+
+      function isAtDeepestLevel(category, pathValue) {
+        if (!pathValue) return true;
+        const pathParts = parseAccountingPath(pathValue);
+        if (!pathParts.length) return true;
+        let nodes = Array.isArray(accountingStructure[category]) ? accountingStructure[category] : [];
+        for (let i = 0; i < pathParts.length; i++) {
+          const node = findChildNode(nodes, pathParts[i]);
+          if (!node) return true;
+          if (i === pathParts.length - 1) {
+            return !Array.isArray(node.children) || node.children.length === 0;
+          }
+          nodes = node.children || [];
+        }
+        return true;
+      }
+
+      function buildCascadingOptions(category, nodes, pathParts, level, fragment) {
+        let indent = '';
+        for (let i = 0; i < level; i++) indent += '\u00A0\u00A0';
+        for (let j = 0; j < nodes.length; j++) {
+          const node = nodes[j];
+          const label = normalizeNodeLabel(node.label);
+          if (!label) continue;
+
+          const option = document.createElement('option');
+          const currentPath = pathParts.slice(0, level).concat([label]);
+          option.value = joinAccountingPath(currentPath);
+          option.textContent = indent + label;
+          option.dataset.level = String(level);
+
+          const fullPath = joinAccountingPath(pathParts);
+          const optionPath = joinAccountingPath(currentPath);
+          if (fullPath === optionPath || fullPath.indexOf(optionPath + ' > ') === 0) {
+            option.selected = fullPath === optionPath;
+          }
+
+          fragment.appendChild(option);
+
+          if (pathParts[level] === label && Array.isArray(node.children) && node.children.length > 0) {
+            buildCascadingOptions(category, node.children, pathParts, level + 1, fragment);
+          }
+        }
+      }
+
+      function rebuildCascadingSelect(select, category, pathValue) {
+        if (!select) return;
+        select.innerHTML = '';
+
+        const blank = document.createElement('option');
+        blank.value = '';
+        blank.textContent = 'Select';
+        select.appendChild(blank);
+
+        const pathParts = parseAccountingPath(pathValue || '');
+        const rootNodes = Array.isArray(accountingStructure[category]) ? accountingStructure[category] : [];
+        const fragment = document.createDocumentFragment();
+        buildCascadingOptions(category, rootNodes, pathParts, 0, fragment);
+        select.appendChild(fragment);
+
+        const currentValue = joinAccountingPath(pathParts);
+        if (currentValue) select.value = currentValue;
+      }
+
+      function collapseCascadingSelect(select) {
+        if (!select) return;
+        if (select.classList.contains('is-expanded')) {
+          select.size = 1;
+          select.classList.remove('is-expanded');
+        }
+      }
+
+      function expandCascadingSelect(select) {
+        if (!select) return;
+        if (typeof select.showPicker === 'function') {
+          try { select.showPicker(); } catch (e) { /* ignore */ }
+          return;
+        }
+        const optionCount = select.options ? select.options.length : 0;
+        if (optionCount > 1) {
+          select.size = Math.min(optionCount, 8);
+          select.classList.add('is-expanded');
+          select.focus();
+        }
+      }
+
       function buildAccountingCategoryField(category, label, group, index) {
         const field = document.createElement('div');
         field.className = 'cart-group-field';
         field.appendChild(document.createElement('label')).textContent = label;
 
-        const container = document.createElement('div');
-        container.className = 'cascading-selects';
-        field.appendChild(container);
+        const currentValue = group[category] || '';
+        const nodes = Array.isArray(accountingStructure[category]) ? accountingStructure[category] : [];
 
-        // Build a single-level select for the given nodes/level.
-        // When the user picks a value, child select appears immediately (no DOM destroy).
-        function buildLevelSelect(nodes, pathParts, level) {
-          const sel = document.createElement('select');
-          sel.dataset.category = category;
-          sel.dataset.level = String(level);
-          sel.className = 'accounting-cascading-select';
-
-          const blank = document.createElement('option');
-          blank.value = '';
-          blank.textContent = 'Select';
-          sel.appendChild(blank);
-
-          nodes.forEach((node) => {
-            const opt = document.createElement('option');
-            opt.value = normalizeNodeLabel(node.label);
-            opt.textContent = normalizeNodeLabel(node.label);
-            sel.appendChild(opt);
+        if (typeof AccordionDropdown !== 'undefined') {
+          const dd = AccordionDropdown.create(field, nodes, {
+            value: currentValue,
+            placeholder: 'Select ' + label.toLowerCase() + '...',
+            onChange: function (path) {
+              if (!isSignedIn) {
+                showMessage('Sign in to use accounting codes.');
+                dd.setValue(group[category] || '');
+                return;
+              }
+              clearMessage();
+              groups[index][category] = path;
+              saveGroups();
+              renderItems();
+            }
           });
-
-          if (pathParts[level]) {
-            sel.value = pathParts[level];
-          }
-
-          sel.addEventListener('change', (event) => {
+        } else {
+          // Fallback to native select if AccordionDropdown not loaded
+          const select = document.createElement('select');
+          select.className = 'accounting-cascading-select';
+          select.dataset.category = category;
+          rebuildCascadingSelect(select, category, currentValue);
+          select.addEventListener('change', function (event) {
             if (!isSignedIn) {
               showMessage('Sign in to use accounting codes.');
-              event.target.value = pathParts[level] || '';
+              event.target.value = group[category] || '';
               return;
             }
             clearMessage();
-            const selectedLabel = normalizeNodeLabel(event.target.value);
-
-            // Remove all child selects below this level
-            const allSelects = Array.from(container.querySelectorAll('select'));
-            for (let i = level + 1; i < allSelects.length; i++) {
-              allSelects[i].remove();
-            }
-
-            // Build and save the new path
-            const newPathParts = pathParts.slice(0, level);
-            if (selectedLabel) newPathParts.push(selectedLabel);
-            groups[index][category] = joinAccountingPath(newPathParts);
+            groups[index][category] = event.target.value;
             saveGroups();
             renderItems();
-
-            // If the selected node has children, add the child select immediately
-            // (no DOM destruction = user gesture context preserved for showPicker)
-            if (selectedLabel) {
-              const selectedNode = nodes.find((n) => normalizeNodeLabel(n.label) === selectedLabel);
-              if (selectedNode && Array.isArray(selectedNode.children) && selectedNode.children.length > 0) {
-                const childSel = buildLevelSelect(selectedNode.children, newPathParts, level + 1);
-                container.appendChild(childSel);
-                if (typeof childSel.showPicker === 'function') {
-                  try { childSel.showPicker(); } catch (e) { /* ignore */ }
-                }
-              }
+            rebuildCascadingSelect(select, category, event.target.value);
+            if (event.target.value && !isAtDeepestLevel(category, event.target.value)) {
+              setTimeout(function () { expandCascadingSelect(select); }, 50);
+            } else {
+              collapseCascadingSelect(select);
             }
           });
-
-          return sel;
-        }
-
-        // Restore saved selection: build one select per already-chosen level
-        const savedPathParts = parseAccountingPath(group[category] || '');
-        let nodes = Array.isArray(accountingStructure[category]) ? accountingStructure[category] : [];
-        for (let level = 0; nodes.length > 0; level++) {
-          container.appendChild(buildLevelSelect(nodes, savedPathParts, level));
-          if (!savedPathParts[level]) break;
-          const selectedNode = nodes.find((n) => normalizeNodeLabel(n.label) === savedPathParts[level]);
-          if (!selectedNode || !Array.isArray(selectedNode.children) || !selectedNode.children.length) break;
-          nodes = selectedNode.children;
+          select.addEventListener('blur', function () { collapseCascadingSelect(select); });
+          field.appendChild(select);
+          console.warn('AccordionDropdown not available, using fallback select for', category);
         }
 
         return field;

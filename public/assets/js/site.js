@@ -1,3 +1,139 @@
+// ── Accordion Dropdown Component ──
+window.AccordionDropdown = (function () {
+  function create(container, nodes, opts) {
+    opts = opts || {}
+    var wrap = document.createElement('div')
+    wrap.className = 'accdd-wrap'
+    var input = document.createElement('input')
+    input.type = 'text'
+    input.className = 'accdd-input'
+    input.readOnly = true
+    input.placeholder = opts.placeholder || 'Select...'
+    var chev = document.createElement('span')
+    chev.className = 'accdd-chev'
+    chev.textContent = '\u25BC'
+    var panel = document.createElement('div')
+    panel.className = 'accdd-panel'
+    wrap.appendChild(input)
+    wrap.appendChild(chev)
+    wrap.appendChild(panel)
+    container.appendChild(wrap)
+
+    var committed = opts.value || ''
+    if (committed) input.value = committed.split(' > ').pop()
+
+    input.addEventListener('click', function () { panel.classList.toggle('open') })
+    document.addEventListener('click', function (e) { if (!wrap.contains(e.target)) panel.classList.remove('open') })
+
+    var allBodies = [], allArrows = []
+
+    function buildPanel() {
+      panel.innerHTML = ''
+      allBodies = []; allArrows = []
+      if (!nodes || !nodes.length) {
+        var empty = document.createElement('div')
+        empty.style.cssText = 'padding:12px;color:#999;font-size:13px;text-align:center;'
+        empty.textContent = 'No options available'
+        panel.appendChild(empty)
+        return
+      }
+
+      nodes.forEach(function (top) {
+        var sec = document.createElement('div'); sec.className = 'accdd-sec'
+        var hdr = document.createElement('div'); hdr.className = 'accdd-top'
+        hdr.innerHTML = '<span class="accdd-bar"></span><span class="accdd-lbl">' + esc(top.label) + '</span><span class="accdd-arr">\u25B6</span>'
+        var body = document.createElement('div'); body.className = 'accdd-mid'
+        var arr = hdr.querySelector('.accdd-arr')
+        allBodies.push(body); allArrows.push(arr)
+
+        hdr.addEventListener('click', function () {
+          var was = body.classList.contains('open')
+          allBodies.forEach(function (b) { b.classList.remove('open') })
+          allArrows.forEach(function (a) { a.classList.remove('open') })
+          if (!was) { body.classList.add('open'); arr.classList.add('open') }
+        })
+
+        if (!top.children || !top.children.length) {
+          hdr.addEventListener('click', function () { doSelect(top.label) })
+          sec.appendChild(hdr)
+          panel.appendChild(sec)
+          return
+        }
+
+        var secChildren = [], secGcWraps = []
+        top.children.forEach(function (child) {
+          var cDiv = document.createElement('div'); cDiv.className = 'accdd-child'
+          var cBar = document.createElement('span'); cBar.className = 'accdd-child-bar'
+          var cText = document.createElement('span'); cText.className = 'accdd-child-text'
+          cText.textContent = child.label
+          cDiv.appendChild(cBar); cDiv.appendChild(cText)
+          secChildren.push(cDiv)
+
+          if (!child.children || !child.children.length) {
+            cDiv.addEventListener('click', function () { doSelect(top.label + ' > ' + child.label) })
+            cDiv.addEventListener('mouseenter', function () { input.value = child.label; input.style.color = '#aaa' })
+            cDiv.addEventListener('mouseleave', function () { input.value = committed ? committed.split(' > ').pop() : ''; input.style.color = '' })
+            body.appendChild(cDiv)
+            return
+          }
+
+          var gcW = document.createElement('div'); gcW.className = 'accdd-gcw'
+          secGcWraps.push(gcW)
+
+          cDiv.addEventListener('click', function () {
+            var was = gcW.classList.contains('open')
+            secGcWraps.forEach(function (w) { w.classList.remove('open') })
+            secChildren.forEach(function (c) { c.classList.remove('accdd-child-open') })
+            if (!was) { gcW.classList.add('open'); cDiv.classList.add('accdd-child-open') }
+          })
+
+          child.children.forEach(function (gc) {
+            var g = document.createElement('div'); g.className = 'accdd-gc'
+            var gDot = document.createElement('span'); gDot.className = 'accdd-dot'
+            var gText = document.createElement('span'); gText.style.flex = '1'; gText.textContent = gc.label
+            g.appendChild(gDot); g.appendChild(gText)
+            g.addEventListener('mouseenter', function () { input.value = gc.label; input.style.color = '#aaa' })
+            g.addEventListener('mouseleave', function () { input.value = committed ? committed.split(' > ').pop() : ''; input.style.color = '' })
+            g.addEventListener('click', function (e) {
+              e.stopPropagation()
+              doSelect(top.label + ' > ' + child.label + ' > ' + gc.label)
+            })
+            gcW.appendChild(g)
+          })
+          body.appendChild(cDiv); body.appendChild(gcW)
+        })
+        sec.appendChild(hdr); sec.appendChild(body); panel.appendChild(sec)
+      })
+    }
+
+    function doSelect(path) {
+      committed = path
+      input.value = path.split(' > ').pop()
+      input.style.color = ''
+      panel.classList.remove('open')
+      if (typeof opts.onChange === 'function') opts.onChange(path)
+    }
+
+    function esc(s) {
+      var d = document.createElement('div'); d.textContent = s; return d.innerHTML
+    }
+
+    buildPanel()
+
+    return {
+      getValue: function () { return committed },
+      setValue: function (path) {
+        committed = path || ''
+        input.value = committed ? committed.split(' > ').pop() : ''
+      },
+      setNodes: function (newNodes) { nodes = newNodes; buildPanel() },
+      destroy: function () { if (wrap.parentNode) wrap.parentNode.removeChild(wrap) },
+      element: wrap
+    }
+  }
+  return { create: create }
+})()
+
 function closestWithAttr(node, attrName) {
   let current = node
   while (current && current !== document) {
@@ -460,3 +596,4 @@ for (let i = 0; i < qtyButtons.length; i += 1) {
 
   window.Favorites = { init: FavoritesInit }
 })()
+

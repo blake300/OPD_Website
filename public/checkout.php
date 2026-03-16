@@ -245,6 +245,20 @@ try {
         }
     }
 
+    // Check if client's linked user allows invoice billing
+    $allowInvoice = false;
+    if ($clientUserId) {
+        try {
+            $invCheck = $pdo->prepare('SELECT allowInvoice FROM users WHERE id = ? LIMIT 1');
+            $invCheck->execute([$clientUserId]);
+            $invRow = $invCheck->fetch();
+            $allowInvoice = $invRow && !empty($invRow['allowInvoice']);
+        } catch (Throwable $e) {
+            // Column may not exist yet — safe to ignore
+            $allowInvoice = false;
+        }
+    }
+
     // Load cart accounting (only for logged-in users)
     if ($user) {
         try {
@@ -346,12 +360,16 @@ try {
             $totalWithTax = $subtotal + $tax + $shippingCost;
             $expectedAmountCents = (int) round($totalWithTax * 100);
             $intentData = null;
+            $payByInvoice = !empty($_POST['payment_method_type']) && $_POST['payment_method_type'] === 'invoice';
 
             // Validate service items require saved payment method
             if ($hasAnyServiceItem && $user && !site_get_payment_methods($user['id'])) {
                 $message = 'Service items require a saved payment method. Please add one in your account dashboard.';
             } elseif ($accountingPayload && cart_accounting_mismatch($items, $accountingPayload)) {
                 $message = 'Group quantities must match item quantities before checkout.';
+            } elseif ($payByInvoice && $allowInvoice) {
+                // Invoice payment — skip Stripe entirely
+                $intentData = null;
             } elseif ($stripeEnabled || $requireSavedPayment || $showUserSavedMethods) {
                 // Validate payment intent
                 if ($paymentIntentId === '') {
@@ -460,6 +478,24 @@ try {
                         }
                     }
 
+                    // Handle invoice payment
+                    if ($payByInvoice && $allowInvoice && !empty($result['orderId'])) {
+                        try {
+                            require_once __DIR__ . '/../src/invoice_service.php';
+                            $now = gmdate('Y-m-d H:i:s');
+                            // Set order payment method to invoice
+                            $pdo->prepare('UPDATE orders SET paymentMethod = ?, paymentStatus = ?, updatedAt = ? WHERE id = ?')
+                                ->execute(['invoice', 'Invoice Pending', $now, $result['orderId']]);
+                            // Create invoice record
+                            $invResult = opd_create_invoice($result['orderId'], $user['id'] ?? '', $totalWithTax, 30);
+                            // Generate PDF and email it
+                            opd_generate_invoice_pdf($invResult['id']);
+                            opd_email_invoice($invResult['id']);
+                        } catch (Throwable $e) {
+                            error_log('Invoice creation error: ' . $e->getMessage());
+                        }
+                    }
+
                     $success = $result;
                 }
             }
@@ -489,8 +525,8 @@ try {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Checkout - Oil Patch Depot</title>
-  <link rel="stylesheet" href="/assets/css/site.css?v=20260128b" />
+  <title>Checkout - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
+  <link rel="stylesheet" href="/assets/css/site.css?v=20260315c" />
   <?php if ($stripeEnabled): ?>
     <script src="https://js.stripe.com/v3/"></script>
   <?php endif; ?>
@@ -853,6 +889,7 @@ try {
           <div class="span-2">
             <fieldset style="border:none;padding:0;margin:0;">
               <legend>Payment method</legend>
+              <input type="hidden" name="payment_method_type" id="payment_method_type" value="card" />
               <div class="shipping-options" id="user-payment-options">
                 <?php foreach ($userPaymentMethods as $idx => $pm): ?>
                   <label class="radio-row">
@@ -867,6 +904,12 @@ try {
                   <input type="radio" name="saved_payment_choice" value="new_card" />
                   <span class="radio-label">Enter a new card</span>
                 </label>
+                <?php if ($allowInvoice): ?>
+                <label class="radio-row">
+                  <input type="radio" name="saved_payment_choice" value="invoice" />
+                  <span class="radio-label">Pay by Invoice (Net 30)</span>
+                </label>
+                <?php endif; ?>
               </div>
             </fieldset>
           </div>
@@ -1043,7 +1086,11 @@ try {
         function isUsingSavedUserMethod() {
           if (!showUserSavedMethods) return false;
           var choice = getSelectedSavedPaymentChoice();
-          return choice !== '' && choice !== 'new_card';
+          return choice !== '' && choice !== 'new_card' && choice !== 'invoice';
+        }
+
+        function isUsingInvoice() {
+          return getSelectedSavedPaymentChoice() === 'invoice';
         }
 
         function usingSavedMethod() {
@@ -1051,14 +1098,24 @@ try {
         }
 
         function toggleCardSection() {
+          var pmTypeInput = document.getElementById('payment_method_type');
+          if (isUsingInvoice()) {
+            if (cardSection) cardSection.style.display = 'none';
+            if (pmTypeInput) pmTypeInput.value = 'invoice';
+            if (submitBtn) submitBtn.textContent = 'Place order (Invoice)';
+            return;
+          }
+          if (pmTypeInput) pmTypeInput.value = 'card';
           if (!cardSection) {
             return;
           }
           if (showUserSavedMethods && isUsingSavedUserMethod()) {
             cardSection.style.display = 'none';
+            if (submitBtn) submitBtn.textContent = 'Pay and place order';
             return;
           }
           cardSection.style.display = '';
+          if (submitBtn) submitBtn.textContent = 'Pay and place order';
         }
 
         function formatMoney(value) {
@@ -1459,6 +1516,12 @@ try {
           var postalInput = form.querySelector('#postal');
           var stateValue = stateInput ? stateInput.value || '' : '';
           var postalValue = postalInput ? postalInput.value || '' : '';
+
+          // Invoice checkout: skip Stripe entirely, submit form directly
+          if (isUsingInvoice()) {
+            form.submit();
+            return;
+          }
 
           // Service checkout: use user's saved payment method
           if (requireSavedPayment) {

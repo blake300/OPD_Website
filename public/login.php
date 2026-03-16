@@ -31,9 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user = site_login($email, $password);
             if ($user) {
                 if ($rememberMe) {
-                    site_start_session();
-                    ini_set('session.cookie_lifetime', (string)(60 * 60 * 24 * 30)); // 30 days
-                    session_set_cookie_params(60 * 60 * 24 * 30);
+                    site_remember_me();
                 }
                 header('Location: ' . $defaultRedirect);
                 exit;
@@ -55,9 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 site_login($email, $password);
                 if ($rememberMe) {
-                    site_start_session();
-                    ini_set('session.cookie_lifetime', (string)(60 * 60 * 24 * 30)); // 30 days
-                    session_set_cookie_params(60 * 60 * 24 * 30);
+                    site_remember_me();
                 }
                 // Link any pending vendor/client invitations for this email
                 $linked = site_link_pending_invitations($result['id'], $email);
@@ -87,7 +83,7 @@ $showServiceNotice = $serviceCheckoutFlag || ($isCheckoutRedirect && $cartHasSer
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Sign In - Oil Patch Depot</title>
+  <title>Sign In - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
   <link rel="stylesheet" href="/assets/css/site.css" />
   <style>
     .guest-checkout-banner {
