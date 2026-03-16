@@ -103,7 +103,7 @@ header('Pragma: no-cache');
               <input type="file" id="import-csv-file" accept=".csv" />
             </div>
             <div class="import-modal-field">
-              <a id="import-example-link" href="#" class="import-example-link" download>Download Example CSV</a>
+              <a id="import-example-link" href="#" class="import-example-link" download target="_blank">Download Example CSV</a>
             </div>
             <div id="import-modal-message" class="import-modal-message" style="display:none;"></div>
           </div>

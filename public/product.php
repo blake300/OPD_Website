@@ -145,7 +145,7 @@ $csrf = site_csrf_token();
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title><?php echo htmlspecialchars($product['name'] ?? 'Product', ENT_QUOTES); ?> - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
-  <link rel="stylesheet" href="/assets/css/site.css" />
+  <link rel="stylesheet" href="/assets/css/site.css?v=20260315c" />
 </head>
 <body>
   <?php require __DIR__ . '/partials/site-header.php'; ?>
@@ -578,7 +578,22 @@ $csrf = site_csrf_token();
         <div class="card">
           <h3>Description</h3>
           <div class="product-long-description">
-            <?php echo nl2br(htmlspecialchars((string) $product['longDescription'], ENT_QUOTES)); ?>
+            <?php
+              $desc = (string) $product['longDescription'];
+              $desc = str_replace(['\\n', '\n'], "\n", $desc);
+              $desc = strip_tags($desc, '<strong><em><b><i><u><br><p><ul><ol><li><a><h1><h2><h3><h4><h5><h6><span><div><table><tr><td><th><thead><tbody><img><hr><blockquote><sub><sup>');
+              // Remove blank lines between/around HTML tags to prevent extra spacing
+              $desc = preg_replace('/\n\s*\n/', "\n", $desc);
+              $desc = preg_replace('/>\s*\n\s*</', '><', $desc);
+              // Only nl2br for text outside HTML block elements
+              if (strpos($desc, '<ul') !== false || strpos($desc, '<ol') !== false || strpos($desc, '<p') !== false) {
+                  // Split on block tags, nl2br only the plain text parts
+                  $desc = preg_replace('/(?<!\>)\n(?!\s*<)/', '<br>' . "\n", $desc);
+                  echo $desc;
+              } else {
+                  echo nl2br($desc);
+              }
+            ?>
           </div>
         </div>
       </section>
