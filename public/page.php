@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../src/store.php';
 require_once __DIR__ . '/../src/site_auth.php';
+require_once __DIR__ . '/../src/seo.php';
 
 function opd_extract_video_embed_url(string $input): string
 {
@@ -136,11 +137,14 @@ $user = site_current_user();
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title><?php echo htmlspecialchars($page['title'], ENT_QUOTES); ?> - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
-  <?php if (!empty($page['metaDescription'])): ?>
-    <meta name="description" content="<?php echo htmlspecialchars($page['metaDescription'], ENT_QUOTES); ?>" />
-  <?php endif; ?>
-  <link rel="stylesheet" href="/assets/css/site.css" />
+  <?php $_seoTitle = htmlspecialchars($page['title'], ENT_QUOTES) . ' - ' . opd_site_name(); ?>
+  <title><?php echo htmlspecialchars($_seoTitle, ENT_QUOTES); ?></title>
+  <link rel="stylesheet" href="/assets/css/site.css?v=20260315c" />
+  <?php opd_seo_meta([
+    'title' => $_seoTitle,
+    'description' => $page['metaDescription'] ?? ($page['title'] . ' - ' . opd_site_name()),
+    'canonical' => '/page.php?slug=' . urlencode($slug),
+  ]); ?>
   <style>
     .page-content {
       max-width: 900px;

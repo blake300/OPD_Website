@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../src/site_auth.php';
 require_once __DIR__ . '/../src/store.php';
+require_once __DIR__ . '/../src/seo.php';
 
 $loginError = '';
 $registerError = '';
@@ -84,7 +85,8 @@ $showServiceNotice = $serviceCheckoutFlag || ($isCheckoutRedirect && $cartHasSer
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sign In - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
-  <link rel="stylesheet" href="/assets/css/site.css" />
+  <link rel="stylesheet" href="/assets/css/site.css?v=20260315c" />
+  <?php opd_seo_meta(['title' => 'Sign In - ' . opd_site_name(), 'canonical' => '/login.php', 'description' => 'Sign in to your ' . opd_site_name() . ' account to manage orders, favorites, and purchasing.']); ?>
   <style>
     .guest-checkout-banner {
       background: #f8f9fa;

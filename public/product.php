@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../src/store.php';
 require_once __DIR__ . '/../src/site_auth.php';
+require_once __DIR__ . '/../src/seo.php';
 
 $productId = $_GET['id'] ?? '';
 $product = $productId ? site_get_product($productId) : null;
@@ -144,8 +145,28 @@ $csrf = site_csrf_token();
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title><?php echo htmlspecialchars($product['name'] ?? 'Product', ENT_QUOTES); ?> - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
+  <?php
+    $pName = $product['name'] ?? 'Product';
+    $pDesc = strip_tags((string) ($product['shortDescription'] ?? $product['longDescription'] ?? ''));
+    if (!$pDesc) $pDesc = $pName . ' - oilfield equipment from ' . opd_site_name();
+    $_seoTitle = $pName . ' - ' . opd_site_name();
+    $baseUrl = opd_site_url();
+    $breadcrumbs = [['name' => 'Home', 'url' => '/']];
+    if (!empty($product['category'])) {
+      $breadcrumbs[] = ['name' => $product['category'], 'url' => '/category.php?category=' . urlencode($product['category'])];
+    }
+    $breadcrumbs[] = ['name' => $pName, 'url' => '/product.php?id=' . urlencode($productId)];
+  ?>
+  <title><?php echo htmlspecialchars($_seoTitle, ENT_QUOTES); ?></title>
   <link rel="stylesheet" href="/assets/css/site.css?v=20260315c" />
+  <?php opd_seo_meta([
+    'title' => $_seoTitle,
+    'description' => $pDesc,
+    'canonical' => '/product.php?id=' . urlencode($productId),
+    'ogType' => 'product',
+    'ogImage' => $product['imageUrl'] ?? null,
+    'jsonLd' => [opd_product_jsonld($product, $baseUrl), opd_breadcrumb_jsonld($breadcrumbs, $baseUrl)]
+  ]); ?>
 </head>
 <body>
   <?php require __DIR__ . '/partials/site-header.php'; ?>
@@ -166,7 +187,7 @@ $csrf = site_csrf_token();
       <div class="section-title">
         <div>
           <div class="tag"><?php echo htmlspecialchars($product['status'] ?? 'available', ENT_QUOTES); ?></div>
-          <h2><?php echo htmlspecialchars($product['name'] ?? 'Product', ENT_QUOTES); ?></h2>
+          <h1><?php echo htmlspecialchars($product['name'] ?? 'Product', ENT_QUOTES); ?></h1>
           <p class="meta"><?php echo htmlspecialchars($product['sku'] ?? '', ENT_QUOTES); ?></p>
         </div>
       </div>

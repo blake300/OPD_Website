@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../src/store.php';
 require_once __DIR__ . '/../src/site_auth.php';
+require_once __DIR__ . '/../src/seo.php';
 
 $message = '';
 $messageIsError = false;
@@ -61,8 +62,14 @@ $csrf = site_csrf_token();
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Categories - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
-  <link rel="stylesheet" href="/assets/css/site.css" />
+  <?php $_seoTitle = htmlspecialchars($selected, ENT_QUOTES) . ' - ' . opd_site_name(); ?>
+  <title><?php echo htmlspecialchars($_seoTitle, ENT_QUOTES); ?></title>
+  <link rel="stylesheet" href="/assets/css/site.css?v=20260315c" />
+  <?php opd_seo_meta([
+    'title' => $_seoTitle,
+    'description' => $selected . ' - oilfield ' . strtolower($selected) . ' from ' . opd_site_name() . '. Nationwide shipping, Oklahoma same-day delivery.',
+    'canonical' => '/category.php?category=' . urlencode($selected),
+  ]); ?>
 </head>
 <body>
   <?php require __DIR__ . '/partials/site-header.php'; ?>
@@ -71,7 +78,7 @@ $csrf = site_csrf_token();
     <section class="panel">
       <div class="section-title">
         <div>
-          <h2>Categories</h2>
+          <h1><?php echo htmlspecialchars($selected, ENT_QUOTES); ?></h1>
         </div>
         <form method="GET">
           <select name="category" onchange="this.form.submit()">
@@ -117,7 +124,7 @@ $csrf = site_csrf_token();
           <div class="card category-card">
             <a class="product-thumb-link" href="<?php echo htmlspecialchars($productUrl, ENT_QUOTES); ?>">
               <?php if (!empty($product['imageUrl'])): ?>
-                <img class="product-thumb" src="<?php echo htmlspecialchars($product['imageUrl'], ENT_QUOTES); ?>" alt="<?php echo htmlspecialchars($product['name'] ?? 'Product', ENT_QUOTES); ?>" />
+                <img class="product-thumb" src="<?php echo htmlspecialchars($product['imageUrl'], ENT_QUOTES); ?>" alt="<?php echo htmlspecialchars($product['name'] ?? 'Product', ENT_QUOTES); ?>" loading="lazy" />
               <?php else: ?>
                 <div class="image-placeholder">No image</div>
               <?php endif; ?>

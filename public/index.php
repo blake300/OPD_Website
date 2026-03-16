@@ -5,18 +5,27 @@ declare(strict_types=1);
 require_once __DIR__ . '/../src/store.php';
 require_once __DIR__ . '/../src/site_auth.php';
 
+require_once __DIR__ . '/../src/seo.php';
+
 $featuredProducts = site_get_featured_products(12);
 $user = site_current_user();
 $isSignedIn = $user !== null;
 $csrf = site_csrf_token();
+$_seoTitle = opd_site_name() . ' | Oilfield Equipment, Tools & Supplies';
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title><?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
-  <link rel="stylesheet" href="/assets/css/site.css" />
+  <title><?php echo htmlspecialchars($_seoTitle, ENT_QUOTES); ?></title>
+  <link rel="stylesheet" href="/assets/css/site.css?v=20260315c" />
+  <?php opd_seo_meta([
+    'title' => $_seoTitle,
+    'description' => 'Oilfield equipment, tools, parts, and supplies at low prices. Nationwide shipping with Oklahoma same-day delivery. AutoBailer systems, downhole pumps, fittings, valves, and more.',
+    'canonical' => '/',
+    'jsonLd' => opd_organization_jsonld()
+  ]); ?>
 </head>
 <body>
   <?php require __DIR__ . '/partials/site-header.php'; ?>

@@ -4,20 +4,30 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../src/store.php';
 require_once __DIR__ . '/../src/site_auth.php';
+require_once __DIR__ . '/../src/seo.php';
 
 $search = trim($_GET['q'] ?? '');
 $products = site_get_products(null, $search ?: null, 48);
 $user = site_current_user();
 $isSignedIn = $user !== null;
 $csrf = site_csrf_token();
+$_seoTitle = ($search ? 'Search: ' . $search : 'All Products') . ' - ' . opd_site_name();
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Products - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
-  <link rel="stylesheet" href="/assets/css/site.css" />
+  <title><?php echo htmlspecialchars($_seoTitle, ENT_QUOTES); ?></title>
+  <link rel="stylesheet" href="/assets/css/site.css?v=20260315c" />
+  <?php opd_seo_meta([
+    'title' => $_seoTitle,
+    'description' => $search
+      ? 'Search results for "' . $search . '" - oilfield equipment and supplies from ' . opd_site_name()
+      : 'Browse all oilfield equipment, tools, parts, and supplies. Nationwide shipping with same-day delivery in Oklahoma.',
+    'canonical' => $search ? '/products.php?q=' . urlencode($search) : '/products.php',
+    'noindex' => $search !== '',
+  ]); ?>
 </head>
 <body>
   <?php require __DIR__ . '/partials/site-header.php'; ?>
@@ -33,8 +43,12 @@ $csrf = site_csrf_token();
     <section class="panel">
       <div class="section-title">
         <div>
-          <h2>All products</h2>
-          <p class="meta">Search and select the right inventory for your crew.</p>
+          <h1><?php echo $search !== '' ? 'Search results' : 'All products'; ?></h1>
+          <?php if ($search !== ''): ?>
+            <p class="meta">Showing results for: <strong><?php echo htmlspecialchars($search, ENT_QUOTES); ?></strong> (<?php echo count($products); ?> found)</p>
+          <?php else: ?>
+            <p class="meta">Search and select the right inventory for your crew.</p>
+          <?php endif; ?>
         </div>
         <form method="GET">
           <input type="search" name="q" placeholder="Search products" value="<?php echo htmlspecialchars($search, ENT_QUOTES); ?>" />
@@ -46,7 +60,7 @@ $csrf = site_csrf_token();
           <div class="card">
             <div class="tag"><?php echo htmlspecialchars($product['status'] ?? 'available', ENT_QUOTES); ?></div>
             <?php if (!empty($product['imageUrl'])): ?>
-              <img class="product-thumb" src="<?php echo htmlspecialchars($product['imageUrl'], ENT_QUOTES); ?>" alt="<?php echo htmlspecialchars($product['name'] ?? 'Product', ENT_QUOTES); ?>" />
+              <img class="product-thumb" src="<?php echo htmlspecialchars($product['imageUrl'], ENT_QUOTES); ?>" alt="<?php echo htmlspecialchars($product['name'] ?? 'Product', ENT_QUOTES); ?>" loading="lazy" />
             <?php else: ?>
               <div class="image-placeholder">No image</div>
             <?php endif; ?>

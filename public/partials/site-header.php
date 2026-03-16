@@ -74,7 +74,7 @@ $_siteName = opd_site_name();
 
   <nav class="category-nav">
     <div class="category-nav-inner">
-      <a href="/category.php?category=AutoBailer%20Artifical%20Lift">AutoBailer Artifical Lift</a>
+      <a href="/category.php?category=AutoBailer%20Artificial%20Lift">AutoBailer Artificial Lift</a>
       <a href="/category.php?category=Parts">Parts</a>
       <a href="/category.php?category=Tools">Tools</a>
       <a href="/category.php?category=Services">Services</a>
