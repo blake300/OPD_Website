@@ -1,0 +1,65 @@
+Cart Changes
+1. Cart: Delivery Method: Standard Shipping:
+1a. If the user is signed in, it should calculate the shipping automatically, using the users shipping address from user dashboard
+1a1. If pressed this button drops down the shipping address, with a "Use for this Shipment Only" box, and an "Use and Update" box 
+1a1a. If the "Use for this Shipment Only" box is checked - 
+1a1a1. The drop down should go away 
+1a1a2. the new shipping should be calculated
+1a1a3. the address entered should auto populate at checkout
+1a1b.. If the "Use and Update" box is selected, 
+1a1b1. should update the shipping address in the User Dashboard: Account 
+1a1b2. the address entered should auto populate at checkout
+1a1b3. The drop down should go away and the new shipping should be calculated
+2a. If the user is not signed in, should say Enter Address for Rate (in green) in place of the dollar amount
+2a1. If pressed will drop down the shipping Information
+2a2. At the bottom of the shipping information should be an update button
+2a3. When the update button is pressed, The drop down should go away and the new shipping should be calculated
+
+2. Cart: Delivery Method: Same-Day Delivery
+2a. If the user is signed in, it should calculate the delivery automatically, using the users shipping address from user dashboard
+2a1. Under the Same-Day Delivery text it should have a change delivery location button, 
+2a1a. If selected should drop down 3 options: Deliver to Address, Deliver to Coordinates, Deliver to Saved Location
+2a1a1. Deliver to Address: if selected, should drop down the shipping address information
+2a1a1a. Should include a "Use for this Shipment Only" box, and an "Use and Update" box 
+2a1a1a1. If the "Use for this Shipment Only" box is checked - 
+2a1a1a1a. The drop down should go away 
+2a1a1a1b. the new shipping should be calculated
+2a1a1a1c. the address entered should auto populate at checkout
+2a1a1a2. If the "Use and Update" box is selected, 
+2a1a1a2a. should update the shipping address in the User Dashboard: Account 
+2a1a1a2b. the address entered should auto populate at checkout
+2a1a1a2c. The drop down should go away and the new shipping should be calculated
+2a1a2. Deliver to Coordinates: If selected, 
+2a1a2a. Should drop down Zip Code Field and Coordinates Field
+2a1a2b. Should have an update Delivery button, when selected:
+2a1a2b1. The drop down should go away 
+2a1a2b2. the new shipping should be calculated
+2a1a2b3. the location should auto populate at checkout
+2a1a2b4. If does not enter both zip code and coordinates - should receive an error message
+2a1a3. Deliver to Saved Location: 
+2a1a3a. If user has selected a client, the clients Locations should drop down with the coordinates and zip codes
+2a1a3b. If user has NOT selected a client, the users Locations should drop down with the coordinates and zip codes
+2a1a3c. Locations should follow same drop down rules as Accounting Codes
+2a1a3d. Should have an update Delivery button, when selected:
+2a1a3d1. The drop down should go away 
+2a1a3d2. the new shipping should be calculated
+2a1a3d3. the location should auto populate at checkout
+2a1a3d4. If location does not have both zip code and coordinates - should receive an error message
+
+2b. If the user is not signed in, should say enter Delivery Location for Rate (in green) in place of the dollar amount
+2b1. If selected should drop down 3 options: Deliver to Address, Deliver to Coordinates, Deliver to Saved Location
+2b1a. Deliver to Address: if selected, should drop down the shipping address information
+2b1a1. Should include a "Use for this Shipment Only" box, and an "Use and Update" box 
+2b1a1a. If the "Use for this Shipment Only" box is checked - 
+2b1a1a1. The drop down should go away 
+2b1a1a2. the new shipping should be calculated
+2b1a1a3. the address entered should auto populate at checkout
+2b1a1b. If the "Use and Save" box is selected, 
+2b1a1b1. Error message should appear with "Must Sign in to use this Feature" with sign in and register links
+2b1b. Deliver to Coordinates: If selected, 
+2b1b1. Should drop down Zip Code Field and Coordinates Field
+2b1b2. Should have an update Delivery button, when selected:
+2b1b2a. The drop down should go away 
+2b1b2b. the new shipping should be calculated
+2b1b2c. the location should auto populate at checkout
+2b1b2d. If does not enter both zip code and coordinates - should receive an error message

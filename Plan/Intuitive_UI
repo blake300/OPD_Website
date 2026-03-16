@@ -1,0 +1,316 @@
+The definition of intuitive UI
+* A user interface is intuitive when
+  - Users understand its behavior and effect 
+    * Without use of reason, memorization, experimentation, assistance, or training.
+* The need for a user manual is a clear sign that a UI is not intuitive.
+* An interaction is smooth when
+  - Complete a task successfully on the first try. 
+  - Make very few mistakes along the way. 
+  - Maintain their flow, without awkward pauses to think things through or experiment.
+* Assume your users are smart but very busy. 
+    - They aren’t expert users, and 
+    - They lack the time and motivation to figure out how your app works.
+
+The Eight Primary Attributes of Intuitive UI 
+
+1. Discoverability
+    * The ability to locate the UI elements needed to achieve a goal—when they need them
+    * Best Practices:
+        - The best place to present object-specific commands is directly on the object itself
+        - Primary commands are often large and placed directly in the immediate context.
+        - Secondary commands might be found in a contextual menu or perhaps a hamburger menu.
+        - Important, frequently used, general commands are usually directly in the header,
+        - Less frequently used, meta commands are often in the footer.
+        - Take advantage of priority, context, and grouping to make things easier to find.
+    * Avoid: overwhelming options
+        - Perhaps the desired UI element is hidden in plain sight, but users can’t find it 
+            * Because they are overwhelmed by all the options.
+
+2. Affordance 
+  * A visual property of a UI element that suggests:
+        - First, that the element is interactive and, 
+        - Second, how to interact with it.
+  * Often a visual metaphor of some real-world counterpart:
+    - Example: buttons, radio buttons, sliders, knobs, spinners, handles, grabbers 
+  * Consistency is crucial here—if an element looks interactive, make sure it is.
+  * Affordance should be obvious—
+    - To emphasize some text, make it bold or italicized rather than underlined.
+    - Should not be placed too far away from the user’s attention.
+
+3. Comprehensibility 
+  * The target user’s ability to understand the meaning and effect of a UI element—
+  * Requires users to 
+    A. Understand the meaning of labels (either text or icon) or instructions
+    B. make an informed decision based on expected prior knowledge and current context.
+  * Speaking the user’s language is a requirement. 
+    - With words, phrases and concepts familiar to the user,
+  * Make the UI text a concise version of what you’d actually say to the target user in person.
+  * Better to say: Print on both sides Than: duplex printing
+  * Even if the UI element’s language is easily comprehensible,
+    - It might be confusing if it doesn’t match their expectations.
+  * Users understand the standard icons,
+    - But they won’t understand your custom icons unless they are labeled.
+  * Instead of clinging to single-word labels, let’s add a word or two for clarity.
+    - Example: instead of a "Cancel" button, could be a "Cancel Reservation" button 
+  * When practical, provide all the information users need in context to make informed decisions.
+  * Prefer questions about what users likely already know 
+    - Such as their names, email addresses, and phone numbers)
+    - Instead of information that requires memorization (such as account numbers and access codes).
+
+4. Responsive Feedback 
+  * Indication of the current state of an interaction, or resulting state 
+  * Should be clear, accurate, immediate 
+  * The system should always keep users informed 
+    - Through appropriate feedback within reasonable time.
+  * If an interaction has completed, users need a clear indication of:
+    A. Completion and, 
+    B. Whether it succeeded or failed.
+  * If successful results can be displayed quickly (under a second),
+    - The best feedback is to immediately (and clearly visibly) display the results.
+  * If more time is required (under 10 seconds),
+    - Immediately display an activity indicator so that users know the task is in progress.
+  * If even more time is required (10 + seconds),
+    - Display an accurate progress indicator with percentage complete feedback.
+  * Make sure that activity or progress indicators are displayed near the interaction.
+
+5. Predictability 
+  * Determines whether users can predict the results of an interaction before they initiate it.
+  * An interaction is unpredictable if target users are surprised by the results or any of its side effects.
+  * For search, most experienced users expect:
+    - That if a query has no matches, making the query more specific would be futile.
+  * Spatial natural mapping is based on physics, so up is up and down is down, for example.
+    - By contrast, cultural natural mapping is based purely on cultural conventions, 
+        * So left means back and right means forward based on Western reading order.
+  * Generally, when users start on a page with a certain state, and go to another page
+    - When the return to the initial page, they expect that pages original state to be the same
+    - If that’s not the case, make sure you have a solid justification based on satisfying users’ goals
+
+6. Efficiency
+  * When users can perform their top tasks without unnecessary interaction or repetition.
+  * For small targets, consider making the interactive target larger than the visible UI element
+  * Make sure that UI elements that are frequently used together are placed together.
+  * Date pickers
+    - Good for choosing recent or upcoming dates of which the user is unsure
+        * Like departure and arrival dates 
+    - Bad for choosing known dates (like users birthday)
+  * If you know with reasonable probability (based on the current context) what your users want, 
+    - Provide that value or result as a default.
+   * If user input is important enough to ask for, it’s important enough to remember and reuse.
+    - For example, it’s common to require personal information during registration, 
+        * Such as name, email, phone number, address, etc., and 
+        * Poor design is to later require users to manually provide the same information
+  * The more complex the input, the more likely users will have to enter it more than once.
+  * Effective error messages state a:
+    A. Clear problem, 
+    B. Meaningful explanation of the cause, and
+    C. Likely and practical solution.
+  * If a condition is really just routine status, present it as status (contextually) 
+    - Rather than force users to dismiss a modal error window.
+  * Sometimes interaction results are constrained unnecessarily.
+    - The most common example is when apps fuss over minor formatting, such as separators.
+        * Like phone, credit card, and ID numbers
+  - Another example is when search is overly fussy, 
+    * Returning results only for literal exact matches. 
+    * Can’t handle different spellings (like Wi-Fi vs WiFi), 
+    * Similar words (like car vs. auto), 
+    * Plurals vs. singular,
+    * Common abbreviations (like USA vs. United States), or 
+    * Common misspellings.
+  * Unnecessary restrictions are those that interfere with users achieving their goals 
+    - By requiring unnecessary interaction or repetition.
+    - Like: requiring users to select a single item, when the task requires selecting multiple items.
+        * I want to attach several photos to this email, but I can select only one at a time.
+        * I have to dismiss a pile of messages when only one message is really necessary.
+  * Use Accelerators—unseen by the novice user—
+    - Can often speed up the interaction for the expert user 
+    - Such that the system can cater to both inexperienced and experienced users.
+  * Confirmations,
+    - Are flow stoppers.
+    - The user just gave a command saying, “I want to do this”
+    - The confirmation stops the user to ask, “Are you sure you want to do this?”
+        * Of course, the answer is yes—
+    - A good confirmation forces users to stop and think—
+    - An intuitive UI gives users sufficient time to understand what is going on,
+        * Plus sufficient time to respond,
+        * Along with an easily discoverable way to restore the UI if dismissed accidentally.
+
+7. Forgiveness 
+  - The degree to which an interaction:
+    A. Prevents mistakes, 
+    B. Minimizes the negative impact of mistakes, or 
+    C. Makes mistakes easy to recover from.
+  - The best approach to forgiveness is to prevent mistakes in the first place.
+    * Button Effect
+        - Most buttons take effect on tap-release, or mouse-button-up
+            * Instead of tap-down or mouse-button-down.
+        - Gives users an opportunity to abandon an unwanted commands.
+    * The worst place for a Trash command? 
+        - How about directly over the Home button, where it is begging to be tapped accidentally
+    * For touch-based interaction, 
+        - Targets need to be at least 9mm square for accuracy and 
+            * Even larger for comfortable, mistake-preventing interaction.
+        - Put enough space between interactive UI elements to prevent accidental touch.
+        - Also, confirm destructive actions and put them out of easy reach.
+  - Ensure that every uncommitted command has an opposite.  Examples, every:
+    * OK needs a Cancel, 
+    * Add needs a Remove,
+    * Forward needs a back
+    * Accept needs a No Thanks,
+    * Open needs a Close, and so on.
+  - Once a user makes a mistake, make it easy to fix. 
+    * Undo is the classic forgiveness feature, and your app should provide Undo whenever practical.
+    * Make items easy: 
+        - To edit, enter edit mode, abandon changes if unwanted, and 
+        - Go back where the user came from, without completely starting over.
+        - Recover when lost
+    * Be sure to not clear erroneous input—let users choose to clear instead. 
+  - Usability studies can test a lot of aspects of design, 
+    * But the study must be specific for each aspect you want to test
+
+8. Explorability 
+  - Can users use your app without fear of getting lost or making significant mistakes.
+  - Top causes for poor explorability are:
+    * Confusing, nonstandard navigation models and
+    * Unclear, nonstandard commit models.
+  - Draw special attention to actions with significant consequences, and 
+    * Don’t bother confirming insignificant actions.
+  - Be very careful with using gestures, especially edge swipes, double taps, and long presses
+    * These are the most likely gestures to be done accidentally
+  - Decide for me, but let me have the final say.
+    * My iPhone found this contact information in an email—I didn’t set it up myself.
+        - Consequently, I have to choose explicitly to use this phone number,
+  - Make sure your app has these navigation essentials:
+    * A clear, visually obvious way to get to the next step or complete a task
+    * A clear, visually obvious way to return to the previous step.
+    * An obvious way to abandon a task.
+    * An obvious way to return home (where home is a known starting point).
+  - Explicit save means that users must explicitly save any changes or they will be abandoned, 
+    * Whereas instant commit means any changes are applied immediately.
+  - Search
+    * Putting Search in a hamburger menu isn’t discoverable.
+    * If the app is designed to return research results immediately, just start to display them. 
+    * Being able to search for people, companies, or groups is not obvious from context, 
+        - So let’s add a placeholder to the text box to make that clear.
+    * For efficiency, users might want to search for a specific category. 
+        - While we could attempt to use custom icons for this purpose,
+            * Use icon + text label pairs instead.
+    * Let’s adjust the content of the dropdown to show still-relevant recent searches, 
+        - Plus make relevant suggestions.
+    * What if users type a search that was close but not quite?
+        - They should be able to change the search and try again, rather than completely start over.
+
+Secondary Attributes
+  1. Familiarity 
+    - Is important and helpful—as a secondary attribute.
+    - Adding an explicit “Ceiling Fan” label to a light switch 
+        * Makes the design more discoverable, comprehensible, and predictable.
+        * But labeled light switches are rare so arguably less familiar
+  2. Consistency 
+    - Conformity of appearance and behavior within an application or across applications.
+    - Simply adding a label removes confusion.
+    - Making all the fields a uniform length doesn’t make this form easier to use or understand.
+        * Rather, it makes it harder to scan or understand the size of the expected input.
+    - Users should not wonder whether different words, situations, or actions mean the same thing.
+  3. Recognition rather than recall minimize the user’s memory load 
+    * By making objects, actions, and options visible. 
+    * The user shouldn’t have to remember information from one part of the dialogue to another.
+  4. Aesthetic and minimalist design 
+    * Dialogues should not contain information that is irrelevant or rarely needed.
+
+Strategically - Unintuitive.  (examples of situations where the cost might be too high)
+  - Discoverability:  Designing everything to be discoverable 
+    * Might result in cluttered, complex screens,
+  - Affordance Giving everything a clear affordance 
+    * Might also result in cluttered, heavy screens.
+  - Advanced, infrequent, optional commands
+     * It might not be worth making these interactions discoverable,
+  - Delighters: Some apps reward expert users for their expertise, and expert users take pride
+    * You can always use an advanced mode for these folks 
+        - However, you don’t want users to find these modes accidentally or too easily.
+  - Significant destructive, irreversible actions
+    * It's ok to make these a little hard to do
+
+Gestures
+  - The only inuitive gestures are:
+    A. Tapping an object with a tap affordance (such as a button or link) or 
+    B. Swiping an object with a slide affordance (such as a slider).
+  - If the gestures are especially useful, 
+    * You can display them automatically in context—otherwise display them on demand.
+
+Levels of Intuitiveness Chart (you lose more users as you work down the levels)
+1. Fully intuitive, which means that the UI has all the necessary Eight Attributes of Intuitive
+2. Sensible,
+    * Might lack discoverability or affordance, 
+    * But is so natural that users will quickly experiment and discover that it works as expected.
+    * Example here is horizontal swipe to navigate from one photo to another.
+3. Learnable,
+    * Might also be missing discoverability or affordance, but not as obvious as sensible.
+    * Users often learn these interactions by observing others.
+   4. Guessable,
+    * Users learn these interactions through experience and 
+    * Are eventually able to guess accurately where to find them or how they work.
+5. Trainable, 
+    * Users must resort to training or documentation to use these interactions.
+  - Sensible and learnable are both forms of single-trial learning, 
+    * But guessable and trainable often require multiple trials.
+
+Onboarding and Coach Marks
+  - Onboarding is a brief overview of an app that is displayed on first launch 
+      * Often explains how to use its (frankly) unintuitive features. 
+      * May make your app appear hard to use and unintuitive.
+      * Effective onboarding should focus on demonstrating the app’s value, 
+        - Not on explaining confusing, unintuitive UI.
+  - Coach marks call out and explain the various features on a single page on demand.
+  - Are onboarding or coach marks unnecessary? Almost always the answer is Yes.
+
+Intuitive Task Flows
+  - Start task design by making each step explainable first.
+  - The easier it is for you to explain the purpose of the page, 
+    * The easier it will be for your users to figure out that explanation on their own.
+  - A main instruction is a heading that explains what users are supposed to do on a page.
+    * Example of designing a main instruction for choosing photos to share:
+Attempt 2: Photos
+Attempt 3: Your photos
+Attempt 4: Manage your photos
+Attempt 5: Select your photo
+Attempt 6: Select your photos
+Attempt 7: Select your photos to share with a friend
+Attempt 8: Share your photos
+  - Bad Task Flow -  Long Responsive Pages, users interact using the following steps:
+        1. Review the large, mostly useless hero image 
+            - A large, prominent banner image above the fold to show this is a responsive design.
+        2. Do not find what they are looking for, so start scrolling. 
+        3. Scroll, scroll, scroll. Scroll, scroll, scroll. 
+        4. Find the large, mostly useless fat footer
+            - To visually recognize that they have finally reached the end of the long page.
+        5. Desperately hope that perhaps what they are looking for is hidden in the hamburger menu.
+        6. Try a command in the hamburger menu. 
+            - Nope, not there either—commands there just scroll to a section on the page.
+        * Long responsive pages need an instruction for each section.
+
+Design process for intuitive UI
+  - I recommend both usability testing as well as expert evaluations 
+    * Effective expert evaluations make usability testing much more productive.
+    * Usability testing,
+        - Many people consider six participants to be the optimal number.)
+        - I recommend the Handbook of Usability Testing,  by Jeffrey Rubin and Dana Chisnell
+            * And - Rocket Surgery Made Easy, by Steve Krug.
+    * Worth getting estimate for a remote design review
+  - Process for designing an intuitive interaction—
+    1. Grade the intuitiveness of the proposed interaction. 
+        - The grades are fully intuitive, sensible, learnable, guessable, trainable, unusable,
+    2. Determine whether the interaction is important.
+        - Consider the interaction important if it’s needed by most users for routine tasks. 
+        - Consider it unimportant if it is advanced, infrequent, or optional.
+    3. If the interaction is important, aim for fully intuitive. If already there, done!
+    4. If the interaction is unimportant and fully intuitive isn’t practical, 
+        - Aim for sensible, learnable, or guessable.
+    5. Improve the design to match the target grade.
+        - Determine where the Eight Attributes of Intuitive UI are weakest, and focus there.
+    6. Otherwise, try alternative designs. If the design is only trainable or unusable, keep going.
+
+Expert evaluation techniques is the Streamlined Cognitive Walkthrough (SCW),
+How will users know what to do at this step?
+If users do the right thing, how will they know? 
+If users do the wrong thing, how will they know? 
+If users do the wrong thing, how will they correct the problem?

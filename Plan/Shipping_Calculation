@@ -1,0 +1,18 @@
+Shipping Calculation
+Admin Panel: System Settings - Need to create a new section inside system settings called Shipping
+Inside Shipping section: 
+Add zone 1 states, zone 1 flat rate, zone 1 per lbs rate
+Add zone 2 states, zone 2 flat rate, zone 2 per lbs rate
+Add zone 3 states, zone 3 flat rate, zone 3 per lbs rate
+On the cart/checkout pages, if shipping is selected:
+Rate will be the zone matching the state entered, 
+flat rate +((sum of the weight of all items in the cart)* per lbs rate)
+If customer enters a state that is not listed in one of the 3 zones
+In the cart/checkout will get an error "Sorry we do not ship outside the  continental United States"
+Clarifications:
+1 - shipping zones will be defined by state
+2 - shipping will be a new section inside admin panel system settings
+3 - If a cart item is a variant, use the variant's weight
+4 -  flat rate is charged once per order, and the per-lb rate applies to the total weight of all items (quantity × weight per item)
+5 - Items with no weight, only the flat rate will apply
+7 - this will replace the shipping_standard rate

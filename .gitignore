@@ -47,9 +47,27 @@ deploy_key.pub
 .agent_learning/
 .agent_mem/
 .agent_runs/
+.agent_cache/
+.codex/
 
 # Windows null device artifact
 nul
+
+# Product images and user uploads (too large for git)
+public/uploads/products/
+public/uploads/pages/
+_Uploads/
+
+# Archive files
+*.zip
+
+# Debug/test pages (not for production)
+public/checkout-debug.php
+public/checkout-test.php
+public/run_migration.php
+
+# Build artifacts
+artifacts/
 
 # RUDI runtime (auto-generated)
 Providers/
@@ -59,4 +77,3 @@ Memory/
 Agents/
 Tools/
 RUDI.md
-.env

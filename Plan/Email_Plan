@@ -1,0 +1,80 @@
+Email Plan — IMPLEMENTATION COMPLETE
+====================================
+
+1) Admin email template fields
+[x] 7 new setting keys added to api/system_settings.php ($keys array + GET/POST/DELETE handlers)
+[x] 7 new fields added to public/assets/js/admin.js (System Settings resource fields + columns)
+    Keys: email_order_shipping, email_order_delivery, email_order_pickup,
+          email_client_invite, email_vendor_invite, email_forgot_password, email_welcome
+
+2) Order Confirmation: Shipping
+[x] 'shippingMethod' passed into $orderForEmail in src/store.php (~line 1231)
+[x] opd_send_order_confirmation() in src/email_service.php reads email_order_shipping setting
+    and injects it into the email body above the order item table
+A) When a user places an order and has selected shipping, they receive an email
+   with text from the Order Confirmation: Shipping field
+
+3) Order Confirmation: Delivery
+[x] Same opd_send_order_confirmation() change handles delivery (same_day/delivery methods
+    → reads email_order_delivery setting)
+A) When a user places an order and has selected Delivery, they receive an email
+   with text from the Order Confirmation: Delivery field
+
+4) Order Confirmation: Pickup
+[x] Same change handles pickup (pickup/default → reads email_order_pickup setting)
+A) When a user places an order and has selected Pickup, they receive an email
+   with text from the Order Confirmation: Pickup field
+
+5) New client request
+[x] public/dashboard-clients.php: after existing SMS invite send, also sends email
+    using email_client_invite template + link to /login.php?redirect=/dashboard-vendors.php
+A) Client invite email sent with link that redirects to Dashboard Vendor section
+   (login page handles redirect automatically if user is not signed in)
+B) Works for both existing users and non-users — login page shows register option
+
+6) New vendor request
+[x] public/dashboard-vendors.php: after existing SMS invite send, also sends email
+    using email_vendor_invite template + link to /login.php?redirect=/dashboard-clients.php
+A) Vendor invite email sent with link that redirects to Dashboard Client section
+
+7) Lost password email
+[x] DB: password_reset_tokens table added to database/schema.sql
+[x] DB: resetAdminLocked TINYINT(1) NOT NULL DEFAULT 0 added to users in database/schema.sql
+[x] DB: schema_sync.sql regenerated — apply to live DB to complete migration
+[x] public/login.php: "Forgot password?" link added below Sign In button
+[x] public/forgot-password.php: created — accepts email, calls site_request_password_reset()
+[x] public/reset-password.php: created — validates token, accepts new password
+[x] src/site_auth.php: site_request_password_reset() — rate checks, generates token,
+    stores hash, sends email with link using email_forgot_password template
+[x] src/site_auth.php: site_validate_reset_token() — verifies token valid/unexpired/unused
+[x] src/site_auth.php: site_apply_password_reset() — saves new password, invalidates all
+    user tokens, resets rate limit, sends security notification email
+[x] src/site_auth.php: opd_check_rate_limit_custom() — custom window/max for 48h/10-request limit
+
+A1) Token: single-use, high-entropy (bin2hex(random_bytes(32))), sha256 hashed in DB, 30 min expiry
+A2) After change: token marked used, all other unused tokens for user invalidated
+A3) Security notification email sent after successful password change
+A4a) Rate limit: 15 failed logins handled by existing rate_limit system (type 'customer_login')
+A4b) Rate limit: 10 reset requests in 48h → sets resetAdminLocked = 1 on user
+A4b1) Admin panel: "Allow Password Reset" button appears in Users & Roles row when
+      resetAdminLocked is truthy — calls PATCH /api/users.php?action=allow_password_reset
+      which clears the flag and resets the password_reset_request rate limit
+
+8) Welcome email
+[x] src/site_auth.php: site_register() sends welcome email after INSERT using email_welcome setting
+
+====================================
+Files changed:
+  api/system_settings.php      — 7 new email template keys
+  api/users.php                — PATCH handler for allow_password_reset
+  public/assets/js/admin.js   — 7 new settings fields/columns + Allow Password Reset button
+  src/email_service.php        — opd_email_shell() helper, shipping-method-aware confirmation
+  src/store.php                — shippingMethod passed to orderForEmail
+  src/site_auth.php            — welcome email, forgot password functions
+  public/dashboard-clients.php — email send added to invite flow
+  public/dashboard-vendors.php — email send added to invite flow
+  public/login.php             — Forgot password? link
+  public/forgot-password.php   — NEW: forgot password page
+  public/reset-password.php    — NEW: reset password page
+  database/schema.sql          — password_reset_tokens table + resetAdminLocked column
+  database/schema_sync.sql     — regenerated (apply to live DB)

@@ -1,0 +1,66 @@
+A. Category Pages 
+A1. Should include 78 products per page
+A2. After 78 products, a 'Load more' button should load 78 more on same page 
+
+B. Admin Panel: Products
+B1. Add "Service" field which is a yes check box
+B2. Add "Days Out" field
+B2a. Admin Panel: Products - need a "Move" button at top of product section,
+B2a1. when pressed allows product rows to be moved and a drag handle should appear to the far left of the row, 
+B2a2. This determines the order that they show on the category page and in the admin panel - 
+B2a3. New product order is saved, when "Save Changes" button is selected
+B2a4. Need to add a "Pos Num" field to product (will be read only), when order rearranged and saved, will update "Pos Num" to reflect its order on the category page
+B2b. Admin Panel: Product Vrt - need a "Move" button at the bottom of the vrt table to the left of Add new vrt,
+B2b1. When pressed allows vrt rows to be moved and a drag handle should appear to the far left of the row, 
+B2b2. This determines the order that they show on the product page and in vrt table - 
+B2b3. New vrt order is saved, when "Save Variants" button is selected
+B2b4. Need to add a "Pos Num" field to vrt (will be read only), when order rearranged and saved, will update "Pos Num" to reflect its order on the category page
+B2c. Admin Panel: Products: Assc - needs a "Move" button
+B2c1. When pressed allows products inside the category drop down to be moved and a drag handle should appear to the left of the each product in the box
+B2c2. This determines the order that they show on the associated product table inside the product page
+B2c3. New associated product order is saved, when "Save Accociates" button is selected
+
+C.Product Page
+C1. If the product is checked yes on the Admin Panel: Product: Service field
+C1a. On the products page to the right of the main picture should be
+C1a1. "First Date Available" (in black type) followed by the first date after the number of days in the "Days Out" field in the Amdin Panel Products, from the current date
+C1a2. "Arrival Date" (in black text) followed by a calendar drop down, with all days before the first date available grayed out (can't be selected)
+C2. Favorites button - should be a small heart symbol
+C2a. favorites button should appear on the product page next to the add cart
+C2b. Should appear next the add button on all associated products and variant products
+C2c. If user is not signed in, selecting the favorites button should produces a message "Please Sign-In to Select Favorites" and the heart should remain empty
+C2d. If user is signed in, selecting the favorites button should produces a drop down with the categories from the users dashboard: favorites section, 
+C2e. each should category in the dropdown should have a selection box, therefore users can save the item in more than one category
+C2f. The first drop down option should be "Uncategorised", for bother users that have categories added and users with no categories added
+
+D. Admin Panel: Orders
+D1. Need to add an "Arrival Date" field (read only), this field comes from the arrival date selected by the user on the product page
+
+E. User Dashboard
+E1. Favorites: Section
+E1a. Should have Favorites: Categories listed in the left
+E1b. When a favorties Category is selected
+E1b1. The products and product variants in that category show up to the right
+E1b1a. Should include product picture, product name, price, qty, and Add - the first row
+E1b1a1. When pressed the Add button adds the product to the users cart
+E1b1a2. In the cart the groups should be auto populated from the accounting codes in the favorites
+E1b1a3. Products should auto populate the groups to the corresponding accounting codes from favorites
+E1b2. In the second row should be the accounting codes 
+E1b3. To the right of the accounting codes should be a qty field
+E1b3a. The sum of the accounting code qty's should equal the product qty
+E1b4. To the right of the qty field should be a "+", that adds additional accounting codes
+E1b5. Below the accounting codes row, should be a save changes
+E1b5a. When pressed this button should save the changes to accounting codes, accounting code quantities, and product quantities
+E1c. Above the products should be an Add All button
+E1c1. When pressed the Add button adds all the products in the users favorites category to the user cart 
+E1c1a. In the cart the groups should be auto populated from the accounting codes in the favorites
+E1c1b. Products should auto populate the groups to the corresponding accounting codes from favorites
+E1c. Should have an Edit button above the listed categories
+E1c1. When pressed the edit button should open the favorites category section
+E1c1a. On the favorites category section all favorites categories should be in a field
+E1c1a1. The users should be able to edit inside the fields
+E1c1b. to the right of each field should be a drag handle, which allows the user to change the order of the favorites categories
+E1c1b1. This will be the order from top to bottom that the favorites categories appear in the user dashbaord: favorites section and the product page: favorites dropdown
+E1c1c. To the right of the drag handle, should be a remove button, that removes the favorite category from the user options
+E1c1d. Below the fields should be a "+" button that addes new favorites category fields
+E1c1e. Below the "+" button should be a save changes button that saves all the changes made to the favorites categories

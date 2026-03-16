@@ -1,0 +1,161 @@
+UI FAILURES
+
+1. Layout Failures
+Structural Breaks
+Text overlap
+Element overlap
+Content collision
+Broken grid alignment
+Misaligned columns
+Inconsistent spacing
+Layout shift (unexpected movement)
+CLS (Cumulative Layout Shift issues)
+Responsive Failures
+Breakpoint misfires
+Mobile layout break
+Horizontal scrolling on mobile
+Fixed-width containers on small screens
+Hidden content at certain widths
+Container Issues
+Overflow outside container
+Clipped content
+Scroll container within scroll container
+Double scrollbars
+
+2. Typography Failures
+Text overlap (vertical)
+Line-height too tight
+Font scaling issues
+Text truncation without ellipsis
+Unreadable small text
+Poor contrast (WCAG failure)
+Inconsistent font hierarchy
+Orphan/widow text lines
+All-caps overuse
+Poor kerning / tracking
+
+3. Interaction Failures
+Broken Interaction
+Button doesn’t respond
+Dead click areas
+Double submission
+Hover state missing
+Focus state missing
+Disabled state unclear
+Feedback Failures
+No loading indicator
+No success confirmation
+No error messaging
+Silent failure
+Infinite spinner
+Timing Issues
+Laggy response
+Premature timeout
+Race condition in UI state
+
+4. Navigation Failures
+User gets lost
+No back path
+Broken breadcrumbs
+Confusing menu hierarchy
+Too many nested menus
+Hidden navigation
+Poor search discoverability
+
+5. Form Failures
+No validation feedback
+Validation too aggressive
+Error message unclear
+Required field not labeled
+Label disappears on typing (floating label failure)
+Poor keyboard navigation
+Autofill conflicts
+Placeholder used as label
+Multi-step form resets data
+
+6. Accessibility Failures (A11Y)
+No keyboard support
+No screen reader labels
+Missing ARIA roles
+Color-only indicators
+Low contrast ratio
+Focus trap issues
+No alt text
+Improper heading structure
+
+7. State Management Failures
+UI shows wrong data
+Stale state
+Flickering UI
+Ghost data after deletion
+UI out of sync with backend
+Inconsistent loading states
+
+8. Visual Hierarchy Failures
+No clear primary action
+Everything looks equally important
+CTA blends into background
+Poor spacing rhythm
+No visual grouping
+Inconsistent iconography
+
+9. Performance Failures
+Slow render
+Janky animations
+Heavy image loads
+Blocking scripts
+Delayed interaction
+Re-render storms
+
+10. Micro-Interaction Failures
+No hover animation
+Abrupt state changes
+No transition smoothing
+Confusing toggle states
+Dropdown flicker
+
+11. Data Display Failures (Critical for Admin Panels)
+Poor table readability
+No sorting
+No filtering
+No pagination
+Inconsistent units
+No export option
+Dense dashboards with no grouping
+Misleading charts
+
+12. Error Handling Failures
+Raw server errors exposed
+Technical jargon shown to user
+No retry option
+404 dead ends
+No graceful degradation
+
+13. Trust & Credibility Failures
+Inconsistent branding
+Broken images
+Mixed design styles
+Outdated UI patterns
+Poor empty states
+
+14. Security UX Failures
+No session timeout warning
+No confirmation on destructive actions
+No 2FA indication
+Sensitive data exposed in UI
+
+15. Mobile-Specific Failures
+Tap targets too small
+Sticky elements covering content
+Keyboard pushing layout incorrectly
+Modal off-screen
+Fixed header overlapping content
+
+16. Advanced / System-Level Failures (Relevant to Your Runtime)
+No run status indicator
+No task history visibility
+No state traceability
+No audit trail
+No explainability
+No rollback capability
+No error root cause surfacing

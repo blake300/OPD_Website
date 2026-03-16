@@ -1,0 +1,1274 @@
+# Oil Patch Depot - Complete Site Workflows
+# Date: 2026-03-14
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+1.  STOREFRONT - Homepage
+2.  STOREFRONT - Product Listing & Search
+3.  STOREFRONT - Category Browsing
+4.  STOREFRONT - Single Product Page
+5.  STOREFRONT - Shopping Cart
+6.  STOREFRONT - Checkout
+7.  STOREFRONT - Favorites (Heart System)
+8.  AUTH - Login / Register
+9.  AUTH - Forgot / Reset Password
+10. CMS - Dynamic Pages
+11. DASHBOARD - Main Dashboard
+12. DASHBOARD - Account & Payment Methods
+13. DASHBOARD - Order History & Approval
+14. DASHBOARD - Favorites & Accounting Splits
+15. DASHBOARD - Client Management
+16. DASHBOARD - Vendor Management
+17. DASHBOARD - Equipment Listings
+18. DASHBOARD - Accounting Codes
+19. ADMIN - Products (CRUD, Inline Edit, Reorder)
+20. ADMIN - Product Variants
+21. ADMIN - Product Associations
+22. ADMIN - Product Images
+23. ADMIN - Product Types (Auto-Classification)
+24. ADMIN - Product Import (CSV)
+25. ADMIN - Product Export (CSV)
+26. ADMIN - Orders & Refunds
+27. ADMIN - Users & Roles
+28. ADMIN - System Settings
+29. ADMIN - Shipping Settings
+30. ADMIN - Promotions
+31. ADMIN - Pages (Page Builder)
+32. ADMIN - Used Equipment Approval
+33. ADMIN - Sales Tax Management
+34. ADMIN - Database Health Check
+35. ADMIN - Reports (Sales Volume & Product Sales)
+36. BACKEND - Stripe Payment Integration
+37. BACKEND - Email Service
+38. BACKEND - SMS / Invitation System
+39. BACKEND - Authentication & Security
+40. DATABASE - Schema Overview
+
+================================================================================
+1. STOREFRONT - Homepage
+================================================================================
+File: public/index.php
+
+WORKFLOW:
+1. Page loads, calls site_get_featured_products(12) to fetch 12 featured items
+2. Renders featured product carousel with auto-scroll (5-second intervals)
+3. Carousel supports manual prev/next navigation and dot pagination
+4. Responsive breakpoints: 3 or 6 slides per view
+5. Category shortcut buttons displayed:
+   - AutoBailer Artificial Lift, Parts, Tools, Services, Supplies, Used Equipment
+   - Each links to /category.php?cat={category}
+6. "How it Works" marketing section with graphic
+7. Value proposition cards (Field-first workflows, Accountable spend, Reliable supply)
+8. Favorites module initialized (heart buttons on featured products)
+9. If user not signed in, heart click shows "Please Sign-In" message
+
+USER INTERACTIONS:
+- Click featured product -> /product.php?id={id}
+- Click category button -> /category.php?cat={category}
+- Click heart -> Favorites dropdown (if signed in) or sign-in prompt
+- Carousel auto-scrolls, manual prev/next/dot navigation
+
+================================================================================
+2. STOREFRONT - Product Listing & Search
+================================================================================
+File: public/products.php
+
+WORKFLOW:
+1. User enters search term in header search bar
+2. As user types (min 2 chars, 180ms debounce):
+   a. AJAX call to /api/search_suggestions.php?q={term}
+   b. AbortController cancels previous request
+   c. Dropdown shows results with thumbnail, name, SKU, category
+   d. Keyboard navigation: arrow keys, Enter to select, Escape to close
+3. On form submit or suggestion click -> /products.php?q={term}
+4. Server calls site_get_products(null, $search, 48)
+5. Up to 48 products rendered in 3-column grid
+6. Each card: image, name, price, favorites heart, "View details" link
+
+USER INTERACTIONS:
+- Type in search bar -> predictive suggestions dropdown
+- Click suggestion -> navigate to product page
+- Submit search -> products listing filtered
+- Click "View details" -> /product.php?id={id}
+- Click heart -> favorites system
+
+================================================================================
+3. STOREFRONT - Category Browsing
+================================================================================
+File: public/category.php
+
+WORKFLOW:
+1. Category selected via dropdown or URL param ?cat={category}
+2. Server calls site_get_products($category, null, 78) for initial 78 products
+3. Products rendered in grid with quick-add or "View details" buttons
+4. Quick-add available only for simple products (no variants, no associations)
+5. Quantity selector (1-25) with quick-add button
+6. "Load more" button at bottom for pagination:
+   a. AJAX call to /api/category_products.php?category=X&offset=Y&limit=Z
+   b. Returns JSON: {items, nextOffset, hasMore}
+   c. New product cards appended to grid dynamically
+7. Used Equipment category shows "Got Equipment to Sell?" banner
+
+SPECIAL RULES:
+- Used Equipment: filters out items where sold quantity >= listed quantity
+- Quick-add: POST to same page, adds to cart, shows confirmation
+- Category dropdown auto-submits form on change
+
+================================================================================
+4. STOREFRONT - Single Product Page
+================================================================================
+File: public/product.php
+
+WORKFLOW:
+1. Product loaded via ?id={productId}
+2. If product inactive or sold out (Used Equipment) -> 404
+3. Image gallery loaded: site_get_product_images($productId)
+   - Primary image displayed large
+   - Thumbnail strip for multiple images
+   - Click thumbnail to swap main image
+4. Product details: name, SKU, price, descriptions
+5. Variant handling:
+   a. site_get_product_variants($productId)
+   b. Filters out inactive variants and out-of-stock (when backorders disabled)
+   c. Variants displayed in collapsible table: name, price, qty selector, add button
+6. Related/Associated products:
+   a. site_get_related_products($productId, 6)
+   b. Grouped by category in collapsible <details> elements
+   c. Each related product can also have variants
+
+ADD TO CART WORKFLOW:
+1. User selects quantity (and variant if applicable)
+2. For service products:
+   a. Must be signed in (shows sign-in prompt if not)
+   b. Must select arrival date (min = current date + daysOut setting)
+   c. Arrival date synced between main form and variant forms
+3. POST request with: productId, quantity, variantId, arrivalDate
+4. CSRF token validated
+5. If _ajax=1 flag: returns JSON {ok, message}
+6. Button shows "Added!" temporarily
+7. Cart badge in header updates
+
+================================================================================
+5. STOREFRONT - Shopping Cart
+================================================================================
+File: public/cart.php
+
+WORKFLOW:
+1. Cart items loaded:
+   - Signed-in: site_cart_items_for_user($userId) from database
+   - Guest: session-based cart
+2. Each item shows: name, variant name, price, quantity, subtotal
+3. Quantity adjustment: POST action=update with key and new quantity
+4. Remove item: POST action=remove with key
+5. Cart totals calculated: subtotal, weight, item count
+
+CLIENT & ACCOUNTING WORKFLOW:
+1. If user has billable clients, client dropdown appears
+2. Selecting client loads accounting structure for that client
+3. Accounting groups section:
+   a. Groups header with "Reset" button
+   b. Multi-item assignment UI
+   c. Location, Code 1, Code 2 cascading dropdowns
+   d. Each item assigned to accounting codes
+4. Reset button: clears all assignments, restores default groups
+5. Accounting saved to cart_accounting table via AJAX
+
+SHIPPING CALCULATION:
+1. Shipping method selection: Pickup or Delivery
+2. If Delivery:
+   a. User's state/zip determines delivery zone (1, 2, or 3)
+   b. Zone rates from system_settings: deliverySmallZone1/2/3, deliveryLargeZone1/2/3
+   c. Rate = flat fee + per-pound charge
+   d. Large delivery flag triggers different pricing tier
+3. Service-only carts show no shipping options
+4. "Continue to Checkout" button proceeds to checkout
+
+================================================================================
+6. STOREFRONT - Checkout
+================================================================================
+File: public/checkout.php
+
+WORKFLOW:
+1. Guest checkout: /checkout.php?guest=1 (minimal form, session cart)
+2. Signed-in checkout: full customer details, saved payment methods
+
+STEP-BY-STEP:
+1. Shipping address form displayed
+   - Signed-in: pre-populated from user profile
+   - Guest: blank form
+2. Shipping method selection (pickup or delivery)
+   - Same zone/cost calculation as cart page
+   - Address determines zone dynamically
+3. Tax calculation:
+   - Based on delivery address zip code
+   - Looked up from tax_rates table by zip
+   - Non-taxable items excluded (services)
+4. Payment selection:
+   a. Client card: if client-billable and client has linked payment method
+   b. User saved cards: dropdown of saved payment methods
+   c. Stripe payment element: new card entry via Stripe Elements
+5. Promo code input (optional):
+   - Validates against promotions table
+   - Applies discount to order
+6. Billing address: same as shipping toggle, or separate form
+7. Order review: shows all items, subtotal, tax, shipping, total
+8. Accounting validation: ensures assignments sum = item quantities
+9. "Place Order" button:
+   a. Form submitted with all data
+   b. Server calls site_place_order(data)
+   c. Payment processed via Stripe (or client card)
+   d. Order created in orders table
+   e. Order items inserted in order_items table
+   f. Inventory decremented via site_reduce_inventory()
+   g. Accounting copied from cart to order
+   h. Cart cleared
+   i. Order confirmation email sent
+   j. Admin notification email sent
+   k. Redirect to order confirmation page
+
+================================================================================
+7. STOREFRONT - Favorites (Heart System)
+================================================================================
+File: public/assets/js/site.js (favorites module)
+
+WORKFLOW:
+1. Heart buttons appear on product cards across all pages
+2. Click heart (not signed in): shows "Please Sign-In" message (auto-hide 5s)
+3. Click heart (signed in):
+   a. GET /api/favorites.php?productId=X&variantId=Y
+   b. Returns selected category IDs for this product
+   c. Dropdown displays user's favorite categories with checkboxes
+   d. User checks/unchecks categories
+   e. POST /api/favorites.php with action: 'set_product_categories'
+   f. Body: {productId, variantId, categoryIds[]}
+   g. Heart fills solid if any category selected
+4. State cached client-side per product/variant combo
+5. Loading states shown during API calls
+6. ARIA-compliant: aria-expanded, role=option
+
+================================================================================
+8. AUTH - Login / Register
+================================================================================
+File: public/login.php
+
+LOGIN WORKFLOW:
+1. User enters email + password
+2. Optional "Remember me" checkbox
+3. POST action=login with CSRF token
+4. Server: site_login(email, password)
+   a. Rate limit check
+   b. User lookup by email
+   c. Password verification (bcrypt)
+   d. Session creation with session_regenerate_id()
+   e. Store user data in $_SESSION['site_user']
+5. Redirect to ?redirect= param or /dashboard.php
+
+REGISTER WORKFLOW:
+1. User enters email + password
+2. POST action=register with CSRF token
+3. Server: site_register(name, email, password)
+   a. Validates email uniqueness
+   b. Creates user with role='customer', status='active'
+   c. Password hashed with PASSWORD_DEFAULT
+   d. Sends welcome email
+   e. Auto-login
+   f. Links pending vendor/client invitations via site_link_pending_invitations()
+4. Redirect to dashboard
+
+CONTEXT BANNERS:
+- Equipment listing redirect: "Must sign in to list equipment"
+- Service in cart: "Must be registered with payment method"
+- Checkout redirect: "Don't want to create an account? Continue as Guest"
+
+================================================================================
+9. AUTH - Forgot / Reset Password
+================================================================================
+Files: public/forgot-password.php, public/reset-password.php
+
+FORGOT PASSWORD WORKFLOW:
+1. User enters email
+2. POST with CSRF token
+3. Server: site_request_password_reset(email)
+   a. Rate limit: 10 attempts per 48 hours
+   b. If exceeded: locks account (requires admin unlock)
+   c. Generates random token
+   d. Stores SHA256 hash in password_reset_tokens table
+   e. Token expires in 30 minutes
+   f. Sends email with reset link
+4. Shows generic message (prevents email enumeration):
+   "If that email is associated with an account, you will receive a reset link shortly."
+
+RESET PASSWORD WORKFLOW:
+1. User clicks link: /reset-password.php?token={rawToken}
+2. On load: site_validate_reset_token(rawToken)
+   a. SHA256 hash lookup in password_reset_tokens
+   b. Check expiry (30 min)
+   c. Check not already used
+3. If valid: show new password form
+4. User enters new password + confirmation
+5. POST with CSRF token
+6. Server: site_apply_password_reset(rawToken, newPassword)
+   a. Re-validates token
+   b. Updates user password hash
+   c. Invalidates ALL tokens for this user
+   d. Redirect to login with success message
+
+================================================================================
+10. CMS - Dynamic Pages
+================================================================================
+Files: public/page.php, admin page builder
+
+RENDER WORKFLOW:
+1. Request: /page.php?slug={slug}
+2. Lookup page in pages table by slug
+3. Only published pages rendered (draft = 404)
+4. Load page_sections by pageId
+5. Render sections by type:
+   - headline: <h1>, <h2>, or <h3> based on size setting
+   - text: title + paragraphs
+   - image: URL-based with alt text
+   - video: YouTube/Vimeo embed (auto-parses various URL formats)
+6. Layout: rows with 1-3+ columns, responsive grid
+7. Hero template: gradient background for first row
+
+VIDEO URL PARSING:
+- YouTube: /watch?v=, /embed/, /shorts/, /live/
+- Vimeo: /video/123 or direct ID
+- Extracts and converts to embed-friendly URL
+
+================================================================================
+11. DASHBOARD - Main Dashboard
+================================================================================
+File: public/dashboard.php
+
+WORKFLOW:
+1. Requires site_require_auth()
+2. Loads user session data
+3. Fetches counts:
+   - Orders: site_get_orders_for_user($userId)
+   - Favorites: site_get_favorites($userId)
+   - Clients: site_simple_list('clients', $userId)
+   - Equipment: site_simple_list('equipment', $userId)
+4. Displays welcome greeting: "Howdy, {name}"
+5. Shows 4 statistics cards with counts
+6. Navigation links to all dashboard sections
+7. Logout link
+
+================================================================================
+12. DASHBOARD - Account & Payment Methods
+================================================================================
+File: public/dashboard-account.php
+
+PROFILE WORKFLOW:
+1. Form displays current user data (name, email, company, phone)
+2. Billing address fields (address, city, state, zip)
+3. Shipping address toggle: "Same as billing" checkbox
+   - Unchecked: shows separate shipping address fields
+4. POST action=profile:
+   a. Updates users table
+   b. Phone normalized via opd_normalize_us_phone()
+   c. Syncs changes to linked client/vendor entries
+
+PASSWORD WORKFLOW:
+1. Enter current password, new password, confirm password
+2. POST action=password:
+   a. Verifies current password
+   b. Updates password hash
+
+PAYMENT METHODS WORKFLOW:
+1. Saved cards listed with: label, type, brand, last4, expiration
+2. "Add Payment Method" button:
+   a. Opens modal with Stripe Elements (card number, expiry, CVC)
+   b. Creates SetupIntent via Stripe
+   c. On success: saves payment method to payment_methods table
+3. Edit payment method: inline form for label/type
+4. Set primary: designates default payment method
+5. Remove: detaches from Stripe and deletes from database
+6. Manual payment method: add non-Stripe payment reference
+
+================================================================================
+13. DASHBOARD - Order History & Approval
+================================================================================
+File: public/dashboard-orders.php
+
+ORDER VIEWING WORKFLOW:
+1. Loads orders where user is vendor, client, or order creator
+2. Table columns: order#, payment method, vendor, client, total, date, approval status
+3. Click row to expand/collapse order details
+4. Details show: item list, quantities, prices, accounting splits
+5. Tax and shipping distribution calculations per item
+
+FILTERING WORKFLOW:
+1. Time filters: All Time, Last 30 Days, Last 3 Months, Current Year, Last Year, Custom
+2. Multi-select filters: Vendors, Clients, Locations, Code 1, Code 2
+3. Filters from accounting structure hierarchy
+4. Real-time client-side filtering of order rows
+
+APPROVAL WORKFLOW (Client View):
+1. Orders with approvalStatus="Waiting" show Approve/Decline buttons
+2. Only visible when clientUserId matches current user
+3. Approve: POST action=approve_order -> sets approvalStatus='Approved'
+4. Decline: POST action=decline_order -> sets approvalStatus='Declined'
+
+REORDER WORKFLOW:
+1. Click "Reorder" on any order item
+2. POST action=reorder with productId, variantId, quantity, arrivalDate
+3. Calls site_add_to_cart() to add item
+4. Redirect to cart
+
+================================================================================
+14. DASHBOARD - Favorites & Accounting Splits
+================================================================================
+File: public/dashboard-favorites.php
+
+FAVORITES MANAGEMENT:
+1. Categories listed in sidebar (draggable to reorder)
+2. Default "Favorites" category is locked (cannot delete)
+3. Click category to view items
+4. Each item card shows: name, price, variant, quantity input, heart icon
+
+ACCOUNTING SPLITS WORKFLOW:
+1. Each favorite item can have accounting splits
+2. Click to expand split editor
+3. Cascading dropdowns: Location -> Code 1 -> Code 2
+4. Add multiple split rows (different accounting codes)
+5. Each split has quantity field
+6. Validation: sum of split quantities must equal item quantity
+7. Visual mismatch indicator (highlighted card) when invalid
+8. Save: POST to /api/favorites.php with splits data
+
+ADD TO CART:
+1. "Add to Cart" per item or "Add All" per category
+2. POST to /api/favorites.php with action=add_to_cart
+3. Items added with accounting pre-assignments
+
+CATEGORY MANAGEMENT:
+1. Create new category
+2. Rename category
+3. Delete category (not default)
+4. Drag-and-drop reorder categories
+5. Save: POST action=save_categories
+
+================================================================================
+15. DASHBOARD - Client Management
+================================================================================
+File: public/dashboard-clients.php
+
+ADD CLIENT WORKFLOW:
+1. Fill form: name, email, phone, notes
+2. Two submission paths:
+   a. "Add Client" (action=create): creates client record directly
+   b. "Add & Invite" (action=invite): creates + sends SMS/email invite
+3. If email matches existing user:
+   - Client status set to 'requested'
+   - Reverse vendor entry created on linked user
+4. SMS template: client_invite_sms system setting
+5. Email template: email_client_invite system setting
+6. Rate limiting on SMS sends
+
+CLIENT MANAGEMENT:
+1. Active clients displayed in table
+2. Pending clients show Accept/Decline buttons
+3. Edit client: inline edit form with save/cancel
+4. Delete client: confirmation dialog
+5. Profile data synced from linked user account
+
+TWO-WAY LINKING:
+- Creating a client automatically creates a vendor entry on the linked user
+- Status transitions: active, pending, declined
+
+================================================================================
+16. DASHBOARD - Vendor Management
+================================================================================
+File: public/dashboard-vendors.php
+
+ADD VENDOR WORKFLOW:
+1. Requires user to have cell phone on profile
+2. Fill form: name, contact, email, phone
+3. Set purchase limits:
+   - Per order limit
+   - Per day limit
+   - Per month limit
+   - "No purchase limit" checkbox (overrides all)
+4. Auto-approval toggle with help tooltip
+5. Assign payment method from user's saved methods
+6. Submit: action=create or action=invite (with SMS/email)
+
+VENDOR MANAGEMENT:
+1. Active vendors in table with limits display
+2. Update limits/auto-approval inline
+3. Set primary payment method
+4. Accept/decline pending vendor requests
+5. Delete vendor with confirmation
+
+PURCHASE LIMIT ENFORCEMENT:
+- site_check_vendor_limits() validates:
+  - Per-order: order total vs purchaseLimitOrder
+  - Per-day: sum of today's orders vs purchaseLimitDay
+  - Per-month: sum of month's orders vs purchaseLimitMonth
+
+================================================================================
+17. DASHBOARD - Equipment Listings
+================================================================================
+File: public/dashboard-equipment.php
+
+CREATE EQUIPMENT WORKFLOW:
+1. Fill form: name, serial, location, quantity, price, contact info, description
+2. Select/drag up to 8 photos
+3. Photos queued with preview thumbnails
+4. Submit "Add Equipment":
+   a. AJAX POST with _ajax flag creates equipment record
+   b. Returns JSON with equipment ID
+   c. Queued photos uploaded in parallel to /api/equipment_upload.php
+   d. Redirect on completion
+5. Equipment status starts as "Pending Approval"
+
+EDIT EQUIPMENT WORKFLOW:
+1. Click Edit on equipment card
+2. Update fields in form
+3. Upload new photos (immediate upload in edit mode)
+4. Set primary photo (PUT to /api/equipment_images.php)
+5. Delete photo (DELETE from /api/equipment_images.php)
+6. Save changes
+
+EQUIPMENT STATES:
+- Pending Approval: waiting for admin review
+- Approved: converted to product listing (Active)
+- Declined: rejected by admin
+
+================================================================================
+18. DASHBOARD - Accounting Codes
+================================================================================
+File: public/dashboard-accounting-codes.php
+
+STRUCTURE:
+- 3 categories: Location, Code 1, Code 2
+- Each supports 3-level hierarchy (root -> child -> grandchild)
+- Location has extra fields: zip code, coordinate
+
+MANAGEMENT WORKFLOW:
+1. Structure loaded from /api/accounting_structure.php
+2. Add root-level items via "Add item" button
+3. Add children via "Add child" button (up to 3 levels deep)
+4. Edit labels via text inputs
+5. Drag-and-drop reorder within same level
+6. Remove items via "Remove" button
+7. "Require Sub" checkbox per category (enforces sublevel selection)
+8. Save: POST to /api/accounting_structure.php
+
+CSV IMPORT WORKFLOW:
+1. Click import button per category
+2. Download CSV template (3 columns: root, child, grandchild)
+3. Upload CSV file
+4. Parser handles: quoted fields, line breaks, headers
+5. Merge strategy: finds/creates parents, prevents duplicates
+6. Preserves existing structure
+7. Result merged into current view
+
+================================================================================
+19. ADMIN - Products (CRUD, Inline Edit, Reorder)
+================================================================================
+File: public/admin.php, public/assets/js/admin.js
+API: /api/products.php
+
+PRODUCT TABLE:
+- Columns: Name, SKU, Category, Status, Type, Pos, Price, Inventory,
+  Inv Stk To, Inv Min, Order (calculated)
+- Grid layout via CSS variable --product-grid
+- Inline editing: click cell to edit
+- Dirty state tracking: modified rows highlighted, save button shows count
+
+ADD PRODUCT WORKFLOW:
+1. Click "Add Product" button
+2. New row created with temp ID (new-{timestamp}-{random})
+3. Fill required fields: Name, SKU, Category
+4. Click "Save Changes" to persist
+5. POST /api/products.php with product data + CSRF token
+6. After save, can expand detail/variant/association panels
+
+EDIT PRODUCT WORKFLOW:
+1. Click any editable cell in product row
+2. Modify value (text, select, number)
+3. Row marked as dirty (highlighted)
+4. Click "Save Changes" to save all dirty rows
+5. PUT /api/products.php?id={id} for each dirty product
+
+DELETE PRODUCT:
+1. Click delete button (X) on product row
+2. Confirmation dialog
+3. DELETE /api/products.php?id={id}
+
+EXPAND DETAIL PANEL:
+1. Click "Expand" button on product row
+2. Panel slides open below row showing:
+   - Checkboxes: Allow Backorders, Service, Featured, Large Delivery
+   - Numbers: Days Out, Weight, Length, Width, Height
+   - Text areas: Short Description, Long Description, Tags
+   - Vendor: vnName, vnContact, vnPrice
+   - Competitor: compName, compPrice
+   - Inventory: shelfNum
+
+SEARCH & FILTER:
+1. Search box: filters by name, SKU, category (client-side)
+2. Category dropdown: filters to single category
+3. Both auto-update table display
+
+REORDER MODE:
+1. Select a category filter first
+2. Click "Move" button
+3. Table enters drag-enabled mode
+4. Drag rows via drag handle (::)
+5. Position numbers (posNum) auto-updated
+6. Click "Done Moving" to exit
+7. Save to persist new positions
+
+================================================================================
+20. ADMIN - Product Variants
+================================================================================
+File: public/assets/js/admin.js
+API: /api/product_variants.php
+
+WORKFLOW:
+1. Click "Vrt" button on product row
+2. Variant panel slides open below
+3. GET /api/product_variants.php?productId={id}
+4. Variant table rendered:
+   - Columns: Name, SKU, Status, Pos, Price, Inventory, Inv Stk To, Inv Min, Order
+
+ADD VARIANT:
+1. Click "Add New Vrt" button
+2. New row with temp ID
+3. Fill Name, SKU (required)
+4. Click "Save Variants"
+5. POST /api/product_variants.php with variant data
+
+EDIT VARIANT:
+1. Click editable cell, modify value
+2. Row marked dirty
+3. Click "Save Variants"
+4. PUT /api/product_variants.php?id={id}
+
+DELETE VARIANT:
+1. Click delete (X) on variant row
+2. Confirmation
+3. DELETE /api/product_variants.php?id={id}
+
+VARIANT DETAIL PANEL:
+1. Click expand on variant row
+2. Same detail fields as product (descriptions, weights, vendor, etc.)
+
+REORDER VARIANTS:
+1. Click "Move" button in variant panel
+2. Drag variant rows to reorder
+3. Position numbers auto-updated
+4. Save to persist
+
+================================================================================
+21. ADMIN - Product Associations
+================================================================================
+File: public/assets/js/admin.js
+API: /api/product_associations.php
+
+WORKFLOW:
+1. Click "Assc" button on product row
+2. Association panel slides open
+3. GET /api/product_associations.php?productId={id}
+4. Shows all other products grouped by category
+5. Checkbox selection for each related product
+6. Currently associated products pre-checked
+
+SAVE ASSOCIATIONS:
+1. Check/uncheck product checkboxes
+2. Click "Save Associations"
+3. POST /api/product_associations.php with selected product IDs
+
+REORDER ASSOCIATIONS:
+1. Click "Move" in associations panel
+2. Drag associated products to reorder within category groups
+3. Sort order saved per association
+
+================================================================================
+22. ADMIN - Product Images
+================================================================================
+File: public/assets/js/admin.js
+API: /api/product_images.php, /api/upload.php
+
+WORKFLOW:
+1. Expand product detail panel
+2. Images section shows current product images
+3. Upload: file input accepts images -> POST /api/upload.php
+4. Uploaded image added to product_images table
+5. Thumbnail preview displayed
+6. Set primary: click star icon -> PUT /api/product_images.php
+7. Delete: click X -> DELETE /api/product_images.php
+8. Legacy import: paste URL for older products without uploaded images
+
+================================================================================
+23. ADMIN - Product Types (Auto-Classification)
+================================================================================
+File: public/assets/js/admin.js
+API: /api/product_types.php
+
+WORKFLOW:
+1. After product table renders, loadProductTypes() called (fire-and-forget)
+2. GET /api/product_types.php
+3. Server computes type for each product:
+   - Simple: no variants, no associations
+   - Variant: has variants, no associations
+   - Associated: no variants, has associations
+   - Combo: has both variants and associations
+4. Returns {types: {productId: "Type", ...}}
+5. Each product row's Type cell updated via data-field="productType"
+6. Also updates state.products.items[].productType
+
+================================================================================
+24. ADMIN - Product Import (CSV)
+================================================================================
+File: public/assets/js/admin.js
+API: /api/import.php
+
+THREE IMPORT TYPES:
+
+A. IMPORT PRODUCTS:
+1. Click "Import Products" button
+2. Modal opens with: Mode (Add New / Update Existing), CSV file input, Example download
+3. Download example CSV: /uploads/examples/import-products-example.csv
+4. Select CSV file
+5. Click "Import"
+6. POST /api/import.php with FormData: csv file, importType='products', mode
+7. Add mode: creates new products (skips existing SKUs)
+8. Update mode: updates existing products by SKU (skips new)
+9. Required for add: name, category, sku
+10. Response: {created, updated, skipped, errors[], total}
+11. Summary displayed in modal
+
+B. IMPORT VARIANTS:
+1. Click "Import Variants" button
+2. Same modal flow
+3. CSV must include: parentSku (matches to product), sku, name
+4. POST /api/import.php with importType='variants'
+5. Variant linked to parent product by parentSku lookup
+
+C. IMPORT IMAGES:
+1. Click "Import Images" button
+2. Same modal flow
+3. CSV must include: sku, imageLocation (URL), imageType (primary/secondary)
+4. POST /api/import.php with importType='images'
+5. Primary images: set isPrimary=1, update product.imageUrl
+6. Creates entries in product_images table
+
+================================================================================
+25. ADMIN - Product Export (CSV)
+================================================================================
+File: public/assets/js/admin.js
+
+WORKFLOW:
+1. Click "Export" button in products panel
+2. Export modal opens with:
+   a. Field checkboxes (27 fields available)
+   b. Category checkboxes (all categories)
+   c. Type checkboxes (Simple, Variant, Associated, Combo)
+   d. "Include variants" checkbox
+3. Select desired fields, categories, types
+4. Click "Export"
+5. Client-side CSV generation:
+   a. Filter products by selected categories and types
+   b. If "Include variants": fetch all variants via API
+   c. Group variants by productId
+   d. Interleave product rows with variant rows
+   e. Add "Row Type" and "Parent SKU" columns for variant export
+6. CSV generated with BOM marker for Excel compatibility
+7. Blob/URL.createObjectURL for instant download
+8. Filename: products-export-YYYY-MM-DD.csv
+
+================================================================================
+26. ADMIN - Orders & Refunds
+================================================================================
+File: public/assets/js/admin.js
+API: /api/orders.php, /api/refund.php
+
+ORDER MANAGEMENT:
+1. Orders table with 27 columns:
+   Order#, Customer, Status, Payment, Fulfillment, Approval, OrderAmount,
+   Tax, Shipping, Refund, Total, TotalAfterRefund, ShippingMethod,
+   DeliveryZone, DeliveryClass, ServiceArrivalDate, Updated, etc.
+2. Click expand arrow to open inline edit panel
+3. Edit order fields directly
+4. Order items section loaded on expand:
+   - Table: Product, Qty, Price, Total, Arrival Date
+   - Summary: item count, total quantity, total amount
+
+ORDER EXPORT:
+- Export button: GET /api/orders.php?export=excel
+- Downloads Excel/CSV file
+
+REFUND WORKFLOW:
+1. Click "Refund" button in order items section
+2. Refund panel opens with two modes:
+
+   MODE 1 - Adjust Items:
+   a. Per-line-item quantity adjusters (0 to original qty)
+   b. Optional shipping refund amount
+   c. Calculated refund total shown in real-time
+
+   MODE 2 - Enter Amount:
+   a. Manual refund amount input
+   b. Cannot exceed order total minus already refunded
+
+3. Return to Inventory checkbox:
+   - If checked, refunded item quantities restored to product/variant inventory
+
+4. Refund Method:
+   a. Via Stripe: charges back to customer's card
+      - Requires successful payment in payments table
+      - Uses payment intent ID for Stripe refund
+   b. Manual: updates order records only (no card transaction)
+
+5. Confirmation dialog before processing
+6. POST /api/refund.php with:
+   {orderId, refundAmount, refundMethod, returnToInventory, itemAdjustments[]}
+7. Server validates:
+   - Order exists
+   - Amount > 0 and <= remaining balance
+   - If Stripe: payment exists with successful status
+8. If Stripe: calls stripe_create_refund(paymentIntentId, amountCents)
+9. Updates orders.refundAmount
+10. If returnToInventory: updates product/variant inventory
+11. Response: {ok, refundAmount, totalRefunded, orderTotal, method, stripeRefundId}
+
+USER RELATIONS (in order/user inline edit):
+- Shows Vendors and Clients associated with user
+- Cards: ID, Name, Contact, Email, Phone, Status, Limits, Auto Approve, Payment
+- Loaded from: /api/user_relations.php?userId={id}
+
+USER PASSWORD RESET:
+- If user has resetAdminLocked flag
+- "Allow Password Reset" button
+- PATCH /api/users.php?id={id}&action=allow_password_reset
+
+================================================================================
+27. ADMIN - Users & Roles
+================================================================================
+File: public/assets/js/admin.js
+API: /api/users.php
+
+WORKFLOW:
+1. Users listed in table: Name, Email, Role, Status, Company, Last Login
+2. Click to expand inline edit form
+3. Fields: First Name, Last Name, Email (required), Role, Status, Company
+4. Billing address block
+5. Shipping address block
+6. Bio/Notes textarea
+7. Password input (for setting new password)
+8. Last Login (readonly)
+
+CRUD:
+- Create: POST /api/users.php (email required)
+- Update: PUT /api/users.php?id={id}
+- Delete: DELETE /api/users.php?id={id}
+- Password reset unlock: PATCH /api/users.php?id={id}&action=allow_password_reset
+
+ROLES: admin, manager, customer, vendor
+
+================================================================================
+28. ADMIN - System Settings
+================================================================================
+File: public/assets/js/admin.js
+API: /api/system_settings.php
+
+SETTINGS (single-record edit, no delete):
+
+SMS Messages:
+- clientInviteSms: Client invitation SMS template
+- vendorInviteSms: Vendor invitation SMS template
+
+Auto-Approval:
+- autoApproveHelpText: Help text for auto-approve feature
+- autoApproveTime: Minutes for auto-approval window
+- vendorLimitText: Vendor limit explanation text
+
+Delivery Costs:
+- deliverySmallZone1, deliverySmallZone2, deliverySmallZone3
+- deliveryLargeZone1, deliveryLargeZone2, deliveryLargeZone3
+
+Email Templates:
+- emailOrderShipping: Order confirmation (shipping method)
+- emailOrderDelivery: Order confirmation (delivery method)
+- emailOrderPickup: Order confirmation (pickup method)
+- emailClientInvite: New client request email
+- emailVendorInvite: New vendor request email
+- emailForgotPassword: Lost password email
+- emailWelcome: Welcome email for new accounts
+
+My Equipment:
+- myEquipmentText: Custom text for equipment section
+
+WORKFLOW:
+1. GET /api/system_settings.php loads current values
+2. Edit any field in form
+3. PUT /api/system_settings.php to save
+4. Uses site_set_setting_value() for key-value storage
+
+================================================================================
+29. ADMIN - Shipping Settings
+================================================================================
+File: public/assets/js/admin.js
+API: /api/shipping_settings.php
+
+SETTINGS (single-record edit, no delete):
+
+Zone 1-3 Configuration:
+- zone{N}States: comma-separated state abbreviations (textarea)
+- zone{N}FlatRate: flat shipping fee
+- zone{N}PerPound: per-pound shipping rate
+
+WORKFLOW:
+1. GET /api/shipping_settings.php loads zones
+2. Edit zone states and rates
+3. PUT /api/shipping_settings.php to save
+
+================================================================================
+30. ADMIN - Promotions
+================================================================================
+File: public/assets/js/admin.js
+API: /api/promotions.php
+
+FIELDS:
+- Code (required, unique)
+- Type (discount type)
+- Value (discount amount/percentage)
+- Status (active/inactive)
+- Starts / Ends (date range)
+- Usage Limit
+- Used (count, readonly)
+
+CRUD:
+- Create: POST /api/promotions.php
+- Read: GET /api/promotions.php
+- Update: PUT /api/promotions.php?id={id}
+- Delete: DELETE /api/promotions.php?id={id}
+
+================================================================================
+31. ADMIN - Pages (Page Builder)
+================================================================================
+File: public/assets/js/admin.js
+API: /api/pages.php
+
+PAGE LIST VIEW:
+1. Table: Title, URL (/page/{slug}), Template, Status, Updated, Actions
+2. Empty state: "No pages created yet"
+3. Click Edit -> opens page editor
+4. Click Delete -> confirmation -> DELETE /api/pages.php
+
+PAGE EDITOR:
+1. Header Info:
+   - Title (required)
+   - Slug (URL path: /page/{slug})
+   - Template: Custom Layout, Single Column, Two Column, Hero + Content
+   - Status: Draft, Published
+   - Meta Description
+
+2. Row Editor:
+   - Add rows (1-20 max)
+   - Per row: height (auto/200-600px), sections (1-4 columns)
+   - Remove row button
+
+3. Section Types (per column):
+   a. Text: headline + textarea
+   b. Image: file upload (max 5MB) -> /api/upload.php, alt text, preview
+   c. Video: URL input (YouTube/Vimeo), auto-parses embed URL, iframe preview
+
+4. Live Preview Panel:
+   - Real-time preview as content edited
+   - Responsive grid layout
+   - Placeholders for empty sections
+
+SAVE: POST /api/pages.php (create or update)
+
+================================================================================
+32. ADMIN - Used Equipment Approval
+================================================================================
+File: public/assets/js/admin.js
+API: /api/admin_equipment.php
+
+WORKFLOW:
+1. Table: User, Equipment Name, Qty, Current Qty, Price, Status, Actions
+2. Status badges: Pending, Approved (checkmark), Declined
+3. Click row to expand detail dropdown:
+   - Serial number, Status, Location, Description, Contact info
+
+APPROVAL:
+1. Pending items show "Approve" and "Decline" buttons
+2. Approve: PUT /api/admin_equipment.php with action='approve'
+   - Creates product from equipment data
+   - Copies equipment images to product images
+   - Sets equipment productId reference
+   - Equipment status -> 'Approved'
+3. Decline: PUT /api/admin_equipment.php with action='decline'
+   - Equipment status -> 'Declined'
+4. Confirmation dialog before either action
+5. Refresh button reloads list
+
+================================================================================
+33. ADMIN - Sales Tax Management
+================================================================================
+File: public/assets/js/admin.js
+API: /api/tax_rates.php
+
+WORKFLOW:
+1. Tax rate groups displayed as cards:
+   - Group Name
+   - Rate Percent (displayed as %)
+   - Zip codes (as tags)
+   - Edit / Delete buttons
+
+CREATE TAX GROUP:
+1. Click "+ Add Rate Group"
+2. Modal form:
+   - Group Name (optional)
+   - Tax Rate % (0-100, decimal)
+   - Zip Codes (comma or newline separated)
+3. Validation: requires at least one zip, valid rate
+4. POST /api/tax_rates.php
+
+EDIT TAX GROUP:
+1. Click Edit -> form pre-fills
+2. Modify fields
+3. PUT /api/tax_rates.php?id={id}
+
+DELETE TAX GROUP:
+1. Click Delete -> confirmation dialog
+2. DELETE /api/tax_rates.php?id={id}
+
+TAX CALCULATION (checkout):
+- Customer's delivery zip matched against tax_rates zip codes
+- Matching rate applied to taxable items (excludes services)
+- Tax displayed on checkout and order confirmation
+
+================================================================================
+34. ADMIN - Database Health Check
+================================================================================
+File: public/assets/js/admin.js
+API: /api/db_health.php
+
+WORKFLOW:
+1. Click "Run Check" button
+2. GET /api/db_health.php
+3. Server validates schema against expected tables/columns
+4. Response includes:
+   - Check timestamp (UTC)
+   - Missing tables list (if any)
+   - Missing columns per table (if any)
+5. Display:
+   - Green: "Schema looks healthy" (all tables/columns present)
+   - Red: Issue list with missing tables and columns
+
+================================================================================
+35. ADMIN - Reports (Sales Volume & Product Sales)
+================================================================================
+File: public/assets/js/admin.js
+API: /api/reports.php
+
+REPORT TABS: Sales Volume | Product Sales
+
+SALES VOLUME REPORT:
+1. Select period: Last 7 Days, This Month, Last Month, Year to Date, Custom Range
+2. Custom range: date pickers for start/end
+3. Click "Run Report"
+4. GET /api/reports.php?type=sales_volume&period={period}&startDate=&endDate=
+5. KPI cards displayed:
+   - Gross Sales
+   - Avg Gross Daily Sales
+   - Net Sales (gross minus refunds)
+   - Avg Net Daily Sales
+   - Orders Placed
+   - Items Sold
+   - Refunded Amount
+   - Charged for Shipping
+
+PRODUCT SALES REPORT:
+1. Select period (same options)
+2. Enter product search (name or SKU)
+3. Click "Run Report"
+4. GET /api/reports.php?type=product_sales&period={period}&search={term}
+5. Results table: Product, SKU, Category, Unit Price, Qty Sold, Revenue, Orders
+6. "View Orders" button per product row:
+   a. GET /api/reports.php?type=product_orders&productId={id}&period=&dates=
+   b. Expandable detail showing:
+      Order#, Customer, Status, Qty, Unit Price, Line Total, Order Date
+
+================================================================================
+36. BACKEND - Stripe Payment Integration
+================================================================================
+File: src/stripe_service.php
+
+CORE FUNCTIONS:
+- stripe_request(method, path, params, options): Low-level HTTP client (curl)
+- stripe_get_or_create_customer(user): Creates/retrieves Stripe customer
+- stripe_create_guest_customer(email, name): For guest checkout
+- stripe_create_setup_intent(customerId, metadata): Card setup flow
+- stripe_create_payment_intent(customerId, pmId, amount, currency, meta): Charge
+- stripe_create_checkout_intent(customerId, amount, currency, meta): Checkout charge
+- stripe_retrieve_payment_intent(piId): Lookup payment status
+- stripe_create_refund(piId, amountCents, meta, idempotencyKey): Process refund
+- stripe_attach_payment_method(pmId, customerId): Link card to customer
+- stripe_detach_payment_method(pmId): Remove card from customer
+- stripe_verify_signature(payload, sig, secret, tolerance): Webhook verification
+
+CONFIG (from .env):
+- STRIPE_SECRET_KEY
+- STRIPE_PUBLISHABLE_KEY
+- STRIPE_WEBHOOK_SECRET
+
+SECURITY:
+- Idempotency keys for payment operations
+- Webhook signature verification (HMAC-SHA256)
+- Metadata attached for audit trails
+
+================================================================================
+37. BACKEND - Email Service
+================================================================================
+File: src/email_service.php
+
+FUNCTIONS:
+- opd_create_mailer(): Initializes PHPMailer with SMTP config
+- opd_send_email(to, subject, htmlBody, plainBody): Generic send
+- opd_email_shell(bodyHtml): Wraps content in standard template
+- opd_send_order_confirmation(order, items): Customer receipt
+- opd_send_admin_order_notification(order, items): Admin alert
+- opd_send_order_status_email(order, newStatus): Status update to customer
+
+CONFIG (from .env):
+- Email_Outgoing_Server_SMTP
+- Email_Port
+- Email_Username
+- Email_Password
+
+EMAIL TYPES:
+1. Order confirmation (3 templates: shipping, delivery, pickup)
+2. Admin order notification
+3. Order status updates
+4. Client invitation
+5. Vendor invitation
+6. Forgot password reset link
+7. Welcome email (new registration)
+
+================================================================================
+38. BACKEND - SMS / Invitation System
+================================================================================
+File: src/store.php (invitation functions)
+
+SMS FUNCTIONS:
+- site_send_invite_sms(phoneDigits, message, rateKey): Sends via ExpertTexting API
+- site_build_invite_message(template, link, context): Template interpolation
+- site_send_approval_sms(clientUserId, vendorUser, orderTotal): Order approval SMS
+- site_process_auto_approvals(): Auto-approves orders based on settings
+
+INVITATION FLOW:
+1. User fills invite form (client or vendor page)
+2. Phone number normalized
+3. Template loaded from system settings
+4. Variables replaced: {inviterName}, {companyName}, {recipientName}, {link}
+5. SMS sent via ExpertTexting API
+6. Rate limited per phone/type combination
+
+CONFIG (from .env):
+- EXPERTTEXTING_USERNAME
+- EXPERTTEXTING_PASSWORD
+- EXPERTTEXTING_API_KEY
+- EXPERTTEXTING_FROM
+
+================================================================================
+39. BACKEND - Authentication & Security
+================================================================================
+Files: src/auth.php (admin), src/site_auth.php (customer)
+
+TWO AUTH SYSTEMS:
+1. Admin auth (opd_* functions): session key 'opd_user', roles: admin/manager
+2. Customer auth (site_* functions): session key 'site_user', roles: customer/vendor
+
+SESSION SECURITY:
+- HttpOnly cookies
+- Secure flag (HTTPS detection)
+- Strict SameSite policy
+- Session regeneration on login
+
+CSRF PROTECTION:
+- Token stored in session
+- Validated via X-CSRF-TOKEN header or _csrf POST field
+- Required on all state-changing requests
+
+RATE LIMITING:
+- Admin login: tracked per email
+- Customer login: tracked per email
+- Password reset: 10 attempts per 48 hours
+- Exceeding limit: account locked (requires admin unlock)
+- Stored in rate_limit table
+
+PASSWORD SECURITY:
+- Hashed with PASSWORD_DEFAULT (bcrypt)
+- Timing-safe comparison (hash_equals)
+- Dummy hash for non-existent users (prevents timing attacks)
+- Reset tokens: SHA256 hashed, 30-min expiry, single-use
+
+ID GENERATION:
+- opd_generate_id(prefix): prefix-{32 hex chars} (128-bit random)
+
+================================================================================
+40. DATABASE - Schema Overview
+================================================================================
+File: database/schema.sql
+
+CORE TABLES:
+- users: id, email, passwordHash, role, status, stripeCustomerId, addresses
+- products: id, sku, name, category, price, inventory, imageUrl, featured, status
+- product_variants: id, productId, sku, name, price, inventory
+- product_images: id, productId, url, isPrimary, sortOrder
+- product_associations: id, productId, relatedProductId, sortOrder
+
+ORDER TABLES:
+- orders: id, number, userId, amounts, status, payment/fulfillment/approval status
+- order_items: id, orderId, productId, variantId, name, price, quantity, total
+- order_accounting: id, orderId, clientId, groupsJson, assignmentsJson
+- payments: id, orderId, method, externalId, amount, status
+- payment_methods: id, userId, stripePaymentMethodId, label, brand, last4
+
+CART TABLES:
+- carts: id, userId, status
+- cart_items: id, cartId, productId, variantId, quantity, arrivalDate
+- cart_accounting: id, cartId, clientId, groupsJson, assignmentsJson
+
+USER RELATIONSHIP TABLES:
+- clients: id, userId, name, email, linkedUserId, status
+- vendors: id, userId, name, email, linkedUserId, limits, autoApprove
+- accounting_codes: id, userId, code, description, status, parentId, category
+
+FAVORITES TABLES:
+- favorites: id, userId, productId
+- favorite_categories: id, userId, name, sortOrder
+- favorite_entries: id, userId, categoryId, productId, variantId, quantity, splitsJson
+
+EQUIPMENT TABLES:
+- equipment: id, userId, name, serial, status, productId
+- equipment_images: id, equipmentId, url, isPrimary
+
+CONFIG TABLES:
+- settings: id, key, value
+- pages: id, slug, title, status, template
+- page_sections: id, pageId, sectionType, content (JSON)
+- promotions: id, code, type, value, status, dates, usageLimit
+- rate_limit: id, identifier, type, attempts, locked_until
+- password_reset_tokens: id, userId, tokenHash, expiresAt, usedAt
+
+ADDITIONAL TABLES:
+- shipments: id, orderId, carrier, tracking, status
+- customers: id, name, email, tags
+- inventory: id, sku, location, onHand, reserved, available
+- analytics_reports: id, name, period, metric, value
+- integrations: id, name, type, status, lastSync
+- reliability: id, type, status, message
+
+================================================================================
+END OF DOCUMENT
+================================================================================

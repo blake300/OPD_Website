@@ -1,0 +1,27 @@
+Client approval process
+1. Need to add an "Auto Approve Time" field in the admin panel: system settings - should be in minutes
+2. If a user (client) has specified a monthly purchase limit on a vendor and
+If that vendors cumulative purchases, on behalf of the user (client), exceeds the monthly purchase
+limit amount, within a calendar month: 
+A. Every order placed by that vendor on behalf of that user (client), must be approved by the user (client)
+until the end of the calendar month - starting with the first order that exceeds the limit.
+B. The user (client), for which the limit was exceeded, should receive a text message with a link to
+the users (clients) user dashboard, Orders page - everytime that vendor places an order for that user (client), 
+until the end of the calendar month.  
+C. The text sent for the text message - needs to be from the admin panel: system, called "Vendor Limit Text" 
+D. On the Clients User Dashboard: Order Page
+D1. Every order placed by the vendor, after exceeding the limit - starting with the first order,
+should have an approve and decline button to the right of the order in the order history table.
+D1a. If the user (client) selects decline, the approve button will disappear and the decline button will change to "Declined"
+D1b. If the user (client) selects approve, the decline button will disappear and the approve button will change to "Approved"
+D1c. If the user (client) selected Auto Approve for the vendor, after the number of minutes in the Auto Approve Time
+field have elapsed, since the order was placed, and the approve or decline button have not been selected
+the approve and decline button will change to auto approved.
+3. Need an "Approval Status" field in the admin panel: orders section
+A. Will automatically be "Not required" if: no approval is required
+B. Will be "Waiting" if approval is required, but
+B1. User has not selected approve or decline, or 
+B2. Auto Approved has not occurred
+C. Will be "Declined" if approval is required, and user selected declined on the User Dashboard: Order Page
+D. Will be "Appoved" if approval is required, and user selected approve on the User Dashboard: Order Page
+E. Will be "Auto Appoved" if approval is required, and is listed as auto approved on the User Dashboard: Order Page

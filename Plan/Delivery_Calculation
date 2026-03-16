@@ -1,0 +1,11 @@
+Delivery Calculation
+1. In the admin panel: products section - add a Large Delivery check box field to products and product variations
+2. In the admin panel: System Settings - add  large delivery cost fields for Zone 1, Zone 2, Zone 3
+3. In the admin panel: System Settings - add  small delivery cost fields for Zone 1, Zone 2, Zone 3
+4. Delivery zones will be defined by zip codes found in: artifacts\delivery_Zip_Codes.xlsx
+5. In the cart and checkout,
+5a. If the user selects same day delivery,
+ 5a1. If one item in the order is designated a Large Delivery,
+5a1a. The user will be charged the large delivery cost for the users zip code zone
+5a2. If NO items in the order are designated as Large Delivery,
+5a2a. The user will be charged the small delivery cost for the users zip code zone

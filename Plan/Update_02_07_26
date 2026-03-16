@@ -1,0 +1,22 @@
+User Dashboard Orders: Order History, 
+The Qty field should be aligned with the Accounting Codes
+The Add button should be below the Qty field, location, code 1, and code 2
+
+User Dashboard: accounting codes
+In the top right of the Location Section on same line as the header - Need checkbox field "Require Sub" 
+When selected, requires users to select the lowest location sub category on the cart page accounting codes
+In the top right of the Code 1 section, on same line as the header - Need checkbox field "Require Sub" 
+When selected, requires users to select the lowest Code 1 sub category on the cart page accounting codes
+In the top right of the Code 2 section, on same line as the header - Need checkbox field "Require Sub" 
+When selected, requires users to select the lowest Code 2 sub category on the cart page accounting codes
+
+Admin Panel: Need a create page feature
+With a complete page design tool, should allow
+Need multiple page layout templates: to which user can add text, picture, videos, and headlines
+Need custom layout option: to which users can choose sections and add text, pictures, videos, and headlines
+Need to be able to assign a page address, so that other pages can link to the page created
+
+Cart: need a continue as guest option
+If selected at checkout, user should get a create an account message
+Should use billing and shipping information to auto fill user account profile
+Therefore, the only thing the user needs to add is a password

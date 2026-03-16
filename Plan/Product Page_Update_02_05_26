@@ -1,0 +1,29 @@
+Products Page: for all categories and all products
+A. If product has NO Vrt and/or Assc Products
+A1. The specifications section
+A1a. Header: needs to be the produce price in red text
+A1b. Below the price needs to be the Product: Short Description
+A1c. Below the Product: Short Description needs to be the cart row
+A1c1. Cart Row includes: qyt drop down box, then a space, the Add button ("Add"), then the favorites button - on the same row
+A1c2. The qty up/down arrows should be in the drop down box
+A1d. If the product is checked yes on the Admin Panel: Product: Service field, below the cart row (qty, add, favorites), Needs to be:
+A1d1. "First Date Available" (in black type) followed by the first date after the number of days in the "Days Out" field in the Amdin Panel Products, from the current date
+A1d1a. The first date should be in red
+A1d2. Below the "First Date Available" row, should be "Arrival Date" (in black text) followed by a calendar drop down, 
+A1d2a. all days before the first date available grayed out (can't be selected)
+B. If product has Vrt and/or Assc Products
+B1. The specifications section
+B1a. Header: needs to be "from" in black text, followed by the product price in red text
+B1b. Below the price needs to be the Product: Short Description
+B1c. If the product is checked yes on the Admin Panel: Product: Service field, below the cart row (qty, add, favorites), Needs to be:
+B1c1. "First Date Available" (in black type) followed by the first date after the number of days in the "Days Out" field in the Amdin Panel Products, from the current date
+B1c1a. The first date should be in red
+B1c2. Below the "First Date Available" row, should be "Arrival Date" (in black text) followed by a calendar drop down, 
+B1c2a. all days before the first date available grayed out (can't be selected)
+B1d. At the bottom center needs to be the Guaranteed Safe Checkout.jpg 
+B1e. The specification section needs to be the same size as the picture section
+B1f. Nothing else needs to be in this section
+B2. Below the Picture and Specification section: needs to be the description section
+B2a. The header needs to be "Description"
+B2b. The text below the header needs to be the Product Long Description
+C. Because all the add to cart functions are in the specifications section, NO add to cart section is needed and should be removed if it exists

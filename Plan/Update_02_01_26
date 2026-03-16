@@ -1,0 +1,43 @@
+On the User Dashboard: Order Page: Order History
+Add a drop down button on left of each order, when selected should drop down an Order Drop Down Box, 
+Order Drop Down box contains the following:
+A. For each item in the order, should include:
+A1. Product Row (centered in the dropdown box: product picture, product name, price, qty (read only), and Reorder button 
+A2. Below the Product Row should be each: accounting code field row and accounting code subtotal row:
+A2a. Accounting Field Code Row: will be left indent in the box: qty, location, code1, and code 2 - each of these can be modified at anytime
+A2a1. Each sub code level needs to drop down below the parent level and should only drop down if the parent level is selected
+A2a2. When the final subcode is selected, it should be the only code seen in the field 
+A2b. Below the each accounting code row should be the accounting code subtotal row (Right indent in the dropdown box) 
+A2b1. Each accounting code subtotal includes: the amount, tax, shipping, and total of the accounting code above - should be in bold
+A2b1a. The amount = accounting code qty x item price
+A2b1b. The tax = The accounting code amount/Item Amount) * Item Tax
+A2b1b1. Tax should be rounded to the penny
+A2b1b2. If the accounting code amount is the largest of all the accounting codes for an item:
+A2b1b2a. Add the (items tax total subtracted by the sum of all the accounting code tax subtotals) to the tax subtotal for that accounting code
+A2b1b2b. Note: this is in oder to make the sum of all the accounting code tax equal the item total tax
+A2b2. The Shipping = (The accounting code amount/Item Amount) * Item Shipping
+A2b2a. Shipping should be rounded to the penny
+A2b2b. If the accounting code amount is the largest of all the accounting codes for an item:
+A2b2b1. Add the (items shipping total subtracted by the sum of all the accounting code shipping subtotals) to the shipping subtotal for that accounting code
+A2b2b2. Note: this is in oder to make the sum of all the accounting code shipping subtotals equal the item total shipping
+A2c. To the right of the last account code row of fields - Should have a "+" 
+A3. Below the last Accounting code subtotal row should be the item totals box
+A3a. Should be a gray box, with black/bold text
+A3b. Should include item amount, Item tax, Item shipping, and Item total
+A3b1. Item amount = the sum of the item qty multiplied by the item price
+A3b1a. Item tax = (The Item amount/ Order Amount) * The Order Tax
+A3b1b. Tax should be rounded to the penny
+A3b1c. If the item amount is the largest of all the item amounts for an order:
+A3b1c1. Add the (order tax subtracted by the sum of all the item tax totals) to the item tax total for that item
+A3b1c2. Note: this is in oder to make the sum of all the item tax equal the order tax
+A3b2. The Shipping = The item amount/order amount) * order Shipping
+A3b2a. Shipping should be rounded to the penny
+A3b2b. If the item amount is the largest of all the items for an order:
+A3b2b1. Add the (order shipping subtracted by the sum of all the item shipping) to the shipping total for that item
+A3b2b2. Note: this is in oder to make the sum of all the item shipping totals equal the order total shipping
+B. Order Total Box: Below all of the items for an order should be the order total box
+B1. Should be white box with a gray outline
+B2. Should be indented to the right
+B3. Inside the box should have "ORDER TOTAL" text, followed by order amount, order tax, order shipping, order total 
+B4. The "ORDER TOTAL" text should be black/bold
+earcsec

@@ -1,0 +1,148 @@
+# Webby Memory
+
+Last updated: 2026-02-17
+
+## Global Design Preferences
+- Colors:
+- Typography:
+- Layout/Grid:
+- Components:
+- Motion:
+- Accessibility:
+- Content tone:
+
+## Full-Stack Preferences
+- Frontend stack: Server-rendered PHP with vanilla JS/CSS assets in `public/assets`.
+- Backend stack: PHP (PDO).
+- Database: MySQL (PDO connection in `src/db_conn.php`).
+- API patterns: JSON endpoints under `/api/*.php`, CSRF via `X-CSRF-Token`.
+- Auth/session: PHP sessions with CSRF token in admin meta tag.
+- Testing/quality: Playwright smoke tests live in /tests with BASE_URL override.
+
+## Project Overrides
+- (Add entries per project path, only when they differ from global preferences.)
+
+## Recent Updates
+- 2026-01-25: Initialized Webby memory.
+- 2026-01-27: Noted run-on-save schema sync script output to database/schema_sync.sql.
+- 2026-01-27: Updated run-on-save regex to match Windows path separators.
+- 2026-01-27: Added exact schema sync output (drop/recreate) to generator.
+- 2026-01-27: Prefer migrations for non-destructive schema changes (dual-write/rename/backfill).
+- 2026-01-27: Added preserve-data schema sync output with table rebuild + backup tables.
+- 2026-01-27: Admin UI and CRUD endpoints use explicit column lists; schema_sync changes require UI/API updates.
+- 2026-01-27: Hardened CRUD/order flows and schema health checks; removed public diagnostics and deploy keys.
+- 2026-01-27: Added Stripe card checkout flow with PaymentIntent creation and server-side verification.
+- 2026-01-27: Fixed accounting codes dashboard JS handler blocking add/save actions.
+- 2026-01-27: Cart client selector now shows pending/requested clients and warns when none are billable.
+- 2026-01-27: Made accounting codes add buttons resilient; ensured client dropdown stays visible for signed-in users; normalized Stripe billing country and surfaced card errors.
+- 2026-01-27: Client billable check now honors active reciprocal vendor records; checkout card element hides postal and only submits non-empty billing fields.
+- 2026-01-27: Cart accounting groups now use cascading selects per category level with parent-dependent sublevels.
+- 2026-01-27: Cart client options now only disable declined clients; accounting level selects are grouped into a single stacked box per category.
+- 2026-01-27: Cart client options normalize status on load; accounting stacks remove inner borders; Stripe card errors now append error codes for debugging.
+- 2026-01-27: Cart client dropdown now allows selection regardless of status labels (no disabled options).
+- 2026-01-27: Stripe invalid_number resolved by correcting the card number; no code change.
+- 2026-01-27: Account dashboard Stripe card save now validates completeness, reports errors, and guards failed Stripe loads.
+- 2026-01-27: Client accounting structure lookup now uses linked client user without billable gating.
+- 2026-01-27: Admin panel groups Orders/Payments/Shipments under a single Operations section.
+- 2026-01-27: Added Oklahoma ZIP-based sales tax calculation using `public/sales_tax_rates_ok.csv`, with tax quote API and cart/checkout totals updated.
+- 2026-01-27: Tax lookup accepts OK ZIPs even if state is blank; added safeguards for missing Stripe payment methods table and stripeCustomerId column.
+- 2026-01-27: Orders admin API now includes payment/shipping fields; Payments/Shipments sections removed in UI.
+- 2026-01-27: Client accounting codes now fallback to linked user by email when linkedUserId is missing.
+- 2026-01-27: Account card form now uses separate Stripe number/expiry/CVC fields with explicit cardholder inputs.
+- 2026-01-27: Cart/checkout tax calc now reacts to change/blur, OK state normalization expanded, and checkout pre-fills address from profile.
+- 2026-01-27: Orders table headers now show labeled payment/shipping columns with horizontal scroll support.
+- 2026-01-27: Client accounting structure no longer falls back to user codes when a client is selected.
+- 2026-01-27: Stripe card fields now force focus on container click and warn if iframes fail to render.
+- 2026-01-27: Added a visible Stripe blocked banner on the account card form when elements fail to render.
+- 2026-01-27: Stripe banner now shows a loading state, hides on ready, and forces iframe pointer-events.
+- 2026-01-27: Bluehost doc root noted as `public_html/website_2fca6081/public`; ensure `assets/js` is deployed there (avoid nested `public/public`).
+- 2026-01-27: Confirmed `admin.js` is reachable via direct URL; next check is matching JS content and `/api/orders.php` payload.
+- 2026-01-27: Bluehost `admin.js` still old (includes payments/shipments resources); must replace `public_html/website_2fca6081/public/assets/js/admin.js` with updated file.
+- 2026-01-27: Cache-bust by changing the query string version on `public/admin.php` script tags.
+- 2026-01-27: Bumped admin.js cache string to `20260127j` in `public/admin.php`.
+- 2026-01-27: Orders form now includes read-only payment/shipping fields in admin.
+- 2026-01-27: Account card form now waits for Stripe.js to load (retry loop) and surfaces load errors in the banner.
+- 2026-01-27: Checkout card form now waits for Stripe.js to load, shows a loading banner, and surfaces blocked Stripe errors.
+- 2026-01-27: Converted account/checkout Stripe scripts to ES5 syntax to avoid `const` parse errors in production.
+- 2026-01-27: Stripe Elements now use explicit styles and iframe height fill to improve input visibility and focus.
+- 2026-01-27: Guided running Stripe troubleshooting snippets in browser DevTools console.
+- 2026-01-27: Cache-busted `site.css` on account/checkout pages to ensure Stripe field styling updates load.
+- 2026-01-27: Confirmed live deployment includes `site.css` cache bust and Stripe `elementStyle` while debugging account card input visibility.
+- 2026-01-27: Stripe input still not visible; next diagnostic is checking element hit-test to rule out overlay on iframe.
+- 2026-01-27: Forced Stripe Elements height and internal wrapper sizing in site.css; added lineHeight to Stripe element styles on account/checkout for visibility; bumped site.css cache string to 20260128b.
+- 2026-01-27: Vendor dashboard now supports updating purchase limits and payment methods for approved vendors; checkout now surfaces client-assigned payment methods and can charge saved client cards via Stripe off-session intents.
+- 2026-01-27: Vendor page missing Add vendor button likely indicates partial deploy; ensure updated `src/store.php` (label helper) and `public/dashboard-vendors.php` are uploaded together.
+- 2026-01-28: Fixed order placement crash by initializing the PDO handle before profile fallback in `site_place_order`.
+- 2026-01-28: Bluehost autoindex error for `wp-includes/theme-compat` is unrelated to checkout 500; need PHP fatal lines for checkout/api requests.
+- 2026-01-28: Added ExpertTexting SMS integration scaffolding, admin System Settings fields for invite templates, and 10-digit US phone validation for account/client/vendor dashboards.
+- 2026-01-28: Admin products/variants now support expandable detail rows with additional fields and status dropdowns; schema sync updated with new product attributes.
+- 2026-01-28: Kept product detail panels directly below product rows; association/variant panels now insert after detail panels.
+- 2026-01-28: Added product image gallery support with product_images table, admin multi-upload manager, and primary image usage on listings and product page.
+- 2026-01-29: Admin orders arrival date now displays per-item lines; associated products grouped by category on product page; schema sync regenerated.
+- 2026-01-29: Fixed admin product/variant grid column counts to match new drag/expand columns; cache-busted admin assets.
+- 2026-01-29: Added `scripts/site_smoke_test.php` for end-to-end HTTP smoke testing with optional user/admin logins via env vars.
+- 2026-01-29: Fixed storefront 500s by correcting SQL string quoting in `src/store.php` for related product ordering.
+- 2026-01-29: Favorites dropdown now enforces Uncategorised-first ordering, updates cache on selection, and keeps hearts inactive for signed-out users.
+- 2026-01-30: Reviewed favorites flow; noted API error handling gaps and legacy favorites table dependency risks.
+- 2026-01-30: Favorites UX now checks `resp.ok`, handles 401s, prefetches states, and legacy favorites migration is opt-in via `OPD_ENABLE_LEGACY_FAVORITES`.
+- 2026-01-30: Product page now shows price in specs, embeds add-to-cart in specs when no variants/associations, and adds short description + safe checkout image.
+- 2026-01-30: Dashboard orders now include payment method plus vendor/client name columns using payments, vendors/clients, and users lookups.
+- 2026-01-30: Dashboard orders removed status column and display date without time.
+- 2026-01-30: Dashboard orders now support expandable order details with accounting split editing, reorder actions, and totals math; order details API added.
+- 2026-01-30: Checkout now captures shipping method, stores order tax/shipping, and Stripe intents include shipping totals; orders schema updated.
+- 2026-01-30: Dashboard orders toggle now forces row display toggling to avoid hidden-state issues.
+- 2026-02-01: Featured products query now falls back when column is missing; products schema includes featured flag.
+- 2026-02-01: Removed duplicate featured column from schema.sql and regenerated schema sync outputs.
+- 2026-02-02: Rebuilt product page template after corruption; restored gallery/specs/add-to-cart/associated products with Favorites module.
+- 2026-02-02: Product page variants now render in dropdown rows below the image stack, matching associated product styling.
+- 2026-02-05: Updated product page specs layout (price header, short description, cart row, service dates), removed extra add-to-cart card, and moved description above associated products.
+- 2026-02-05: Aligned product specs height with image by separating variants into their own grid row and adding product-detail grid areas.
+- 2026-02-05: Forced favorites dropdown sorting to keep Uncategorised first and reset heart state for signed-out users.
+- 2026-02-05: Converted site.js qty controls to ES5 to avoid JS parse errors blocking favorites handlers.
+- 2026-02-05: Added id/name attributes to favorites dropdown checkboxes to satisfy Chrome autofill warnings.
+- 2026-02-05: Fixed site.js IIFE closing to resolve Chrome "Unexpected end of input" and restore favorites click handling.
+- 2026-02-06: Made variants section full-width to match associated products and removed section headers for both.
+- 2026-02-06: Consolidated variants into a single dropdown with primary image and product name/SKU only.
+- 2026-02-06: Favorites sign-in message now renders inline above the heart with sign-in/register links; favorite buttons move to the right of Add in product tables.
+- 2026-02-06: Moved variants dropdown into associated products section (open by default), removed associated headers, and tightened dropdown spacing.
+- 2026-02-06: Widened and shortened favorites sign-in inline notification styling.
+- 2026-02-06: Moved product long description below variants/associated section when present.
+- 2026-02-06: Added spacing between associated product dropdowns.
+- 2026-02-07: Expanded orders admin/schema to include billing/shipping fields, orderAmount/refundAmount/shippingMethod, and computed totalAfterRefund.
+- 2026-02-07: Expanded users admin/schema with profile + shipping fields, admin-only bio notes, and password reset handling.
+- 2026-02-07: Account profile now supports address line 2 and shipping fields with a default "Shipping, same as User" toggle.
+- 2026-02-07: Admin panel sections reordered (Orders/Users/Settings) and Customers removed; DB Health moved below resource stack.
+- 2026-02-07: Removed Customers dashboard metric card, bumped admin.js cache string, preserved stored lastName in users API output, and added a no-JS fallback to show shipping fields.
+- 2026-02-07: Admin orders/users now use inline edit panels (hidden until Edit), multi-row indented layout with sized fields and save action; admin cache bust bumped for admin.js/admin.css.
+- 2026-02-08: Reworked Page Builder to be row-based (row count, row height, sections per row) with text/image/video sections, image upload support, updated preview + page rendering, and added pages/page_sections tables to schema with regenerated schema sync.
+- 2026-02-08: Admin product image manager thumbnails reduced (smaller grid cells, image height, and action controls) with CSS cache bump.
+- 2026-02-08: Schema sync generator now escapes quotes in column definitions for idempotent sync output.
+- 2026-02-08: Adjusted admin product table column widths (category/status/pos/inv/order/name/expand) with smaller padding and CSS cache bump.
+- 2026-02-08: Admin product image manager now shows thumbnail-sized images to the right of the upload controls with tighter action buttons.
+- 2026-02-08: Page Builder panel repositioned in admin UI to sit below Users and Roles and above System Settings; JS cache bumped.
+- 2026-02-08: Dashboard order history cascading selects now expand child/grandchild options in-place with auto dropdown behavior; split row spacing tightened.
+- 2026-02-08: Accounting codes hierarchy Add child buttons now match parent sizing across levels.
+- 2026-02-08: Cart layout updated: cart header moved into cart panel, cart items heading removed, accounting groups styling simplified, and group add button tightened.
+- 2026-02-08: Checkout shipping methods now render in a single row, and card entry uses separate number/expiry/CVC fields with Link autofill disabled.
+- 2026-02-09: Added Playwright smoke tests with baseURL override and Playwright artifacts ignored in .gitignore.
+- 2026-02-09: Cart delivery UI now supports standard/same-day address, coords, and saved location flows with checkout auto-fill via localStorage and user shipping update API.
+- 2026-02-12: Hardened Page Builder embeds and upload errors; added pages upload placeholder dir; admin cache bust.
+- 2026-02-15: Added Orders admin export-to-Excel (CSV) action with full order + line-item summary export; bumped admin asset cache.
+- 2026-02-15: Cart delivery method selection now collapses other delivery detail dropdowns.
+- 2026-02-15: Cart delivery address layout updated with City on its own row and State/ZIP below for standard + same-day.
+- 2026-02-15: Added per-category CSV import buttons for Accounting Codes (Location/Code 1/Code 2) with deduped parent/child merges.
+- 2026-02-15: Vendor dashboard form now requires terms agreement, uses a single red Send Invite action, and vendor list layout is split into aligned primary/sub rows.
+- 2026-02-16: Fixed Accounting Codes CSV import parser to detect newline separators correctly.
+- 2026-02-16: Added Auto Approve Help Text system setting and vendor dashboard auto-approve checkboxes with help toggles.
+- 2026-02-16: Added admin user relations dropdowns for vendors/clients with new user_relations API.
+- 2026-02-16: Added monthly cumulative spend metrics to admin user vendor/client relations.
+- 2026-02-16: Expanded user relations monthly cumulative queries to match clientId/clientUserId for legacy orders.
+- 2026-02-17: Checkout now infers cart client selection, passes clientId into order placement, and order client resolution can fall back to explicit clientId with linked user lookups; cart saves client selection to server.
+- 2026-02-20: Fixed cart accounting structure lookup to resolve client codes even when the client ID maps to a vendor record or linked user.
+- 2026-02-20: Added regression coverage for vendor cart accounting code resolution paths.
+- 2026-02-20: Product search now includes product tags.
+- 2026-02-20: Added predictive search suggestions in header search bar with new search suggestions API.
+- 2026-02-20: Product search + suggestions now match variant name/sku/tags via product_variants lookup.
+- 2026-02-20: Service checkout now forces login with a no-guest notice; service arrival date inputs hidden for signed-out users in associated product tables.
+- 2026-02-20: Admin Orders now surface service arrival dates (service-only) alongside existing arrival dates; orders API joins product service flag for reporting.
+- 2026-02-17: Monthly cumulative now uses America/Chicago month boundaries (converted to UTC) for admin user relations.

@@ -1,0 +1,58 @@
+Used Equipment Process
+
+A. On the User Dashboard: Your Equipment Page - 
+1. Need to change the page name to "My Equipment"
+
+B. Admin Panel: System Settings
+1. Need to add a "My Equipment Text" field
+
+C. Used Equipment Process
+1. On the User Dashboard: My Equipment Page
+A. Top of the page needs the text found in "My Equipment Text"
+B. Need to Add a photo upload - need to be able to select one primary picture and multiple secondary pictures
+B1. Build a separate equipment image upload endpoint
+B2. Max number of 8 photos per listing
+C. Need to change "Location" to "Location of Equipment"
+D. Need to Change "Notes" to "Description of Equipment"
+E. Need to add "Contact Name For Equipment"
+F. Need to add Contact Phone for Equipment
+G. Need to add Contact Email for Equipment
+H. Need to Add Quantity Field
+I. Need to Add Price Field
+I1. Should follow the product pricing format
+J. Need to change Status to a read only - defualt as "Pending Approval" - will be control on Admin:Panel
+D. Admin Panel: need a new section "Used Equipment"
+1. Should show all the information from the User Dashboard My Equipment - for each equipment a user adds
+2. Will be a table, for each equipment added: 
+3. Primary Row: User Name (the user that added the equipment), Equipment Name, Quantity, and Price
+A. User Name (the user that added the equipment)
+B. Equipment Name
+C. Quantity (will match quantity field from the listing)
+D. Cur Qty (read only): will be the Quantity minus what has been sold
+D1. If the Cur Qty is 0 will be hidden on the product page
+E. To the right of the primary row should be an Approve and Decline button
+E1. If the approve button is selected
+E1a. The Decline & Approve button should disappear, and an Approved button with a check mark should replace them
+E1b. The status in the users My Equipment for that equipment will change to Active
+E1c. Create a Product page for the equipment following our current product page layout
+E1c1. Will always be on the Used Equipment Page
+E1d. If user did not enter a price, the price field will be blank
+E1e. If user did enter a price, the price will be what the user entered
+E1f. The Equipment name will serve as the product name
+E1g. The Contact Phone, Contact Name, Contact Email - will be in the short description section
+E1h. The Location of Euqipment, The Description of Equipment, the Searial - will be in the long description
+E1i. The cart and checkout process will be the same
+E1j. Buyer will pay through the site
+3c. If the decline button is selected
+3c1. The status in the users My Equipment for that equipment will chane to decline
+4. Dropdown Row (should drop down below the primary row), Include:
+4a. Serial, Status, Location of Equipment, Description of Equipment, Contact Name for Equipment,
+4b. Contact Phone for Equipment, Contact Email for Equipment
+
+E. On the Used Equipment Category Page
+1. Need a "List Here" button, with text that says "Got Equipment to Sell?" in the upper left corner of the page
+2. When selected 
+A. if the user is signed in, goes to user dashboard: My Equipment Section
+A1. Will land on my equipment page
+B. if the user is not signed, should go to sign in/register page with a "Must sign in to list equipment" message at the top
+B1. If the user registers, will land on my equipment page
