@@ -2,15 +2,6 @@
 
 declare(strict_types=1);
 
-// Temporary error diagnostics — remove after debugging
-ini_set('display_errors', '1');
-error_reporting(E_ALL);
-set_error_handler(function ($severity, $message, $file, $line) {
-    throw new ErrorException($message, 0, $severity, $file, $line);
-});
-
-try {
-
 require_once __DIR__ . '/../src/store.php';
 require_once __DIR__ . '/../src/site_auth.php';
 
@@ -110,17 +101,6 @@ if ($user) {
             'zip' => $row['shippingPostcode'] ?? $row['zip'] ?? '',
         ];
     }
-}
-
-} catch (Throwable $diagError) {
-    echo '<pre style="background:#fee;padding:20px;border:2px solid red;margin:20px;">';
-    echo '<h2>Cart Debug Error</h2>';
-    echo '<b>Message:</b> ' . htmlspecialchars($diagError->getMessage()) . "\n";
-    echo '<b>File:</b> ' . htmlspecialchars($diagError->getFile()) . "\n";
-    echo '<b>Line:</b> ' . $diagError->getLine() . "\n";
-    echo '<b>Trace:</b>' . "\n" . htmlspecialchars($diagError->getTraceAsString());
-    echo '</pre>';
-    exit;
 }
 ?>
 <!DOCTYPE html>
@@ -819,7 +799,12 @@ if ($user) {
                     <?php endif; ?>
                   </div>
                   <div class="cart-item-info">
-                    <div class="cart-item-name"><?php echo htmlspecialchars($item['name'], ENT_QUOTES); ?></div>
+                    <?php if (!empty($item['variantName'])): ?>
+                      <div class="cart-item-product-name"><?php echo htmlspecialchars($item['productName'], ENT_QUOTES); ?></div>
+                      <div class="cart-item-name"><?php echo htmlspecialchars($item['variantName'], ENT_QUOTES); ?></div>
+                    <?php else: ?>
+                      <div class="cart-item-name"><?php echo htmlspecialchars($item['name'], ENT_QUOTES); ?></div>
+                    <?php endif; ?>
                     <div class="cart-item-meta">
                       <span class="cart-item-price">$<?php echo number_format($itemPrice, 2); ?> each</span>
                       <?php if (isset($item['sku']) && $item['sku']): ?>
@@ -1114,7 +1099,7 @@ if ($user) {
 
   <?php require __DIR__ . '/partials/site-footer.php'; ?>
 
-  <script>
+  <script nonce="<?php echo opd_csp_nonce(); ?>">
     (function(){
       const isSignedIn = <?php echo $user ? 'true' : 'false'; ?>;
       const isServiceOnlyCart = <?php echo $isServiceOnlyCart ? 'true' : 'false'; ?>;

@@ -7,22 +7,11 @@ require_once __DIR__ . '/../src/site_auth.php';
 require_once __DIR__ . '/../src/seo.php';
 
 $productId = $_GET['id'] ?? '';
-$product = $productId ? site_get_product($productId) : null;
-if (!$product) {
+$product = $productId ? site_get_public_product($productId) : null;
+if (!$product || !site_is_storefront_sellable_product($product)) {
     http_response_code(404);
     echo 'Product not found';
     exit;
-}
-
-// Hide Used Equipment products when current quantity is 0
-if (($product['category'] ?? '') === 'Used Equipment') {
-    $sold = site_equipment_sold_quantity($productId);
-    $inv = (int) ($product['inventory'] ?? 0);
-    if ($inv > 0 && $sold >= $inv) {
-        http_response_code(404);
-        echo 'Product not found';
-        exit;
-    }
 }
 
 $user = site_current_user();
@@ -56,7 +45,7 @@ if ($productImages) {
 
 $variants = site_get_product_variants($productId);
 $hasVariants = !empty($variants);
-$relatedProducts = site_get_related_products($productId, 6);
+$relatedProducts = site_get_related_products($productId, 50);
 $hasAssociatedProducts = !empty($relatedProducts);
 $relatedGroups = [];
 if ($relatedProducts) {
@@ -81,13 +70,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     site_require_csrf();
     $quantity = max(1, (int) ($_POST['quantity'] ?? 1));
     $postedProductId = $_POST['productId'] ?? $productId;
+    $associationSourceProductId = site_normalize_association_source_product_id($_POST['associationSourceProductId'] ?? null);
+    if ($associationSourceProductId !== null && $associationSourceProductId !== $productId) {
+        $associationSourceProductId = null;
+    }
     $targetProductId = $productId;
     $targetProduct = $product;
     if (is_string($postedProductId) && $postedProductId !== '' && $postedProductId !== $productId) {
         $lookup = site_get_product($postedProductId);
-        if ($lookup) {
+        if ($lookup && site_is_association_context_sellable_product($lookup, $associationSourceProductId)) {
             $targetProductId = $postedProductId;
             $targetProduct = $lookup;
+        } else {
+            $targetProduct = null;
         }
     }
 
@@ -124,8 +119,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $message = 'An arrival date is required for service items.';
                 $messageIsError = true;
             } else {
-                site_add_to_cart($targetProductId, $quantity, $variantId, $arrivalDateValue);
-                $message = 'Added to cart.';
+                $addedItemId = site_add_to_cart($targetProductId, $quantity, $variantId, $arrivalDateValue, $associationSourceProductId);
+                if ($addedItemId === null || $addedItemId === '') {
+                    $message = 'This product is no longer available.';
+                    $messageIsError = true;
+                } else {
+                    $message = 'Added to cart.';
+                }
             }
         }
     }
@@ -158,7 +158,7 @@ $csrf = site_csrf_token();
     $breadcrumbs[] = ['name' => $pName, 'url' => '/product.php?id=' . urlencode($productId)];
   ?>
   <title><?php echo htmlspecialchars($_seoTitle, ENT_QUOTES); ?></title>
-  <link rel="stylesheet" href="/assets/css/site.css?v=20260315c" />
+  <link rel="stylesheet" href="/assets/css/site.css?v=20260326c" />
   <?php opd_seo_meta([
     'title' => $_seoTitle,
     'description' => $pDesc,
@@ -171,7 +171,7 @@ $csrf = site_csrf_token();
 <body>
   <?php require __DIR__ . '/partials/site-header.php'; ?>
 
-  <main class="page">
+  <main class="page product-page">
     <nav aria-label="Breadcrumb">
       <ol class="breadcrumb">
         <li><a href="/">Home</a></li>
@@ -417,6 +417,7 @@ $csrf = site_csrf_token();
                 $relatedId = (string) ($related['id'] ?? '');
                 $associatedVariants = $relatedId !== '' ? site_get_product_variants($relatedId) : [];
                 $hasAssociatedVariants = !empty($associatedVariants);
+                $showRelatedFavorite = site_is_storefront_visible_product($related);
                 $relatedIsService = !empty($related['service']);
                 $relatedDaysOut = (int) ($related['daysOut'] ?? 0);
                 $relatedFirstDate = $relatedIsService
@@ -464,6 +465,7 @@ $csrf = site_csrf_token();
                                     <input type="hidden" name="_csrf" value="<?php echo htmlspecialchars($csrf, ENT_QUOTES); ?>" />
                                     <input type="hidden" name="productId" value="<?php echo htmlspecialchars($relatedId, ENT_QUOTES); ?>" />
                                     <input type="hidden" name="variantId" value="<?php echo htmlspecialchars($variant['id'] ?? '', ENT_QUOTES); ?>" />
+                                    <input type="hidden" name="associationSourceProductId" value="<?php echo htmlspecialchars($productId, ENT_QUOTES); ?>" />
                                   </form>
                                   <div><?php echo htmlspecialchars($assocName, ENT_QUOTES); ?></div>
                                 </td>
@@ -495,25 +497,27 @@ $csrf = site_csrf_token();
                                   <?php endif; ?>
                                   <div class="favorite-actions favorite-actions--inline">
                                     <button class="btn" type="submit" form="<?php echo htmlspecialchars($assocFormId, ENT_QUOTES); ?>">Add</button>
-                                    <div class="favorite-wrap">
-                                      <div class="favorite-message-inline" data-favorite-message hidden>
-                                        Please Sign-In to Select Favorites.
-                                        <a href="/login.php">Sign in</a> or <a href="/register.php">Register</a>
+                                    <?php if ($showRelatedFavorite): ?>
+                                      <div class="favorite-wrap">
+                                        <div class="favorite-message-inline" data-favorite-message hidden>
+                                          Please Sign-In to Select Favorites.
+                                          <a href="/login.php">Sign in</a> or <a href="/register.php">Register</a>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          class="favorite-btn favorite-btn--small"
+                                          data-favorite
+                                          data-product-id="<?php echo htmlspecialchars($relatedId, ENT_QUOTES); ?>"
+                                          data-variant-id="<?php echo htmlspecialchars($variant['id'] ?? '', ENT_QUOTES); ?>"
+                                          aria-label="Add to favorites"
+                                        >
+                                          <svg class="favorite-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                          </svg>
+                                        </button>
+                                        <div class="favorite-dropdown" data-favorite-menu hidden></div>
                                       </div>
-                                      <button
-                                        type="button"
-                                        class="favorite-btn favorite-btn--small"
-                                        data-favorite
-                                        data-product-id="<?php echo htmlspecialchars($relatedId, ENT_QUOTES); ?>"
-                                        data-variant-id="<?php echo htmlspecialchars($variant['id'] ?? '', ENT_QUOTES); ?>"
-                                        aria-label="Add to favorites"
-                                      >
-                                        <svg class="favorite-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                        </svg>
-                                      </button>
-                                      <div class="favorite-dropdown" data-favorite-menu hidden></div>
-                                    </div>
+                                    <?php endif; ?>
                                   </div>
                                 </td>
                               </tr>
@@ -526,12 +530,13 @@ $csrf = site_csrf_token();
                             ?>
                             <tr>
                               <td>
-                                <form id="<?php echo htmlspecialchars($assocFormId, ENT_QUOTES); ?>" method="POST">
-                                  <input type="hidden" name="_csrf" value="<?php echo htmlspecialchars($csrf, ENT_QUOTES); ?>" />
-                                  <input type="hidden" name="productId" value="<?php echo htmlspecialchars($relatedId, ENT_QUOTES); ?>" />
-                                </form>
-                                <div><?php echo htmlspecialchars($related['name'] ?? 'Product', ENT_QUOTES); ?></div>
-                              </td>
+                              <form id="<?php echo htmlspecialchars($assocFormId, ENT_QUOTES); ?>" method="POST">
+                                <input type="hidden" name="_csrf" value="<?php echo htmlspecialchars($csrf, ENT_QUOTES); ?>" />
+                                <input type="hidden" name="productId" value="<?php echo htmlspecialchars($relatedId, ENT_QUOTES); ?>" />
+                                <input type="hidden" name="associationSourceProductId" value="<?php echo htmlspecialchars($productId, ENT_QUOTES); ?>" />
+                              </form>
+                              <div><?php echo htmlspecialchars($related['name'] ?? 'Product', ENT_QUOTES); ?></div>
+                            </td>
                               <td>$<?php echo number_format((float) $assocPrice, 2); ?></td>
                               <td>
                                 <label class="visually-hidden" for="<?php echo htmlspecialchars($assocQtyId, ENT_QUOTES); ?>">Quantity</label>
@@ -560,24 +565,26 @@ $csrf = site_csrf_token();
                                 <?php endif; ?>
                                 <div class="favorite-actions favorite-actions--inline">
                                   <button class="btn" type="submit" form="<?php echo htmlspecialchars($assocFormId, ENT_QUOTES); ?>">Add</button>
-                                  <div class="favorite-wrap">
-                                    <div class="favorite-message-inline" data-favorite-message hidden>
-                                      Please Sign-In to Select Favorites.
-                                      <a href="/login.php">Sign in</a> or <a href="/register.php">Register</a>
+                                  <?php if ($showRelatedFavorite): ?>
+                                    <div class="favorite-wrap">
+                                      <div class="favorite-message-inline" data-favorite-message hidden>
+                                        Please Sign-In to Select Favorites.
+                                        <a href="/login.php">Sign in</a> or <a href="/register.php">Register</a>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        class="favorite-btn favorite-btn--small"
+                                        data-favorite
+                                        data-product-id="<?php echo htmlspecialchars($relatedId, ENT_QUOTES); ?>"
+                                        aria-label="Add to favorites"
+                                      >
+                                        <svg class="favorite-icon" width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                          <path d="M16.8 3.69a4.4 4.4 0 0 0-6.22 0L10 4.26l-.58-.58a4.4 4.4 0 0 0-6.22 6.22l.58.58L10 17.38l6.22-6.22.58-.58a4.4 4.4 0 0 0 0-6.22z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                      </button>
+                                      <div class="favorite-dropdown" data-favorite-menu hidden></div>
                                     </div>
-                                    <button
-                                      type="button"
-                                      class="favorite-btn favorite-btn--small"
-                                      data-favorite
-                                      data-product-id="<?php echo htmlspecialchars($relatedId, ENT_QUOTES); ?>"
-                                      aria-label="Add to favorites"
-                                    >
-                                      <svg class="favorite-icon" width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                                        <path d="M16.8 3.69a4.4 4.4 0 0 0-6.22 0L10 4.26l-.58-.58a4.4 4.4 0 0 0-6.22 6.22l.58.58L10 17.38l6.22-6.22.58-.58a4.4 4.4 0 0 0 0-6.22z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                      </svg>
-                                    </button>
-                                    <div class="favorite-dropdown" data-favorite-menu hidden></div>
-                                  </div>
+                                  <?php endif; ?>
                                 </div>
                               </td>
                             </tr>
@@ -623,7 +630,7 @@ $csrf = site_csrf_token();
 
   <?php require __DIR__ . '/partials/site-footer.php'; ?>
   <?php if (count($productImages) > 1): ?>
-    <script>
+    <script nonce="<?php echo opd_csp_nonce(); ?>">
       (function () {
         var mainImage = document.getElementById('product-main-image')
         if (!mainImage) {
@@ -649,7 +656,7 @@ $csrf = site_csrf_token();
       })()
     </script>
   <?php endif; ?>
-  <script>
+  <script nonce="<?php echo opd_csp_nonce(); ?>">
     (function () {
       var mainArrival = document.getElementById('main-arrival-date')
       if (mainArrival) {

@@ -43,8 +43,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email = trim($_POST['register_email'] ?? '');
         $password = $_POST['register_password'] ?? '';
         $rememberMe = !empty($_POST['register_remember_me']);
+        $honeypot = trim($_POST['register_website_url'] ?? '');
+        $formLoadedAt = $_POST['_rfts'] ?? '';
+        $botError = site_check_bot($honeypot, $formLoadedAt);
 
-        if ($email === '' || $password === '') {
+        if ($botError) {
+            $registerError = $botError;
+        } elseif ($email === '' || $password === '') {
             $registerError = 'Email and password are required.';
         } else {
             // Use email as name for simplified registration
@@ -151,6 +156,7 @@ $showServiceNotice = $serviceCheckoutFlag || ($isCheckoutRedirect && $cartHasSer
               <div class="notice is-error"><?php echo htmlspecialchars($loginError, ENT_QUOTES); ?></div>
             <?php endif; ?>
             <button class="btn" type="submit">Sign in</button>
+            <p class="meta" style="margin-top:8px;"><a href="/forgot-password.php">Forgot password?</a></p>
           </form>
         </div>
 
@@ -161,6 +167,11 @@ $showServiceNotice = $serviceCheckoutFlag || ($isCheckoutRedirect && $cartHasSer
             <input type="hidden" name="_csrf" value="<?php echo htmlspecialchars($csrf, ENT_QUOTES); ?>" />
             <input type="hidden" name="action" value="register" />
             <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($redirect, ENT_QUOTES); ?>" />
+            <input type="hidden" name="_rfts" value="<?php echo time(); ?>" />
+            <div style="position:absolute;left:-9999px;" aria-hidden="true">
+              <label for="register_website_url">Leave blank</label>
+              <input type="text" id="register_website_url" name="register_website_url" tabindex="-1" autocomplete="off" />
+            </div>
             <div>
               <label for="register_email">Email</label>
               <input id="register_email" name="register_email" type="email" required />
@@ -186,7 +197,7 @@ $showServiceNotice = $serviceCheckoutFlag || ($isCheckoutRedirect && $cartHasSer
   </main>
 
   <?php require __DIR__ . '/partials/site-footer.php'; ?>
-  <script>
+  <script nonce="<?php echo opd_csp_nonce(); ?>">
     document.querySelectorAll('form').forEach(function(form) {
       form.addEventListener('submit', function() {
         var btn = form.querySelector('button[type="submit"]');

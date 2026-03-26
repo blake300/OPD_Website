@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS products (
   status VARCHAR(50),
   featured TINYINT(1) DEFAULT 0,
   service TINYINT(1),
+  largeDelivery TINYINT(1) DEFAULT 0,
   daysOut INT,
   posNum INT,
   inventory INT,
@@ -31,6 +32,7 @@ CREATE TABLE IF NOT EXISTS products (
   compName VARCHAR(255),
   compPrice DECIMAL(10,2),
   shelfNum VARCHAR(120),
+  estFreight DECIMAL(10,2),
   createdAt DATETIME,
   updatedAt DATETIME
 );
@@ -87,8 +89,12 @@ CREATE TABLE IF NOT EXISTS orders (
   refundAmount DECIMAL(10,2),
   currency VARCHAR(10),
   shippingMethod VARCHAR(50),
+  deliveryZone TINYINT,
+  deliveryClass VARCHAR(10),
   paymentStatus VARCHAR(50),
   fulfillmentStatus VARCHAR(50),
+  approvalStatus VARCHAR(20) DEFAULT 'Not required',
+  approvalSentAt DATETIME,
   createdAt DATETIME,
   updatedAt DATETIME
 );
@@ -98,6 +104,7 @@ CREATE TABLE IF NOT EXISTS product_variants (
   name VARCHAR(255),
   sku VARCHAR(100),
   price DECIMAL(10,2),
+  largeDelivery TINYINT(1) DEFAULT 0,
   inventory INT,
   invStockTo INT,
   invMin INT,
@@ -116,6 +123,8 @@ CREATE TABLE IF NOT EXISTS product_variants (
   compName VARCHAR(255),
   compPrice DECIMAL(10,2),
   shelfNum VARCHAR(120),
+  estFreight DECIMAL(10,2),
+  parentName VARCHAR(255),
   createdAt DATETIME,
   updatedAt DATETIME
 );
@@ -141,6 +150,7 @@ CREATE TABLE IF NOT EXISTS cart_items (
   variantId VARCHAR(64),
   quantity INT,
   arrivalDate DATE,
+  associationSourceProductId VARCHAR(64),
   createdAt DATETIME,
   updatedAt DATETIME
 );
@@ -159,6 +169,9 @@ CREATE TABLE IF NOT EXISTS order_items (
   productId VARCHAR(64),
   variantId VARCHAR(64),
   name VARCHAR(255),
+  productName VARCHAR(255),
+  variantName VARCHAR(255),
+  sku VARCHAR(100),
   price DECIMAL(10,2),
   quantity INT,
   total DECIMAL(10,2),
@@ -238,11 +251,30 @@ CREATE TABLE IF NOT EXISTS equipment (
   userId VARCHAR(64),
   name VARCHAR(255),
   serial VARCHAR(120),
-  status VARCHAR(50),
+  status VARCHAR(50) DEFAULT 'Pending Approval',
   location VARCHAR(120),
   notes TEXT,
+  contactName VARCHAR(255),
+  contactPhone VARCHAR(50),
+  contactEmail VARCHAR(255),
+  quantity INT DEFAULT 1,
+  price DECIMAL(10,2),
+  productId VARCHAR(64),
   createdAt DATETIME,
-  updatedAt DATETIME
+  updatedAt DATETIME,
+  INDEX idx_userId (userId),
+  INDEX idx_status (status),
+  INDEX idx_productId (productId)
+);
+CREATE TABLE IF NOT EXISTS equipment_images (
+  id VARCHAR(64) PRIMARY KEY,
+  equipmentId VARCHAR(64),
+  url TEXT,
+  isPrimary TINYINT(1) DEFAULT 0,
+  sortOrder INT DEFAULT 0,
+  createdAt DATETIME,
+  updatedAt DATETIME,
+  INDEX idx_equipmentId (equipmentId)
 );
 CREATE TABLE IF NOT EXISTS accounting_codes (
   id VARCHAR(64) PRIMARY KEY,
@@ -386,6 +418,7 @@ CREATE TABLE IF NOT EXISTS users (
   stripeCustomerId VARCHAR(255),
   role VARCHAR(50),
   status VARCHAR(50),
+  allowInvoice TINYINT(1) DEFAULT 0,
   lastLogin DATETIME,
   updatedAt DATETIME
 );
@@ -421,23 +454,14 @@ CREATE TABLE IF NOT EXISTS reliability (
   createdAt DATETIME,
   updatedAt DATETIME
 );
-
-CREATE TABLE IF NOT EXISTS tax_rate_groups (
+CREATE TABLE IF NOT EXISTS remember_me_tokens (
   id VARCHAR(64) PRIMARY KEY,
-  name VARCHAR(255),
-  rate DECIMAL(6,4) NOT NULL,
-  createdAt DATETIME,
-  updatedAt DATETIME,
-  INDEX idx_rate (rate)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE IF NOT EXISTS tax_rate_zips (
-  id VARCHAR(64) PRIMARY KEY,
-  groupId VARCHAR(64) NOT NULL,
-  zip VARCHAR(10) NOT NULL,
-  UNIQUE INDEX idx_zip (zip),
-  INDEX idx_groupId (groupId),
-  FOREIGN KEY (groupId) REFERENCES tax_rate_groups(id) ON DELETE CASCADE
+  userId VARCHAR(64) NOT NULL,
+  tokenHash VARCHAR(128) NOT NULL,
+  expiresAt DATETIME NOT NULL,
+  createdAt DATETIME NOT NULL,
+  INDEX idx_remember_user (userId),
+  INDEX idx_remember_expires (expiresAt)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Ensure missing columns exist
@@ -471,6 +495,10 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'products' AND column_name = 'service');
 SET @sql := IF(@col_exists = 0, 'ALTER TABLE `products` ADD COLUMN `service` TINYINT(1)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'products' AND column_name = 'largeDelivery');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `products` ADD COLUMN `largeDelivery` TINYINT(1) DEFAULT 0', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'products' AND column_name = 'daysOut');
@@ -547,6 +575,10 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'products' AND column_name = 'shelfNum');
 SET @sql := IF(@col_exists = 0, 'ALTER TABLE `products` ADD COLUMN `shelfNum` VARCHAR(120)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'products' AND column_name = 'estFreight');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `products` ADD COLUMN `estFreight` DECIMAL(10,2)', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'products' AND column_name = 'createdAt');
@@ -753,12 +785,28 @@ SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_
 SET @sql := IF(@col_exists = 0, 'ALTER TABLE `orders` ADD COLUMN `shippingMethod` VARCHAR(50)', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'orders' AND column_name = 'deliveryZone');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `orders` ADD COLUMN `deliveryZone` TINYINT', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'orders' AND column_name = 'deliveryClass');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `orders` ADD COLUMN `deliveryClass` VARCHAR(10)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'orders' AND column_name = 'paymentStatus');
 SET @sql := IF(@col_exists = 0, 'ALTER TABLE `orders` ADD COLUMN `paymentStatus` VARCHAR(50)', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'orders' AND column_name = 'fulfillmentStatus');
 SET @sql := IF(@col_exists = 0, 'ALTER TABLE `orders` ADD COLUMN `fulfillmentStatus` VARCHAR(50)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'orders' AND column_name = 'approvalStatus');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `orders` ADD COLUMN `approvalStatus` VARCHAR(20) DEFAULT ''Not required''', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'orders' AND column_name = 'approvalSentAt');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `orders` ADD COLUMN `approvalSentAt` DATETIME', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'orders' AND column_name = 'createdAt');
@@ -787,6 +835,10 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'product_variants' AND column_name = 'price');
 SET @sql := IF(@col_exists = 0, 'ALTER TABLE `product_variants` ADD COLUMN `price` DECIMAL(10,2)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'product_variants' AND column_name = 'largeDelivery');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `product_variants` ADD COLUMN `largeDelivery` TINYINT(1) DEFAULT 0', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'product_variants' AND column_name = 'inventory');
@@ -859,6 +911,14 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'product_variants' AND column_name = 'shelfNum');
 SET @sql := IF(@col_exists = 0, 'ALTER TABLE `product_variants` ADD COLUMN `shelfNum` VARCHAR(120)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'product_variants' AND column_name = 'estFreight');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `product_variants` ADD COLUMN `estFreight` DECIMAL(10,2)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'product_variants' AND column_name = 'parentName');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `product_variants` ADD COLUMN `parentName` VARCHAR(255)', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'product_variants' AND column_name = 'createdAt');
@@ -937,6 +997,10 @@ SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_
 SET @sql := IF(@col_exists = 0, 'ALTER TABLE `cart_items` ADD COLUMN `arrivalDate` DATE', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'cart_items' AND column_name = 'associationSourceProductId');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `cart_items` ADD COLUMN `associationSourceProductId` VARCHAR(64)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'cart_items' AND column_name = 'createdAt');
 SET @sql := IF(@col_exists = 0, 'ALTER TABLE `cart_items` ADD COLUMN `createdAt` DATETIME', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
@@ -991,6 +1055,18 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'order_items' AND column_name = 'name');
 SET @sql := IF(@col_exists = 0, 'ALTER TABLE `order_items` ADD COLUMN `name` VARCHAR(255)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'order_items' AND column_name = 'productName');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `order_items` ADD COLUMN `productName` VARCHAR(255)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'order_items' AND column_name = 'variantName');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `order_items` ADD COLUMN `variantName` VARCHAR(255)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'order_items' AND column_name = 'sku');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `order_items` ADD COLUMN `sku` VARCHAR(100)', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'order_items' AND column_name = 'price');
@@ -1254,7 +1330,7 @@ SET @sql := IF(@col_exists = 0, 'ALTER TABLE `equipment` ADD COLUMN `serial` VAR
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'equipment' AND column_name = 'status');
-SET @sql := IF(@col_exists = 0, 'ALTER TABLE `equipment` ADD COLUMN `status` VARCHAR(50)', 'SELECT 1');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `equipment` ADD COLUMN `status` VARCHAR(50) DEFAULT ''Pending Approval''', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'equipment' AND column_name = 'location');
@@ -1265,12 +1341,64 @@ SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_
 SET @sql := IF(@col_exists = 0, 'ALTER TABLE `equipment` ADD COLUMN `notes` TEXT', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'equipment' AND column_name = 'contactName');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `equipment` ADD COLUMN `contactName` VARCHAR(255)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'equipment' AND column_name = 'contactPhone');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `equipment` ADD COLUMN `contactPhone` VARCHAR(50)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'equipment' AND column_name = 'contactEmail');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `equipment` ADD COLUMN `contactEmail` VARCHAR(255)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'equipment' AND column_name = 'quantity');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `equipment` ADD COLUMN `quantity` INT DEFAULT 1', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'equipment' AND column_name = 'price');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `equipment` ADD COLUMN `price` DECIMAL(10,2)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'equipment' AND column_name = 'productId');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `equipment` ADD COLUMN `productId` VARCHAR(64)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'equipment' AND column_name = 'createdAt');
 SET @sql := IF(@col_exists = 0, 'ALTER TABLE `equipment` ADD COLUMN `createdAt` DATETIME', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'equipment' AND column_name = 'updatedAt');
 SET @sql := IF(@col_exists = 0, 'ALTER TABLE `equipment` ADD COLUMN `updatedAt` DATETIME', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'equipment_images' AND column_name = 'id');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `equipment_images` ADD COLUMN `id` VARCHAR(64)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'equipment_images' AND column_name = 'equipmentId');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `equipment_images` ADD COLUMN `equipmentId` VARCHAR(64)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'equipment_images' AND column_name = 'url');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `equipment_images` ADD COLUMN `url` TEXT', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'equipment_images' AND column_name = 'isPrimary');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `equipment_images` ADD COLUMN `isPrimary` TINYINT(1) DEFAULT 0', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'equipment_images' AND column_name = 'sortOrder');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `equipment_images` ADD COLUMN `sortOrder` INT DEFAULT 0', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'equipment_images' AND column_name = 'createdAt');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `equipment_images` ADD COLUMN `createdAt` DATETIME', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'equipment_images' AND column_name = 'updatedAt');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `equipment_images` ADD COLUMN `updatedAt` DATETIME', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'accounting_codes' AND column_name = 'id');
@@ -1733,6 +1861,10 @@ SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_
 SET @sql := IF(@col_exists = 0, 'ALTER TABLE `users` ADD COLUMN `status` VARCHAR(50)', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'users' AND column_name = 'allowInvoice');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `users` ADD COLUMN `allowInvoice` TINYINT(1) DEFAULT 0', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'users' AND column_name = 'lastLogin');
 SET @sql := IF(@col_exists = 0, 'ALTER TABLE `users` ADD COLUMN `lastLogin` DATETIME', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
@@ -1829,41 +1961,22 @@ SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_
 SET @sql := IF(@col_exists = 0, 'ALTER TABLE `reliability` ADD COLUMN `updatedAt` DATETIME', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- Invoice feature: allowInvoice on users
-SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'users' AND column_name = 'allowInvoice');
-SET @sql := IF(@col_exists = 0, 'ALTER TABLE `users` ADD COLUMN `allowInvoice` TINYINT(1) DEFAULT 0', 'SELECT 1');
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'remember_me_tokens' AND column_name = 'id');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `remember_me_tokens` ADD COLUMN `id` VARCHAR(64)', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- Invoice feature: paymentMethod on orders (card, invoice, etc.)
-SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'orders' AND column_name = 'paymentMethod');
-SET @sql := IF(@col_exists = 0, 'ALTER TABLE `orders` ADD COLUMN `paymentMethod` VARCHAR(50) DEFAULT ''card''', 'SELECT 1');
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'remember_me_tokens' AND column_name = 'userId');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `remember_me_tokens` ADD COLUMN `userId` VARCHAR(64) NOT NULL', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- Invoices table
-CREATE TABLE IF NOT EXISTS invoices (
-  id VARCHAR(64) PRIMARY KEY,
-  orderId VARCHAR(64) NOT NULL,
-  userId VARCHAR(64),
-  invoiceNumber VARCHAR(50) NOT NULL,
-  amount DECIMAL(10,2) NOT NULL,
-  status VARCHAR(20) DEFAULT 'pending',
-  dueDate DATE NOT NULL,
-  pdfPath VARCHAR(255),
-  paidAt DATETIME,
-  createdAt DATETIME,
-  updatedAt DATETIME,
-  UNIQUE KEY uq_invoice_number (invoiceNumber),
-  INDEX idx_order_id (orderId),
-  INDEX idx_user_id (userId),
-  INDEX idx_status (status)
-);
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'remember_me_tokens' AND column_name = 'tokenHash');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `remember_me_tokens` ADD COLUMN `tokenHash` VARCHAR(128) NOT NULL', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- Invoice sequence counter
-CREATE TABLE IF NOT EXISTS invoice_sequence (
-  id INT PRIMARY KEY DEFAULT 1,
-  nextNumber INT NOT NULL DEFAULT 1
-);
-INSERT IGNORE INTO invoice_sequence (id, nextNumber) VALUES (1, 1);
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'remember_me_tokens' AND column_name = 'expiresAt');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `remember_me_tokens` ADD COLUMN `expiresAt` DATETIME NOT NULL', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- NOTE: If switching Stripe API keys, run this ONCE manually then remove:
--- UPDATE users SET stripeCustomerId = NULL WHERE stripeCustomerId IS NOT NULL;
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'remember_me_tokens' AND column_name = 'createdAt');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `remember_me_tokens` ADD COLUMN `createdAt` DATETIME NOT NULL', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

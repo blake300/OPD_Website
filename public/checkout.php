@@ -245,16 +245,25 @@ try {
         }
     }
 
-    // Check if client's linked user allows invoice billing
+    // Check if invoice billing is allowed — either on the current user or the client's linked user
     $allowInvoice = false;
-    if ($clientUserId) {
+    if ($user) {
+        try {
+            $invCheck = $pdo->prepare('SELECT allowInvoice FROM users WHERE id = ? LIMIT 1');
+            $invCheck->execute([$user['id']]);
+            $invRow = $invCheck->fetch();
+            $allowInvoice = $invRow && !empty($invRow['allowInvoice']);
+        } catch (Throwable $e) {
+            $allowInvoice = false;
+        }
+    }
+    if (!$allowInvoice && $clientUserId) {
         try {
             $invCheck = $pdo->prepare('SELECT allowInvoice FROM users WHERE id = ? LIMIT 1');
             $invCheck->execute([$clientUserId]);
             $invRow = $invCheck->fetch();
             $allowInvoice = $invRow && !empty($invRow['allowInvoice']);
         } catch (Throwable $e) {
-            // Column may not exist yet — safe to ignore
             $allowInvoice = false;
         }
     }
@@ -392,7 +401,7 @@ try {
 
                         if ($status !== 'succeeded') {
                             $message = 'Payment has not completed yet. Please try again.';
-                        } elseif ($amount !== $expectedAmountCents) {
+                        } elseif (abs($amount - $expectedAmountCents) > 1) {
                             $message = 'Payment amount mismatch. Please try again.';
                         } elseif ($currency !== 'usd') {
                             $message = 'Payment currency mismatch. Please try again.';
@@ -416,11 +425,15 @@ try {
                     'postal' => $_POST['postal'] ?? '',
                     'country' => $_POST['country'] ?? '',
                     'notes' => $_POST['notes'] ?? '',
+                    'shippingFirstName' => $_POST['shippingFirstName'] ?? '',
+                    'shippingLastName' => $_POST['shippingLastName'] ?? '',
+                    'shippingPhone' => $_POST['shippingPhone'] ?? '',
                     'shipping_method' => $shippingMethod,
                     'delivery_zip' => $deliveryZip,
                     'accounting' => $accountingPayload,
                     'clientId' => $clientId,
                     'guest' => $isGuestMode,
+                    'paymentSucceeded' => ($intentData !== null || $payByInvoice),
                 ]);
 
                 if (!empty($result['error'])) {
@@ -483,16 +496,19 @@ try {
                         try {
                             require_once __DIR__ . '/../src/invoice_service.php';
                             $now = gmdate('Y-m-d H:i:s');
-                            // Set order payment method to invoice
-                            $pdo->prepare('UPDATE orders SET paymentMethod = ?, paymentStatus = ?, updatedAt = ? WHERE id = ?')
-                                ->execute(['invoice', 'Invoice Pending', $now, $result['orderId']]);
                             // Create invoice record
-                            $invResult = opd_create_invoice($result['orderId'], $user['id'] ?? '', $totalWithTax, 30);
-                            // Generate PDF and email it
+                            $invoiceUserId = $clientUserId !== '' ? $clientUserId : (string) ($user['id'] ?? '');
+                            $invResult = opd_create_invoice($result['orderId'], $invoiceUserId, $totalWithTax, 30);
+                            $pdo->prepare('UPDATE orders SET paymentStatus = ?, updatedAt = ? WHERE id = ?')
+                                ->execute(['Invoice Pending', $now, $result['orderId']]);
                             opd_generate_invoice_pdf($invResult['id']);
-                            opd_email_invoice($invResult['id']);
+                            if (!opd_email_invoice($invResult['id'])) {
+                                error_log('Invoice email not sent for order ' . $result['orderId'] . ' invoice ' . $invResult['id']);
+                                $message = 'Order placed, but we could not email your invoice automatically. Please contact support if you do not receive it shortly.';
+                            }
                         } catch (Throwable $e) {
-                            error_log('Invoice creation error: ' . $e->getMessage());
+                            error_log('Invoice creation error for order ' . $result['orderId'] . ': ' . $e->getMessage());
+                            $message = 'Order placed, but we could not finish processing your invoice automatically. Please contact support if you do not receive it shortly.';
                         }
                     }
 
@@ -722,6 +738,11 @@ try {
             <h3>Create an Account</h3>
             <p>Save your information for faster checkout next time. Just add a password below!</p>
             <form id="guest-create-account-form" class="form-grid cols-2">
+              <input type="hidden" name="_fts" value="<?php echo time(); ?>" />
+              <div style="position:absolute;left:-9999px;" aria-hidden="true">
+                <label for="co_website_url">Leave blank</label>
+                <input type="text" id="co_website_url" name="website_url" tabindex="-1" autocomplete="off" />
+              </div>
               <input type="hidden" name="name" value="<?php echo htmlspecialchars($_POST['name'] ?? '', ENT_QUOTES); ?>" />
               <input type="hidden" name="email" value="<?php echo htmlspecialchars($_POST['email'] ?? '', ENT_QUOTES); ?>" />
               <input type="hidden" name="phone" value="<?php echo htmlspecialchars($_POST['phone'] ?? '', ENT_QUOTES); ?>" />
@@ -744,7 +765,7 @@ try {
               <div class="span-2" id="guest-account-message" style="display:none;"></div>
             </form>
           </div>
-          <script>
+          <script nonce="<?php echo opd_csp_nonce(); ?>">
             (function() {
               const form = document.getElementById('guest-create-account-form');
               const messageEl = document.getElementById('guest-account-message');
@@ -772,7 +793,9 @@ try {
                   city: form.city.value,
                   state: form.state.value,
                   zip: form.zip.value,
-                  password: password
+                  password: password,
+                  _fts: form._fts ? form._fts.value : '',
+                  website_url: form.website_url ? form.website_url.value : ''
                 };
 
                 try {
@@ -854,6 +877,21 @@ try {
           <div>
             <label for="postal">Postal code</label>
             <input id="postal" name="postal" value="<?php echo htmlspecialchars($profile['zip'] ?? '', ENT_QUOTES); ?>" required />
+          </div>
+          <div class="span-2" style="border-top:1px solid var(--stroke);padding-top:16px;margin-top:8px;">
+            <label style="font-weight:600;margin-bottom:8px;display:block;">Ship to a different name/phone? (optional)</label>
+          </div>
+          <div>
+            <label for="shippingFirstName">Shipping first name</label>
+            <input id="shippingFirstName" name="shippingFirstName" value="<?php echo htmlspecialchars($profile['shippingFirstName'] ?? '', ENT_QUOTES); ?>" />
+          </div>
+          <div>
+            <label for="shippingLastName">Shipping last name</label>
+            <input id="shippingLastName" name="shippingLastName" value="<?php echo htmlspecialchars($profile['shippingLastName'] ?? '', ENT_QUOTES); ?>" />
+          </div>
+          <div>
+            <label for="shippingPhone">Shipping phone</label>
+            <input id="shippingPhone" name="shippingPhone" value="<?php echo htmlspecialchars($profile['shippingPhone'] ?? '', ENT_QUOTES); ?>" />
           </div>
           <?php if ($isServiceOnlyCart): ?>
           <input type="hidden" name="shipping_method" value="service" />
@@ -951,6 +989,9 @@ try {
               <div class="card-error" id="card-error" role="alert"></div>
             <?php endif; ?>
           <?php elseif ($stripeEnabled): ?>
+            <?php if (!$showUserSavedMethods): ?>
+              <input type="hidden" name="payment_method_type" id="payment_method_type" value="card" />
+            <?php endif; ?>
             <?php if ($clientPaymentMethodId !== ''): ?>
               <div class="span-2">
                 <label>Payment method</label>
@@ -967,6 +1008,14 @@ try {
             <?php elseif ($clientId): ?>
               <div class="span-2">
                 <div class="notice">No saved payment method found for this client. Enter a card below.</div>
+              </div>
+            <?php endif; ?>
+            <?php if ($allowInvoice && !$showUserSavedMethods): ?>
+              <div class="span-2">
+                <label class="checkbox-row" for="pay_by_invoice">
+                  <input id="pay_by_invoice" name="pay_by_invoice" type="checkbox" value="1" />
+                  Pay by Invoice (Net 30)
+                </label>
               </div>
             <?php endif; ?>
             <div class="card-field" id="card-entry-section" style="grid-column: 1 / -1;">
@@ -1007,7 +1056,7 @@ try {
 
   <?php require __DIR__ . '/partials/site-footer.php'; ?>
   <?php if ($stripeEnabled || $requireSavedPayment || $showUserSavedMethods): ?>
-    <script>
+    <script nonce="<?php echo opd_csp_nonce(); ?>">
       (function () {
         var stripeKey = <?php echo json_encode($stripePublishableKey); ?>;
         var form = document.getElementById('checkout-form');
@@ -1090,6 +1139,8 @@ try {
         }
 
         function isUsingInvoice() {
+          var invoiceCheckbox = document.getElementById('pay_by_invoice');
+          if (invoiceCheckbox && invoiceCheckbox.checked) return true;
           return getSelectedSavedPaymentChoice() === 'invoice';
         }
 
@@ -1352,6 +1403,10 @@ try {
 
         if (useNewCardToggle) {
           useNewCardToggle.addEventListener('change', toggleCardSection);
+        }
+        var invoiceCheckbox = document.getElementById('pay_by_invoice');
+        if (invoiceCheckbox) {
+          invoiceCheckbox.addEventListener('change', toggleCardSection);
         }
         savedPaymentRadios.forEach(function (radio) {
           radio.addEventListener('change', function () {

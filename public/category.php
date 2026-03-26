@@ -17,8 +17,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Select a valid product.';
         $messageIsError = true;
     } else {
-        $selectedProduct = site_get_product($postedProductId);
-        if (!$selectedProduct) {
+        $selectedProduct = site_get_public_product($postedProductId);
+        if (!$selectedProduct || !site_is_storefront_sellable_product($selectedProduct)) {
             $message = 'Product not found.';
             $messageIsError = true;
         } else {
@@ -28,15 +28,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $message = 'Select a product variation for this item.';
                 $messageIsError = true;
             } else {
-                site_add_to_cart($postedProductId, $quantity);
-                $message = 'Added to cart.';
+                $addedItemId = site_add_to_cart($postedProductId, $quantity);
+                if ($addedItemId === null || $addedItemId === '') {
+                    $message = 'This product is no longer available.';
+                    $messageIsError = true;
+                } else {
+                    $message = 'Added to cart.';
+                }
             }
         }
     }
 }
 
 $categories = site_get_categories();
-$selected = $_GET['category'] ?? ($categories[0] ?? '');
+$selected = trim((string) ($_GET['category'] ?? ($categories[0] ?? '')));
+if ($selected !== '' && !in_array($selected, $categories, true)) {
+    http_response_code(404);
+    echo 'Category not found';
+    exit;
+}
 $limit = 78;
 $products = $selected ? site_get_products($selected, null, $limit + 1) : [];
 // Filter out sold-out Used Equipment products
@@ -55,6 +65,10 @@ $hasMore = count($products) > $limit;
 if ($hasMore) {
     $products = array_slice($products, 0, $limit);
 }
+$associationCounts = site_get_related_product_counts(array_map(
+    static fn($item) => (string) ($item['id'] ?? ''),
+    $products
+));
 $csrf = site_csrf_token();
 ?>
 <!DOCTYPE html>
@@ -64,7 +78,7 @@ $csrf = site_csrf_token();
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <?php $_seoTitle = htmlspecialchars($selected, ENT_QUOTES) . ' - ' . opd_site_name(); ?>
   <title><?php echo htmlspecialchars($_seoTitle, ENT_QUOTES); ?></title>
-  <link rel="stylesheet" href="/assets/css/site.css?v=20260315c" />
+  <link rel="stylesheet" href="/assets/css/site.css?v=20260317c" />
   <?php opd_seo_meta([
     'title' => $_seoTitle,
     'description' => $selected . ' - oilfield ' . strtolower($selected) . ' from ' . opd_site_name() . '. Nationwide shipping, Oklahoma same-day delivery.',
@@ -113,7 +127,7 @@ $csrf = site_csrf_token();
           <?php
           $productId = $product['id'] ?? '';
           $hasVariants = $productId ? !empty(site_get_product_variants($productId)) : false;
-          $hasAssociations = $productId ? !empty(site_get_related_products($productId, 1)) : false;
+          $hasAssociations = $productId ? (($associationCounts[(string) $productId] ?? 0) > 0) : false;
           $isService = !empty($product['service']);
           $showFromPrice = $hasVariants || $hasAssociations || $isService;
           $showQuickAdd = !$showFromPrice;
@@ -145,7 +159,9 @@ $csrf = site_csrf_token();
                       <input type="hidden" name="productId" value="<?php echo htmlspecialchars($productId, ENT_QUOTES); ?>" />
                       <button class="btn" type="submit">Add</button>
                       <label class="visually-hidden" for="<?php echo htmlspecialchars($qtyInputId, ENT_QUOTES); ?>">Quantity</label>
-                      <input class="product-qty-input" type="number" id="<?php echo htmlspecialchars($qtyInputId, ENT_QUOTES); ?>" name="quantity" value="1" min="1" />
+                      <select class="product-qty-select" id="<?php echo htmlspecialchars($qtyInputId, ENT_QUOTES); ?>" name="quantity">
+                        <?php for ($qi = 1; $qi <= 25; $qi++): ?><option value="<?php echo $qi; ?>"><?php echo $qi; ?></option><?php endfor; ?>
+                      </select>
                     </form>
                   <?php endif; ?>
                   <?php if ($showFromPrice): ?>
@@ -171,7 +187,7 @@ $csrf = site_csrf_token();
   </main>
 
   <?php require __DIR__ . '/partials/site-footer.php'; ?>
-  <script>
+  <script nonce="<?php echo opd_csp_nonce(); ?>">
     (function () {
       var loadBtn = document.getElementById('category-load-more')
       var grid = document.getElementById('category-grid')
@@ -257,13 +273,16 @@ $csrf = site_csrf_token();
           qtyLabel.textContent = 'Quantity'
           form.appendChild(qtyLabel)
 
-          var qtyInput = document.createElement('input')
-          qtyInput.className = 'product-qty-input'
-          qtyInput.type = 'number'
-          qtyInput.name = 'quantity'
-          qtyInput.value = '1'
-          qtyInput.min = '1'
-          form.appendChild(qtyInput)
+          var qtySelect = document.createElement('select')
+          qtySelect.className = 'product-qty-select'
+          qtySelect.name = 'quantity'
+          for (var qi = 1; qi <= 25; qi++) {
+            var opt = document.createElement('option')
+            opt.value = qi
+            opt.textContent = qi
+            qtySelect.appendChild(opt)
+          }
+          form.appendChild(qtySelect)
 
           actions.appendChild(form)
         } else {

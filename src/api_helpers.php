@@ -12,7 +12,12 @@ function opd_json_response(array $payload, int $status = 200): void
 
 function opd_read_json(): array
 {
-    $raw = file_get_contents('php://input');
+    if (isset($_SERVER['_CACHED_INPUT'])) {
+        $raw = $_SERVER['_CACHED_INPUT'];
+    } else {
+        $raw = file_get_contents('php://input');
+        $_SERVER['_CACHED_INPUT'] = $raw;
+    }
     if (!$raw) {
         return [];
     }
@@ -49,6 +54,21 @@ function opd_config(string $key, string $default = ''): string
         $config = require __DIR__ . '/../config/config.php';
     }
     return (string) ($config[$key] ?? $default);
+}
+
+/**
+ * Returns the configured canonical site URL without trusting request headers.
+ */
+function opd_site_base_url(): string
+{
+    $siteUrl = trim(opd_config('site_url', 'https://oilpatchdepot.com'));
+    if ($siteUrl === '') {
+        $siteUrl = 'https://oilpatchdepot.com';
+    }
+    if (!preg_match('#^https?://#i', $siteUrl)) {
+        $siteUrl = 'https://' . ltrim($siteUrl, '/');
+    }
+    return rtrim($siteUrl, '/');
 }
 
 // opd_site_name() and opd_site_email() are defined in config/config.php

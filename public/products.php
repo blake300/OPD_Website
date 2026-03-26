@@ -96,7 +96,7 @@ $_seoTitle = ($search ? 'Search: ' . $search : 'All Products') . ' - ' . opd_sit
   </main>
 
   <?php require __DIR__ . '/partials/site-footer.php'; ?>
-  <script>
+  <script nonce="<?php echo opd_csp_nonce(); ?>">
     (function () {
       if (window.Favorites && typeof Favorites.init === 'function') {
         Favorites.init({ csrfToken: <?php echo json_encode($csrf); ?>, isSignedIn: <?php echo $isSignedIn ? 'true' : 'false'; ?> })

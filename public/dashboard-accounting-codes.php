@@ -33,7 +33,7 @@ $csrf = site_csrf_token();
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Accounting Codes - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
-  <link rel="stylesheet" href="/assets/css/site.css?v=20260315c" />
+  <link rel="stylesheet" href="/assets/css/site.css?v=20260326d" />
 </head>
 <body>
   <?php require __DIR__ . '/partials/site-header.php'; ?>
@@ -150,7 +150,7 @@ $csrf = site_csrf_token();
             }
           </style>
 
-          <script>
+          <script nonce="<?php echo opd_csp_nonce(); ?>">
             (function(){
               const maxDepth = 2; // root = 0, child =1, grandchild=2
 

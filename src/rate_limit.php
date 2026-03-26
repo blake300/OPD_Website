@@ -4,6 +4,68 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/db_conn.php';
 
+function opd_normalize_rate_limit_identifier(string $identifier): string
+{
+    $identifier = strtolower(trim($identifier));
+    if ($identifier === '') {
+        return 'unknown';
+    }
+    return substr($identifier, 0, 255);
+}
+
+function opd_client_ip(): string
+{
+    $ip = trim((string) ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+    if ($ip === '') {
+        return 'unknown';
+    }
+    return substr($ip, 0, 64);
+}
+
+function opd_dummy_password_hash(): string
+{
+    return '$2y$10$hrA/g9OVYJY.IW5FmsbDSuhiQDq6qduLLdVazGen3UFyg1uXK9ipS';
+}
+
+function opd_login_rate_limit_identifiers(string $identifier): array
+{
+    $normalizedIdentifier = strtolower(trim($identifier));
+    $ip = opd_client_ip();
+    $keys = [];
+    if ($normalizedIdentifier !== '') {
+        $keys[] = 'acct:' . hash('sha256', $normalizedIdentifier);
+    }
+    if ($ip !== '') {
+        $keys[] = 'ip:' . hash('sha256', $ip);
+    }
+    return array_values(array_unique($keys));
+}
+
+function opd_check_rate_limits(array $identifiers, string $type = 'login'): array
+{
+    foreach ($identifiers as $identifier) {
+        $result = opd_check_rate_limit((string) $identifier, $type);
+        if (!$result['allowed']) {
+            return $result;
+        }
+    }
+    return ['allowed' => true, 'message' => ''];
+}
+
+function opd_record_failed_attempts_for_identifiers(array $identifiers, string $type = 'login'): void
+{
+    foreach (array_values(array_unique($identifiers)) as $identifier) {
+        opd_record_failed_attempt((string) $identifier, $type);
+    }
+}
+
+function opd_reset_rate_limits_for_identifiers(array $identifiers, string $type = 'login'): void
+{
+    foreach (array_values(array_unique($identifiers)) as $identifier) {
+        opd_reset_rate_limit((string) $identifier, $type);
+    }
+}
+
 /**
  * Initialize rate_limit table if it doesn't exist
  */
@@ -30,6 +92,7 @@ function opd_init_rate_limit_table(): void
  */
 function opd_check_rate_limit(string $identifier, string $type = 'login'): array
 {
+    $identifier = opd_normalize_rate_limit_identifier($identifier);
     opd_init_rate_limit_table();
     $pdo = opd_db();
 
@@ -102,6 +165,7 @@ function opd_check_rate_limit(string $identifier, string $type = 'login'): array
  */
 function opd_record_failed_attempt(string $identifier, string $type = 'login'): void
 {
+    $identifier = opd_normalize_rate_limit_identifier($identifier);
     opd_init_rate_limit_table();
     $pdo = opd_db();
 
@@ -142,6 +206,7 @@ function opd_record_failed_attempt(string $identifier, string $type = 'login'): 
  */
 function opd_reset_rate_limit(string $identifier, string $type = 'login'): void
 {
+    $identifier = opd_normalize_rate_limit_identifier($identifier);
     opd_init_rate_limit_table();
     $pdo = opd_db();
 

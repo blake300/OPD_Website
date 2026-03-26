@@ -70,6 +70,8 @@ if ($method === 'GET') {
             'productId' => (string) ($row['productId'] ?? ''),
             'variantId' => $row['variantId'] ?? null,
             'name' => (string) ($row['name'] ?? ''),
+            'productName' => (string) ($row['productName'] ?? ''),
+            'variantName' => (string) ($row['variantName'] ?? ''),
             'price' => $price,
             'quantity' => $qty,
             'total' => $itemTotal,

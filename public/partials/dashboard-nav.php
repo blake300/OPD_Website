@@ -40,7 +40,7 @@ foreach ($items as $item) {
     <a class="dashboard-link" href="/logout.php">Log out</a>
   </nav>
 </aside>
-<script>
+<script nonce="<?php echo opd_csp_nonce(); ?>">
   (function () {
     var toggle = document.querySelector('.dashboard-mobile-toggle')
     var menu = document.getElementById('dashboard-nav-menu')

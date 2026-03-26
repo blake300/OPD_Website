@@ -13,6 +13,44 @@ const productStatusOptions = [
   { value: 'inactive', label: 'Inactive' }
 ]
 
+const orderStatusOptions = [
+  { value: 'new', label: 'New' },
+  { value: 'Processing', label: 'Processing' },
+  { value: 'Cancelled', label: 'Cancelled' }
+]
+
+function readProductCategoryOptions() {
+  const fallback = [
+    'AutoBailer Artifical Lift',
+    'Parts',
+    'Tools',
+    'Services',
+    'Supplies',
+    'Used Equipment',
+    'Hidden',
+    'Hidden A',
+    'Hidden B',
+    'Hidden C'
+  ]
+  const meta = document.querySelector('meta[name="product-categories"]')
+  if (!meta) {
+    return fallback
+  }
+  try {
+    const parsed = JSON.parse(meta.getAttribute('content') || '[]')
+    if (!Array.isArray(parsed) || !parsed.length) {
+      return fallback
+    }
+    return parsed
+      .map((value) => String(value || '').trim())
+      .filter((value, index, arr) => value !== '' && arr.indexOf(value) === index)
+  } catch (_error) {
+    return fallback
+  }
+}
+
+const productCategoryOptions = readProductCategoryOptions()
+
 const productsResource = {
   id: 'products',
   title: 'Products',
@@ -24,14 +62,7 @@ const productsResource = {
       name: 'category',
       label: 'Category',
       type: 'select',
-      options: [
-        'AutoBailer Artifical Lift',
-        'Parts',
-        'Tools',
-        'Services',
-        'Supplies',
-        'Used Equipment'
-      ]
+      options: productCategoryOptions
     },
     { name: 'status', label: 'Status', type: 'select', options: productStatusOptions },
     { name: 'price', label: 'Price' },
@@ -50,10 +81,6 @@ const productsResource = {
     'invMin'
   ]
 }
-
-const productCategoryOptions = (
-  productsResource.fields.find((field) => field.name === 'category')?.options || []
-)
 
 const productTableColumns = [
   { key: 'name', label: 'Name', editable: true },
@@ -85,7 +112,8 @@ const productDetailFields = [
   { key: 'vnPrice', label: 'Vn Price', type: 'number', step: '0.01' },
   { key: 'compName', label: 'Comp_Name' },
   { key: 'compPrice', label: 'Comp_Price', type: 'number', step: '0.01' },
-  { key: 'shelfNum', label: 'Shelf_Num' }
+  { key: 'shelfNum', label: 'Shelf_Num' },
+  { key: 'estFreight', label: 'Est Freight', type: 'number', step: '0.01' }
 ]
 
 const productEditableKeys = [
@@ -102,7 +130,7 @@ const resources = [
     fields: [
       { name: 'number', label: 'Order #', required: true },
       { name: 'customerName', label: 'Customer', required: true },
-      { name: 'status', label: 'Status' },
+      { name: 'status', label: 'Status', type: 'select', options: orderStatusOptions },
       { name: 'paymentStatus', label: 'Payment' },
       { name: 'fulfillmentStatus', label: 'Fulfillment' },
       { name: 'approvalStatus', label: 'Approval Status' },
@@ -362,7 +390,9 @@ const variantDetailFields = [
   { key: 'vnPrice', label: 'Vn Price', type: 'number', step: '0.01' },
   { key: 'compName', label: 'Comp_Name' },
   { key: 'compPrice', label: 'Comp_Price', type: 'number', step: '0.01' },
-  { key: 'shelfNum', label: 'Shelf_Num' }
+  { key: 'shelfNum', label: 'Shelf_Num' },
+  { key: 'estFreight', label: 'Est Freight', type: 'number', step: '0.01' },
+  { key: 'parentName', label: 'Parent Name' }
 ]
 
 const variantEditableKeys = [
@@ -425,7 +455,8 @@ const numericFields = new Set([
   'wdth',
   'hght',
   'vnPrice',
-  'compPrice'
+  'compPrice',
+  'estFreight'
 ])
 const booleanFields = new Set([
   'service'
@@ -470,6 +501,39 @@ function closeAllInlinePanels(table) {
   if (!table) return
   table.querySelectorAll('.inline-edit-panel').forEach((panel) => panel.remove())
 }
+
+function syncSelectValue(input, value) {
+  if (!(input instanceof HTMLSelectElement)) {
+    return
+  }
+  input.querySelectorAll('option[data-dynamic-option="true"]').forEach((option) => option.remove())
+  const normalizedValue = value === null || value === undefined ? '' : String(value)
+  if (normalizedValue === '') {
+    return
+  }
+  const hasOption = Array.from(input.options).some((option) => option.value === normalizedValue)
+  if (hasOption) {
+    return
+  }
+  const dynamicOption = document.createElement('option')
+  dynamicOption.value = normalizedValue
+  dynamicOption.textContent = normalizedValue
+  dynamicOption.dataset.dynamicOption = 'true'
+  input.appendChild(dynamicOption)
+}
+
+function setFieldInputValue(input, field, value) {
+  if (!input) {
+    return
+  }
+  if (field.type === 'checkbox') {
+    input.checked = value === true || value === 1 || value === '1' || value === 'true'
+    return
+  }
+  syncSelectValue(input, value)
+  input.value = value === null || value === undefined ? '' : String(value)
+}
+
 function createOrderItemsSection(orderId) {
   const section = document.createElement('div')
   section.className = 'order-items-section'
@@ -685,11 +749,7 @@ function createInlineEditPanel(resource, item, row, table) {
     const input = wrap.querySelector('input, select, textarea')
     const value = item[field.name]
     if (input) {
-      if (field.type === 'checkbox') {
-        input.checked = value === true || value === 1 || value === '1' || value === 'true'
-      } else {
-        input.value = value === null || value === undefined ? '' : String(value)
-      }
+      setFieldInputValue(input, field, value)
       if (field.readonly) {
         input.readOnly = true
         input.classList.add('is-readonly')
@@ -911,6 +971,10 @@ function readForm(form, fields) {
     if (!input) {
       return
     }
+    if (field.type === 'checkbox') {
+      payload[field.name] = input.checked ? 1 : 0
+      return
+    }
     const value = input.value.trim()
     if (value === '') {
       payload[field.name] = null
@@ -935,7 +999,7 @@ function fillForm(form, fields, item) {
       return
     }
     const value = item[field.name]
-    input.value = value === null || value === undefined ? '' : String(value)
+    setFieldInputValue(input, field, value)
   })
   form.dataset.editingId = item.id
   const message = form.querySelector('.form-message')
@@ -5636,7 +5700,7 @@ function renderSalesVolumeReport(data, container) {
 function renderProductSalesReport(data, container) {
   if (!data.products || !data.products.length) { container.innerHTML = '<div class="notice">No products found.</div>'; return }
   let html = '<table class="report-table"><thead><tr><th>Product</th><th>SKU</th><th>Qty Sold</th><th>Revenue</th></tr></thead><tbody>'
-  data.products.forEach(p => { html += '<tr><td>' + (p.name || '') + '</td><td>' + (p.sku || '') + '</td><td>' + (p.qtySold || 0) + '</td><td>$' + Number(p.revenue || 0).toFixed(2) + '</td></tr>' })
+  data.products.forEach(p => { html += '<tr><td>' + escapeHtml(p.name || '') + '</td><td>' + escapeHtml(p.sku || '') + '</td><td>' + (p.qtySold || 0) + '</td><td>$' + Number(p.revenue || 0).toFixed(2) + '</td></tr>' })
   html += '</tbody></table>'
   container.innerHTML = html
 }

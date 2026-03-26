@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../src/auth.php';
+require_once __DIR__ . '/../src/catalog.php';
 require_once __DIR__ . '/../config/config.php';
 
 $user = opd_require_role(['admin', 'manager']);
@@ -19,6 +20,7 @@ header('Pragma: no-cache');
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>OPD Admin</title>
   <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf, ENT_QUOTES); ?>" />
+  <meta name="product-categories" content="<?php echo htmlspecialchars(json_encode(opd_product_categories(), JSON_HEX_APOS | JSON_HEX_QUOT), ENT_QUOTES); ?>" />
   <link rel="stylesheet" href="/assets/css/admin.css?v=20260315d" />
 </head>
 <body>
@@ -302,6 +304,6 @@ header('Pragma: no-cache');
     </main>
   </div>
 
-  <script src="/assets/js/admin.js?v=20260315d"></script>
+  <script src="/assets/js/admin.js?v=20260326b"></script>
 </body>
 </html>

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/security_init.php';
 require_once __DIR__ . '/db_conn.php';
 require_once __DIR__ . '/api_helpers.php';
 require_once __DIR__ . '/rate_limit.php';
@@ -108,7 +109,8 @@ function opd_require_role(array $allowedRoles): array
 function opd_login(string $email, string $password): ?array
 {
     // Check rate limiting first
-    $rateLimitCheck = opd_check_rate_limit($email, 'admin_login');
+    $rateLimitIdentifiers = opd_login_rate_limit_identifiers($email);
+    $rateLimitCheck = opd_check_rate_limits($rateLimitIdentifiers, 'admin_login');
     if (!$rateLimitCheck['allowed']) {
         return null;
     }
@@ -119,8 +121,8 @@ function opd_login(string $email, string $password): ?array
     $user = $stmt->fetch();
 
     // SECURITY: Always verify password even if user doesn't exist (prevents timing attacks)
-    // Use dummy hash if user not found to maintain consistent timing
-    $hash = ($user && !empty($user['passwordHash'])) ? $user['passwordHash'] : password_hash('dummy', PASSWORD_DEFAULT);
+    // Use a precomputed dummy hash if user not found to maintain consistent timing without extra CPU work.
+    $hash = ($user && !empty($user['passwordHash'])) ? $user['passwordHash'] : opd_dummy_password_hash();
     $validPassword = password_verify($password, $hash);
 
     // Check all conditions including role (admin login should be for admin/manager only)
@@ -131,12 +133,12 @@ function opd_login(string $email, string $password): ?array
 
     if (!$validUser) {
         // Record failed attempt for rate limiting
-        opd_record_failed_attempt($email, 'admin_login');
+        opd_record_failed_attempts_for_identifiers($rateLimitIdentifiers, 'admin_login');
         return null;
     }
 
     // Reset rate limit on successful login
-    opd_reset_rate_limit($email, 'admin_login');
+    opd_reset_rate_limits_for_identifiers($rateLimitIdentifiers, 'admin_login');
 
     opd_start_session();
     session_regenerate_id(true);

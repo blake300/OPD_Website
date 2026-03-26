@@ -100,6 +100,86 @@ function opd_create_invoice(string $orderId, string $userId, float $amount, int 
     return ['id' => $id, 'invoiceNumber' => $invoiceNumber, 'dueDate' => $dueDate, 'existing' => false];
 }
 
+function opd_invoice_lookup_user_email(string $userId): string
+{
+    $userId = trim($userId);
+    if ($userId === '') {
+        return '';
+    }
+
+    $pdo = opd_db();
+    $stmt = $pdo->prepare('SELECT email FROM users WHERE id = ? LIMIT 1');
+    $stmt->execute([$userId]);
+    $row = $stmt->fetch();
+    $email = trim((string) ($row['email'] ?? ''));
+
+    return filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : '';
+}
+
+function opd_invoice_lookup_client_email(string $orderUserId, string $clientId): string
+{
+    $orderUserId = trim($orderUserId);
+    $clientId = trim($clientId);
+    if ($orderUserId === '' || $clientId === '') {
+        return '';
+    }
+
+    $pdo = opd_db();
+    $stmt = $pdo->prepare('SELECT email FROM clients WHERE id = ? AND userId = ? LIMIT 1');
+    $stmt->execute([$clientId, $orderUserId]);
+    $row = $stmt->fetch();
+    $email = trim((string) ($row['email'] ?? ''));
+
+    return filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : '';
+}
+
+/**
+ * Resolve the best invoice recipient for self-serve and client-billed orders.
+ *
+ * @return array{email: string, source: string}
+ */
+function opd_resolve_invoice_recipient(array $orderData): array
+{
+    $clientUserEmail = opd_invoice_lookup_user_email((string) ($orderData['clientUserId'] ?? ''));
+    if ($clientUserEmail !== '') {
+        return ['email' => $clientUserEmail, 'source' => 'clientUserId'];
+    }
+
+    $clientRecordEmail = opd_invoice_lookup_client_email(
+        (string) ($orderData['userId'] ?? ''),
+        (string) ($orderData['clientId'] ?? '')
+    );
+    if ($clientRecordEmail !== '') {
+        return ['email' => $clientRecordEmail, 'source' => 'clientRecord'];
+    }
+
+    foreach (['billingEmail', 'customerEmail'] as $field) {
+        $email = trim((string) ($orderData[$field] ?? ''));
+        if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return ['email' => $email, 'source' => $field];
+        }
+    }
+
+    $orderUserEmail = opd_invoice_lookup_user_email((string) ($orderData['userId'] ?? ''));
+    if ($orderUserEmail !== '') {
+        return ['email' => $orderUserEmail, 'source' => 'orderUserId'];
+    }
+
+    return ['email' => '', 'source' => 'none'];
+}
+
+function opd_invoice_item_sku(array $item): string
+{
+    foreach (['sku', 'variantSku', 'productSku'] as $field) {
+        $sku = trim((string) ($item[$field] ?? ''));
+        if ($sku !== '') {
+            return $sku;
+        }
+    }
+
+    return '';
+}
+
 /**
  * Generate PDF invoice and save to disk. Returns the web-accessible path.
  */
@@ -122,10 +202,17 @@ function opd_generate_invoice_pdf(string $invoiceId): string
         throw new \RuntimeException('Order not found for invoice');
     }
 
-    $items = $pdo->prepare('SELECT * FROM order_items WHERE orderId = ?');
+    $items = $pdo->prepare(
+        'SELECT oi.*,
+                p.sku AS productSku,
+                pv.sku AS variantSku
+         FROM order_items oi
+         LEFT JOIN products p ON p.id = oi.productId
+         LEFT JOIN product_variants pv ON pv.id = oi.variantId
+         WHERE oi.orderId = ?'
+    );
     $items->execute([$invoice['orderId']]);
     $orderItems = $items->fetchAll();
-
     $siteName = opd_site_name();
     $siteEmail = opd_site_email();
 
@@ -139,7 +226,8 @@ function opd_generate_invoice_pdf(string $invoiceId): string
     $pdf->Cell(0, 10, 'INVOICE', 0, 1, 'R');
     $pdf->SetFont('Helvetica', '', 10);
     $pdf->Cell(0, 5, $siteName, 0, 1, 'R');
-    $pdf->Cell(0, 5, $siteEmail, 0, 1, 'R');
+    $pdf->Cell(0, 5, '12273 County Road 1560', 0, 1, 'R');
+    $pdf->Cell(0, 5, 'Ada, OK 74820', 0, 1, 'R');
     $pdf->Ln(5);
 
     // Invoice details
@@ -220,20 +308,32 @@ function opd_generate_invoice_pdf(string $invoiceId): string
         if ($fill) {
             $pdf->SetFillColor(245, 245, 245);
         }
-        $name = ($item['productName'] ?? $item['name'] ?? 'Item');
-        if (!empty($item['variantName'])) {
-            $name .= ' - ' . $item['variantName'];
-        }
+        $productName = ($item['productName'] ?? $item['name'] ?? 'Item');
+        $variantName = $item['variantName'] ?? '';
         $qty = (int) ($item['quantity'] ?? 1);
         $price = (float) ($item['price'] ?? 0);
         $lineTotal = $qty * $price;
-        $sku = $item['sku'] ?? $item['productSku'] ?? '';
+        $sku = opd_invoice_item_sku($item);
 
-        $pdf->Cell(90, 7, '  ' . substr($name, 0, 50), 1, 0, 'L', $fill);
-        $pdf->Cell(25, 7, $sku, 1, 0, 'C', $fill);
-        $pdf->Cell(20, 7, (string) $qty, 1, 0, 'C', $fill);
-        $pdf->Cell(27, 7, '$' . number_format($price, 2), 1, 0, 'R', $fill);
-        $pdf->Cell(28, 7, '$' . number_format($lineTotal, 2), 1, 1, 'R', $fill);
+        $rowH = ($variantName !== '') ? 9 : 7;
+        if ($variantName !== '') {
+            // Two-line cell: product name on top, variant name below
+            $x = $pdf->GetX();
+            $y = $pdf->GetY();
+            $pdf->SetFont('Helvetica', '', 8);
+            $pdf->SetXY($x, $y);
+            $pdf->Cell(90, 4, '  ' . substr($productName, 0, 50), 'LTR', 2, 'L', $fill);
+            $pdf->SetFont('Helvetica', 'B', 9);
+            $pdf->Cell(90, 5, '  ' . substr($variantName, 0, 50), 'LBR', 0, 'L', $fill);
+            $pdf->SetFont('Helvetica', '', 9);
+            $pdf->SetXY($x + 90, $y);
+        } else {
+            $pdf->Cell(90, $rowH, '  ' . substr($productName, 0, 50), 1, 0, 'L', $fill);
+        }
+        $pdf->Cell(25, $rowH, $sku, 1, 0, 'C', $fill);
+        $pdf->Cell(20, $rowH, (string) $qty, 1, 0, 'C', $fill);
+        $pdf->Cell(27, $rowH, '$' . number_format($price, 2), 1, 0, 'R', $fill);
+        $pdf->Cell(28, $rowH, '$' . number_format($lineTotal, 2), 1, 1, 'R', $fill);
         $fill = !$fill;
     }
 
@@ -274,6 +374,18 @@ function opd_generate_invoice_pdf(string $invoiceId): string
     $pdf->Cell(27, 8, 'Total Due:', 0, 0, 'R');
     $amountDue = $total - $refund;
     $pdf->Cell(28, 8, '$' . number_format($amountDue, 2), 0, 1, 'R');
+
+    // Order notes
+    $orderNotes = trim((string) ($orderData['notes'] ?? ''));
+    if ($orderNotes !== '') {
+        $pdf->Ln(10);
+        $pdf->SetFont('Helvetica', 'B', 10);
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->Cell(0, 6, 'Notes:', 0, 1);
+        $pdf->SetFont('Helvetica', '', 9);
+        $pdf->SetTextColor(60, 60, 60);
+        $pdf->MultiCell(0, 5, $orderNotes);
+    }
 
     // Footer note
     $pdf->Ln(15);
@@ -317,19 +429,36 @@ function opd_email_invoice(string $invoiceId): bool
         return false;
     }
 
-    $order = $pdo->prepare('SELECT customerEmail, customerName, number FROM orders WHERE id = ?');
+    $order = $pdo->prepare(
+        'SELECT customerEmail, billingEmail, customerName, number, userId, clientId, clientUserId
+         FROM orders
+         WHERE id = ?'
+    );
     $order->execute([$invoice['orderId']]);
     $orderData = $order->fetch();
-    if (!$orderData || empty($orderData['customerEmail'])) {
+    if (!$orderData) {
+        error_log('Invoice email skipped for invoice ' . $invoiceId . ': order not found.');
         return false;
     }
 
-    // Generate PDF if not yet generated
-    $pdfPath = $invoice['pdfPath'] ?? '';
-    $fullPath = __DIR__ . '/../public' . $pdfPath;
-    if ($pdfPath === '' || !file_exists($fullPath)) {
-        $pdfPath = opd_generate_invoice_pdf($invoiceId);
+    $recipient = opd_resolve_invoice_recipient($orderData);
+    $recipientEmail = (string) ($recipient['email'] ?? '');
+    if ($recipientEmail === '') {
+        error_log('Invoice email skipped for invoice ' . $invoiceId . ': no valid recipient.');
+        return false;
+    }
+
+    try {
+        // Generate PDF if not yet generated
+        $pdfPath = $invoice['pdfPath'] ?? '';
         $fullPath = __DIR__ . '/../public' . $pdfPath;
+        if ($pdfPath === '' || !file_exists($fullPath)) {
+            $pdfPath = opd_generate_invoice_pdf($invoiceId);
+            $fullPath = __DIR__ . '/../public' . $pdfPath;
+        }
+    } catch (\Throwable $e) {
+        error_log('Invoice email preparation failed for invoice ' . $invoiceId . ': ' . $e->getMessage());
+        return false;
     }
 
     $siteName = opd_site_name();
@@ -352,11 +481,12 @@ function opd_email_invoice(string $invoiceId): bool
 
     $mail = opd_create_mailer();
     if (!$mail) {
+        error_log('Invoice email skipped for invoice ' . $invoiceId . ': mailer unavailable.');
         return false;
     }
 
     try {
-        $mail->addAddress($orderData['customerEmail']);
+        $mail->addAddress($recipientEmail);
         $mail->Subject = "Invoice {$invoiceNumber} - {$siteName}";
         $mail->Body = $body;
         $mail->AltBody = strip_tags($body);
@@ -366,7 +496,16 @@ function opd_email_invoice(string $invoiceId): bool
         $mail->send();
         return true;
     } catch (\Throwable $e) {
-        error_log('Invoice email failed: ' . $e->getMessage());
+        error_log(
+            'Invoice email failed for invoice '
+            . $invoiceId
+            . ' to '
+            . $recipientEmail
+            . ' ('
+            . ($recipient['source'] ?? 'unknown')
+            . '): '
+            . $e->getMessage()
+        );
         return false;
     }
 }

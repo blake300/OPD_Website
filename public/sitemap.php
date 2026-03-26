@@ -25,7 +25,10 @@ foreach ($categories as $cat):
 <?php
 // Products
 $pdo = opd_db();
-$stmt = $pdo->query("SELECT id, updatedAt FROM products WHERE COALESCE(status, 'active') != 'inactive' AND COALESCE(category, '') != 'Hidden' ORDER BY updatedAt DESC");
+$hiddenCats = opd_hidden_categories();
+$hiddenPlaceholders = implode(',', array_fill(0, count($hiddenCats), '?'));
+$stmt = $pdo->prepare("SELECT id, updatedAt FROM products WHERE COALESCE(status, 'active') != 'inactive' AND COALESCE(category, '') NOT IN ($hiddenPlaceholders) ORDER BY updatedAt DESC");
+$stmt->execute($hiddenCats);
 $products = $stmt->fetchAll();
 foreach ($products as $p):
     $lastmod = $p['updatedAt'] ? date('Y-m-d', strtotime($p['updatedAt'])) : $now;

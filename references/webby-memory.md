@@ -1,6 +1,6 @@
 # Webby Memory
 
-Last updated: 2026-02-17
+Last updated: 2026-03-26
 
 ## Global Design Preferences
 - Colors:
@@ -17,10 +17,12 @@ Last updated: 2026-02-17
 - Database: MySQL (PDO connection in `src/db_conn.php`).
 - API patterns: JSON endpoints under `/api/*.php`, CSRF via `X-CSRF-Token`.
 - Auth/session: PHP sessions with CSRF token in admin meta tag.
-- Testing/quality: Playwright smoke tests live in /tests with BASE_URL override.
+- Testing/quality: Playwright smoke tests live in /tests with BASE_URL override; `npm run check` runs static security regressions for public surface hardening.
 
 ## Project Overrides
 - (Add entries per project path, only when they differ from global preferences.)
+- `c:\Users\blakecantrell\.vscode\Opd\OPD_Website`: Public storefront product queries should use explicit public-field allowlists plus shared visibility/sellability helpers; canonical/invite/reset links should come from configured `SITE_URL`, not request headers.
+- `c:\Users\blakecantrell\.vscode\Opd\OPD_Website`: Hidden-category products stay out of direct storefront queries, but association displays may surface active hidden related products when cart/session state preserves the originating visible source product.
 
 ## Recent Updates
 - 2026-01-25: Initialized Webby memory.
@@ -146,3 +148,11 @@ Last updated: 2026-02-17
 - 2026-02-20: Service checkout now forces login with a no-guest notice; service arrival date inputs hidden for signed-out users in associated product tables.
 - 2026-02-20: Admin Orders now surface service arrival dates (service-only) alongside existing arrival dates; orders API joins product service flag for reporting.
 - 2026-02-17: Monthly cumulative now uses America/Chicago month boundaries (converted to UTC) for admin user relations.
+- 2026-03-26: Hardened storefront visibility, public product serialization, login throttling, and config-based site URLs; removed public checkout debug pages and added `scripts/security_regression_check.php`.
+- 2026-03-26: Invoice checkout no longer writes the nonexistent `orders.paymentMethod` column; invoice email delivery now resolves client-linked recipients before billing/customer fallbacks and warns when automatic invoice email fails.
+- 2026-03-26: Invoice PDFs now print Oil Patch Depot's Ada mailing address in the header and persist order-item SKUs so regenerated invoices keep historical SKU values.
+- 2026-03-26: Admin product category selects and filters now read the canonical category list from PHP/meta instead of a separate hardcoded JS subset, so hidden categories stay editable in admin.
+- 2026-03-26: Admin Orders status now uses a real select config, and the shared admin form filler preserves unknown select values by injecting a temporary option instead of blanking legacy data.
+- 2026-03-26: Product pages now use a dedicated `product-page` wrapper so phone-only edge-to-edge white panel overrides can widen product content without affecting other pages.
+- 2026-03-26: Dashboard pages now go edge-to-edge on the mobile dashboard breakpoint by removing side gutters and flattening sidebar/panel edges; dashboard templates share `site.css?v=20260326d` for the mobile layout cache-bust.
+- 2026-03-26: Association displays intentionally include active hidden related products again, but hidden items keep provenance via `associationSourceProductId` in cart/session state so they remain blocked from direct storefront browse/add flows.

@@ -171,7 +171,7 @@ $_seoTitle = opd_site_name() . ' | Oilfield Equipment, Tools & Supplies';
   </main>
 
   <?php require __DIR__ . '/partials/site-footer.php'; ?>
-  <script>
+  <script nonce="<?php echo opd_csp_nonce(); ?>">
     (function () {
       // Carousel functionality
       var carouselContainer = document.querySelector('.carousel-container')

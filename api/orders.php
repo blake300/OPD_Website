@@ -339,6 +339,40 @@ if ($method === 'GET') {
     opd_json_response(['items' => $items, 'total' => count($items)]);
 }
 
+// Handle cancelled orders — return items to inventory
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'PUT') {
+    $raw = file_get_contents('php://input');
+    $_SERVER['_CACHED_INPUT'] = $raw;
+    $payload = json_decode($raw, true) ?: [];
+    $newStatus = trim((string) ($payload['status'] ?? ''));
+    $id = $_GET['id'] ?? ($payload['id'] ?? '');
+
+    if ($newStatus === 'Cancelled' && $id !== '') {
+        $pdo = opd_db();
+        // Check current status to avoid double-returning
+        $curStmt = $pdo->prepare('SELECT status FROM orders WHERE id = ? LIMIT 1');
+        $curStmt->execute([$id]);
+        $curOrder = $curStmt->fetch();
+        if ($curOrder && $curOrder['status'] !== 'Cancelled') {
+            // Return all order items to inventory
+            $itemStmt = $pdo->prepare('SELECT productId, variantId, quantity FROM order_items WHERE orderId = ?');
+            $itemStmt->execute([$id]);
+            $now = gmdate('Y-m-d H:i:s');
+            foreach ($itemStmt->fetchAll() as $oi) {
+                $qty = (int) ($oi['quantity'] ?? 0);
+                if ($qty <= 0) continue;
+                if (!empty($oi['variantId'])) {
+                    $pdo->prepare('UPDATE product_variants SET inventory = inventory + ?, updatedAt = ? WHERE id = ?')
+                        ->execute([$qty, $now, $oi['variantId']]);
+                } elseif (!empty($oi['productId'])) {
+                    $pdo->prepare('UPDATE products SET inventory = inventory + ?, updatedAt = ? WHERE id = ?')
+                        ->execute([$qty, $now, $oi['productId']]);
+                }
+            }
+        }
+    }
+}
+
 opd_handle_crud(
     'orders',
     'ord',

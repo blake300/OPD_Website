@@ -286,7 +286,7 @@ $csrf = site_csrf_token();
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Account - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
-  <link rel="stylesheet" href="/assets/css/site.css?v=20260315c" />
+  <link rel="stylesheet" href="/assets/css/site.css?v=20260326d" />
   <style>
     .shipping-address-fields {
       transition: opacity 0.2s ease;
@@ -706,7 +706,7 @@ $csrf = site_csrf_token();
 
   <?php if ($stripePublishableKey !== ''): ?>
     <script src="https://js.stripe.com/v3"></script>
-    <script>
+    <script nonce="<?php echo opd_csp_nonce(); ?>">
       (function () {
         var form = document.getElementById('stripe-card-form');
         if (!form) {
@@ -990,7 +990,7 @@ $csrf = site_csrf_token();
       })();
     </script>
   <?php endif; ?>
-  <script>
+  <script nonce="<?php echo opd_csp_nonce(); ?>">
     (function () {
       var toggle = document.getElementById('shipping_same');
       var fields = document.getElementById('shipping-fields');
@@ -1013,7 +1013,7 @@ $csrf = site_csrf_token();
       syncShipping();
     })();
   </script>
-  <script>
+  <script nonce="<?php echo opd_csp_nonce(); ?>">
     (function () {
       var modal = document.getElementById('pm-edit-modal');
       var form = document.getElementById('pm-edit-form');

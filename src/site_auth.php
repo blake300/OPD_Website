@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/api_helpers.php';
+require_once __DIR__ . '/security_init.php';
 require_once __DIR__ . '/db_conn.php';
 require_once __DIR__ . '/rate_limit.php';
 require_once __DIR__ . '/validation.php';
@@ -53,35 +55,166 @@ function site_start_session(int $lifetime = 0): void
     }
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// Remember-Me (DB-backed tokens)
+// ────────────────────────────────────────────────────────────────────────────
+
+function site_ensure_remember_table(): void
+{
+    $pdo = opd_db();
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS remember_me_tokens (
+            id VARCHAR(64) PRIMARY KEY,
+            userId VARCHAR(64) NOT NULL,
+            tokenHash VARCHAR(128) NOT NULL,
+            expiresAt DATETIME NOT NULL,
+            createdAt DATETIME NOT NULL,
+            INDEX idx_remember_user (userId),
+            INDEX idx_remember_expires (expiresAt)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
+    );
+}
+
 /**
- * Extend the current session cookie for remember-me.
- * Must be called after login to re-send the cookie with a longer lifetime.
+ * Issue a persistent remember-me cookie backed by a DB token.
+ * Call after successful login when "Keep me signed in" is checked.
  */
 function site_remember_me(): void
 {
+    $user = site_current_user();
+    if (!$user) {
+        return;
+    }
+
+    site_ensure_remember_table();
+    $pdo = opd_db();
+
     $lifetime = 60 * 60 * 24 * 30; // 30 days
+    $selector = bin2hex(random_bytes(12));   // public lookup key
+    $validator = bin2hex(random_bytes(32));  // secret, hashed in DB
+    $tokenHash = hash('sha256', $validator);
+    $expiresAt = gmdate('Y-m-d H:i:s', time() + $lifetime);
+    $now = gmdate('Y-m-d H:i:s');
+
+    $stmt = $pdo->prepare(
+        'INSERT INTO remember_me_tokens (id, userId, tokenHash, expiresAt, createdAt)
+         VALUES (?, ?, ?, ?, ?)'
+    );
+    $stmt->execute([$selector, $user['id'], $tokenHash, $expiresAt, $now]);
+
+    // Cookie value: selector:validator
+    $cookieValue = $selector . ':' . $validator;
     $isSecure = site_detect_https();
-    ini_set('session.gc_maxlifetime', (string) $lifetime);
-    $params = [
-        'lifetime' => $lifetime,
-        'path' => '/',
-        'domain' => '',
-        'secure' => $isSecure,
-        'httponly' => true,
-        'samesite' => 'Strict',
-    ];
     if (PHP_VERSION_ID >= 70300) {
-        setcookie(session_name(), session_id(), [
+        setcookie('opd_remember', $cookieValue, [
             'expires' => time() + $lifetime,
-            'path' => $params['path'],
-            'domain' => $params['domain'],
-            'secure' => $params['secure'],
-            'httponly' => $params['httponly'],
-            'samesite' => $params['samesite'],
+            'path' => '/',
+            'domain' => '',
+            'secure' => $isSecure,
+            'httponly' => true,
+            'samesite' => 'Strict',
         ]);
     } else {
-        setcookie(session_name(), session_id(), time() + $lifetime, '/', '', $isSecure, true);
+        setcookie('opd_remember', $cookieValue, time() + $lifetime, '/', '', $isSecure, true);
     }
+}
+
+/**
+ * Check for a valid remember-me cookie and restore the session.
+ * Called automatically during site_current_user() when no session exists.
+ */
+function site_check_remember_token(): ?array
+{
+    $cookie = $_COOKIE['opd_remember'] ?? '';
+    if ($cookie === '' || strpos($cookie, ':') === false) {
+        return null;
+    }
+
+    [$selector, $validator] = explode(':', $cookie, 2);
+    if (strlen($selector) !== 24 || strlen($validator) !== 64) {
+        return null;
+    }
+
+    site_ensure_remember_table();
+    $pdo = opd_db();
+
+    $stmt = $pdo->prepare(
+        'SELECT * FROM remember_me_tokens WHERE id = ? AND expiresAt > UTC_TIMESTAMP() LIMIT 1'
+    );
+    $stmt->execute([$selector]);
+    $token = $stmt->fetch();
+
+    if (!$token) {
+        site_clear_remember_cookie();
+        return null;
+    }
+
+    // Timing-safe comparison of the validator hash
+    if (!hash_equals($token['tokenHash'], hash('sha256', $validator))) {
+        // Invalid validator — possible token theft, revoke all tokens for this user
+        $pdo->prepare('DELETE FROM remember_me_tokens WHERE userId = ?')->execute([$token['userId']]);
+        site_clear_remember_cookie();
+        return null;
+    }
+
+    // Token is valid — load the user
+    $userStmt = $pdo->prepare('SELECT id, name, email, role, status FROM users WHERE id = ? AND status = ? LIMIT 1');
+    $userStmt->execute([$token['userId'], 'active']);
+    $user = $userStmt->fetch();
+
+    if (!$user) {
+        $pdo->prepare('DELETE FROM remember_me_tokens WHERE id = ?')->execute([$selector]);
+        site_clear_remember_cookie();
+        return null;
+    }
+
+    // Rotate token: delete old, issue new (prevents replay attacks)
+    $pdo->prepare('DELETE FROM remember_me_tokens WHERE id = ?')->execute([$selector]);
+
+    // Restore session
+    session_regenerate_id(true);
+    $_SESSION['site_user'] = [
+        'id' => $user['id'],
+        'name' => $user['name'],
+        'email' => $user['email'],
+        'role' => $user['role'],
+    ];
+    $_SESSION['site_csrf'] = bin2hex(random_bytes(32));
+
+    // Issue fresh remember-me token
+    site_remember_me();
+
+    return $_SESSION['site_user'];
+}
+
+/**
+ * Clear the remember-me cookie.
+ */
+function site_clear_remember_cookie(): void
+{
+    $isSecure = site_detect_https();
+    if (PHP_VERSION_ID >= 70300) {
+        setcookie('opd_remember', '', [
+            'expires' => time() - 42000,
+            'path' => '/',
+            'domain' => '',
+            'secure' => $isSecure,
+            'httponly' => true,
+            'samesite' => 'Strict',
+        ]);
+    } else {
+        setcookie('opd_remember', '', time() - 42000, '/', '', $isSecure, true);
+    }
+}
+
+/**
+ * Revoke all remember-me tokens for a user (call on password change, logout, etc.)
+ */
+function site_revoke_remember_tokens(string $userId): void
+{
+    site_ensure_remember_table();
+    $pdo = opd_db();
+    $pdo->prepare('DELETE FROM remember_me_tokens WHERE userId = ?')->execute([$userId]);
 }
 
 function site_csrf_token(): string
@@ -109,7 +242,11 @@ function site_current_user(): ?array
 {
     site_start_session();
     $user = $_SESSION['site_user'] ?? null;
-    return is_array($user) ? $user : null;
+    if (is_array($user)) {
+        return $user;
+    }
+    // No session — try remember-me token
+    return site_check_remember_token();
 }
 
 function site_require_auth(): array
@@ -139,7 +276,8 @@ function site_require_auth(): array
 function site_login(string $email, string $password): ?array
 {
     // Check rate limiting first
-    $rateLimitCheck = opd_check_rate_limit($email, 'customer_login');
+    $rateLimitIdentifiers = opd_login_rate_limit_identifiers($email);
+    $rateLimitCheck = opd_check_rate_limits($rateLimitIdentifiers, 'customer_login');
     if (!$rateLimitCheck['allowed']) {
         return null;
     }
@@ -150,8 +288,8 @@ function site_login(string $email, string $password): ?array
     $user = $stmt->fetch();
 
     // SECURITY: Always verify password even if user doesn't exist (prevents timing attacks)
-    // Use dummy hash if user not found to maintain consistent timing
-    $hash = ($user && !empty($user['passwordHash'])) ? $user['passwordHash'] : password_hash('dummy', PASSWORD_DEFAULT);
+    // Use a precomputed dummy hash if user not found to maintain consistent timing without extra CPU work.
+    $hash = ($user && !empty($user['passwordHash'])) ? $user['passwordHash'] : opd_dummy_password_hash();
     $validPassword = password_verify($password, $hash);
 
     // Check all conditions
@@ -159,12 +297,12 @@ function site_login(string $email, string $password): ?array
 
     if (!$validUser) {
         // Record failed attempt for rate limiting
-        opd_record_failed_attempt($email, 'customer_login');
+        opd_record_failed_attempts_for_identifiers($rateLimitIdentifiers, 'customer_login');
         return null;
     }
 
     // Reset rate limit on successful login
-    opd_reset_rate_limit($email, 'customer_login');
+    opd_reset_rate_limits_for_identifiers($rateLimitIdentifiers, 'customer_login');
 
     site_start_session();
     session_regenerate_id(true);
@@ -180,7 +318,13 @@ function site_login(string $email, string $password): ?array
     if ($sessionCart) {
         require_once __DIR__ . '/store.php';
         foreach ($sessionCart as $item) {
-            site_add_to_cart($item['productId'], (int) $item['quantity'], $item['variantId'] ?? null);
+            site_add_to_cart(
+                $item['productId'],
+                (int) $item['quantity'],
+                $item['variantId'] ?? null,
+                $item['arrivalDate'] ?? null,
+                $item['associationSourceProductId'] ?? null
+            );
         }
         unset($_SESSION['site_cart']);
     }
@@ -188,8 +332,50 @@ function site_login(string $email, string $password): ?array
     return $_SESSION['site_user'];
 }
 
+/**
+ * Bot protection: check honeypot, timing, and registration rate limit.
+ * Call from form handlers before site_register().
+ * Returns null if OK, or an error string if blocked.
+ */
+function site_check_bot(string $honeypot, string $formLoadedAt): ?string
+{
+    // 1. Honeypot: hidden field should be empty
+    if ($honeypot !== '') {
+        return 'Registration failed. Please try again.';
+    }
+
+    // 2. Timing: form submitted too fast (< 3 seconds)
+    if ($formLoadedAt !== '') {
+        $elapsed = time() - (int) $formLoadedAt;
+        if ($elapsed < 3) {
+            return 'Registration failed. Please try again.';
+        }
+    }
+
+    // 3. Rate limit registration by IP: max 5 per hour
+    $ip = opd_client_ip();
+    $rateLimitCheck = opd_check_rate_limit($ip, 'registration');
+    if (!$rateLimitCheck['allowed']) {
+        return 'Too many registration attempts. Please try again later.';
+    }
+
+    return null;
+}
+
+/**
+ * Record a registration attempt for IP-based rate limiting.
+ */
+function site_record_registration_attempt(): void
+{
+    $ip = opd_client_ip();
+    opd_record_failed_attempt($ip, 'registration');
+}
+
 function site_register(string $name, string $email, string $password): array
 {
+    // Record the attempt for IP rate limiting
+    site_record_registration_attempt();
+
     // Validate email format
     if (!opd_validate_email($email)) {
         return ['error' => 'Invalid email address'];
@@ -231,6 +417,12 @@ function site_register(string $name, string $email, string $password): array
 function site_logout(): void
 {
     site_start_session();
+    $user = $_SESSION['site_user'] ?? null;
+    // Revoke all remember-me tokens for this user
+    if (is_array($user) && !empty($user['id'])) {
+        site_revoke_remember_tokens($user['id']);
+    }
+    site_clear_remember_cookie();
     $_SESSION = [];
     if (ini_get('session.use_cookies')) {
         $params = session_get_cookie_params();
@@ -318,10 +510,8 @@ function site_request_password_reset(string $email): array
     );
     $insert->execute([$id, $user['id'], $tokenHash, $expiresAt, $now]);
 
-    // Send email
-    $resetUrl = (site_detect_https() ? 'https' : 'http') . '://'
-        . ($_SERVER['HTTP_HOST'] ?? 'localhost')
-        . '/reset-password.php?token=' . urlencode($rawToken);
+    // Send email — use config-based URL to prevent host header poisoning
+    $resetUrl = opd_site_base_url() . '/reset-password.php?token=' . urlencode($rawToken);
 
     // Try to load custom email template from system settings
     $emailBody = '';

@@ -15,6 +15,14 @@ site_require_csrf();
 // Parse JSON body
 $data = opd_read_json();
 
+// Bot protection
+$honeypot = trim((string) ($data['website_url'] ?? ''));
+$formLoadedAt = (string) ($data['_fts'] ?? '');
+$botError = site_check_bot($honeypot, $formLoadedAt);
+if ($botError) {
+    opd_json_response(['error' => $botError], 400);
+}
+
 // Validate required fields
 $email = trim((string) ($data['email'] ?? ''));
 $password = (string) ($data['password'] ?? '');
@@ -40,8 +48,11 @@ $pdo = opd_db();
 $check = $pdo->prepare('SELECT id FROM users WHERE email = ? LIMIT 1');
 $check->execute([$email]);
 if ($check->fetch()) {
-    opd_json_response(['error' => 'An account with this email already exists. Please log in instead.'], 400);
+    opd_json_response(['error' => 'Unable to create account. Please try again or use a different email.'], 400);
 }
+
+// Record registration attempt for rate limiting
+site_record_registration_attempt();
 
 // Create the user
 $userId = opd_generate_id('usr');

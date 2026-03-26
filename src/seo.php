@@ -90,9 +90,7 @@ function opd_seo_meta(array $opts = []): void
  */
 function opd_site_url(): string
 {
-    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    $host = $_SERVER['HTTP_HOST'] ?? 'oilpatchdepot.com';
-    return $scheme . '://' . $host;
+    return opd_site_base_url();
 }
 
 /**

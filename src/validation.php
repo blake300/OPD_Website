@@ -69,6 +69,23 @@ function opd_validate_name(string $name): bool
 }
 
 /**
+ * Sanitizes free-form text that should remain plain text.
+ */
+function opd_sanitize_plain_text(string $value, int $maxLength = 5000): string
+{
+    $value = strip_tags($value);
+    $value = str_replace(["\r\n", "\r"], "\n", $value);
+    $value = preg_replace('/[^\P{C}\n\t]+/u', '', $value) ?? '';
+    $value = trim($value);
+    if ($maxLength > 0) {
+        $value = function_exists('mb_substr')
+            ? mb_substr($value, 0, $maxLength, 'UTF-8')
+            : substr($value, 0, $maxLength);
+    }
+    return $value;
+}
+
+/**
  * Normalizes a US phone number to 10 digits (returns null if invalid)
  */
 function opd_normalize_us_phone(string $phone): ?string

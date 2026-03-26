@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS products (
   compName VARCHAR(255),
   compPrice DECIMAL(10,2),
   shelfNum VARCHAR(120),
+  estFreight DECIMAL(10,2),
   createdAt DATETIME,
   updatedAt DATETIME
 );
@@ -121,6 +122,8 @@ CREATE TABLE IF NOT EXISTS product_variants (
   compName VARCHAR(255),
   compPrice DECIMAL(10,2),
   shelfNum VARCHAR(120),
+  estFreight DECIMAL(10,2),
+  parentName VARCHAR(255),
   createdAt DATETIME,
   updatedAt DATETIME
 );
@@ -149,6 +152,7 @@ CREATE TABLE IF NOT EXISTS cart_items (
   variantId VARCHAR(64),
   quantity INT,
   arrivalDate DATE,
+  associationSourceProductId VARCHAR(64),
   createdAt DATETIME,
   updatedAt DATETIME
 );
@@ -169,6 +173,9 @@ CREATE TABLE IF NOT EXISTS order_items (
   productId VARCHAR(64),
   variantId VARCHAR(64),
   name VARCHAR(255),
+  productName VARCHAR(255),
+  variantName VARCHAR(255),
+  sku VARCHAR(100),
   price DECIMAL(10,2),
   quantity INT,
   total DECIMAL(10,2),
@@ -435,6 +442,7 @@ CREATE TABLE IF NOT EXISTS users (
   stripeCustomerId VARCHAR(255),
   role VARCHAR(50),
   status VARCHAR(50),
+  allowInvoice TINYINT(1) DEFAULT 0,
   lastLogin DATETIME,
   updatedAt DATETIME
 );
@@ -474,3 +482,13 @@ CREATE TABLE IF NOT EXISTS reliability (
   createdAt DATETIME,
   updatedAt DATETIME
 );
+
+CREATE TABLE IF NOT EXISTS remember_me_tokens (
+  id VARCHAR(64) PRIMARY KEY,
+  userId VARCHAR(64) NOT NULL,
+  tokenHash VARCHAR(128) NOT NULL,
+  expiresAt DATETIME NOT NULL,
+  createdAt DATETIME NOT NULL,
+  INDEX idx_remember_user (userId),
+  INDEX idx_remember_expires (expiresAt)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

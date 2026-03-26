@@ -223,7 +223,7 @@ $csrf = site_csrf_token();
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Clients - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
-  <link rel="stylesheet" href="/assets/css/site.css" />
+  <link rel="stylesheet" href="/assets/css/site.css?v=20260326d" />
   <style>
     .client-email-col { word-break: break-word; max-width: 200px; min-width: 100px; }
   </style>
@@ -450,7 +450,7 @@ $csrf = site_csrf_token();
   </main>
 
   <?php require __DIR__ . '/partials/site-footer.php'; ?>
-  <script>
+  <script nonce="<?php echo opd_csp_nonce(); ?>">
     document.querySelectorAll('[data-edit-client]').forEach(function(btn) {
       btn.addEventListener('click', function() {
         var id = btn.getAttribute('data-edit-client');

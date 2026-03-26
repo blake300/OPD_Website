@@ -14,7 +14,7 @@ $csrf = site_csrf_token();
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Favorites - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
-  <link rel="stylesheet" href="/assets/css/site.css" />
+  <link rel="stylesheet" href="/assets/css/site.css?v=20260326d" />
 </head>
 <body>
   <?php require __DIR__ . '/partials/site-header.php'; ?>
@@ -79,7 +79,7 @@ $csrf = site_csrf_token();
   </main>
 
   <?php require __DIR__ . '/partials/site-footer.php'; ?>
-  <script>
+  <script nonce="<?php echo opd_csp_nonce(); ?>">
     (function () {
       var csrfToken = <?php echo json_encode($csrf); ?>;
       var categoryListEl = document.getElementById('favorites-category-list');
@@ -398,14 +398,28 @@ $csrf = site_csrf_token();
 
           var info = document.createElement('div');
           info.className = 'favorite-item-info';
+          if (item.variantName) {
+            var prodName = document.createElement('div');
+            prodName.className = 'favorite-item-product-name';
+            prodName.textContent = item.productName || 'Product';
+            info.appendChild(prodName);
+          }
           var name = document.createElement('div');
           name.className = 'favorite-item-name';
-          name.textContent = item.name || 'Product';
+          name.textContent = item.variantName || item.name || 'Product';
           var price = document.createElement('div');
           price.className = 'favorite-item-price';
           price.textContent = '$' + Number(item.price || 0).toFixed(2);
           info.appendChild(name);
           info.appendChild(price);
+          if (item.createdAt) {
+            var added = document.createElement('div');
+            added.className = 'meta';
+            added.style.fontSize = '11px';
+            var d = new Date(item.createdAt + 'Z');
+            added.textContent = 'Added ' + d.toLocaleDateString();
+            info.appendChild(added);
+          }
           main.appendChild(info);
 
           var actions = document.createElement('div');

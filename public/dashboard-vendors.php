@@ -287,7 +287,7 @@ $csrf = site_csrf_token();
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Vendors - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
-  <link rel="stylesheet" href="/assets/css/site.css?v=20260315c" />
+  <link rel="stylesheet" href="/assets/css/site.css?v=20260326d" />
   <style>
     .vendor-section-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .vendor-section-header h2 { margin: 0; }
@@ -805,7 +805,7 @@ $csrf = site_csrf_token();
   </main>
 
   <?php require __DIR__ . '/partials/site-footer.php'; ?>
-  <script>
+  <script nonce="<?php echo opd_csp_nonce(); ?>">
     const vendorAddToggle = document.querySelector('.vendor-add-toggle');
     const vendorAddForm = document.getElementById('vendor-add-form');
     if (vendorAddToggle && vendorAddForm) {

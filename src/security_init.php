@@ -2,10 +2,22 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/api_helpers.php';
+
 /**
- * Security initialization - Call this at the top of every public page
- * Enforces HTTPS and sets security headers
+ * Security initialization - included via site_auth.php and auth.php.
+ * Enforces HTTPS, sets security headers, and generates CSP nonce.
  */
+
+// Generate a per-request CSP nonce (available to templates via opd_csp_nonce())
+if (!function_exists('opd_csp_nonce')) {
+    $_SERVER['_CSP_NONCE'] = base64_encode(random_bytes(16));
+
+    function opd_csp_nonce(): string
+    {
+        return $_SERVER['_CSP_NONCE'];
+    }
+}
 
 // Enforce HTTPS (except for localhost development)
 function opd_enforce_https(): void
@@ -18,7 +30,7 @@ function opd_enforce_https(): void
                    || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
 
         if (!$isHttps) {
-            $redirect = 'https://' . ($_SERVER['HTTP_HOST'] ?? '') . ($_SERVER['REQUEST_URI'] ?? '');
+            $redirect = preg_replace('#^http://#i', 'https://', opd_site_base_url()) . ($_SERVER['REQUEST_URI'] ?? '/');
             header('Location: ' . $redirect, true, 301);
             exit;
         }
@@ -28,6 +40,8 @@ function opd_enforce_https(): void
 // Set security headers
 function opd_set_security_headers(): void
 {
+    $nonce = opd_csp_nonce();
+
     // Prevent clickjacking
     header('X-Frame-Options: DENY');
 
@@ -40,10 +54,13 @@ function opd_set_security_headers(): void
     // Referrer policy
     header('Referrer-Policy: strict-origin-when-cross-origin');
 
-    // Content Security Policy (adjust as needed for your site)
-    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:");
+    // Permissions policy
+    header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
 
-    // HTTPS Strict Transport Security (HSTS) - only set if on HTTPS
+    // Content Security Policy with nonce for inline scripts
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{$nonce}' https://js.stripe.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.stripe.com; font-src 'self' data:; frame-src https://js.stripe.com https://hooks.stripe.com; connect-src 'self' https://api.stripe.com");
+
+    // HTTPS Strict Transport Security (HSTS)
     $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
                || ($_SERVER['SERVER_PORT'] ?? 80) == 443
                || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');

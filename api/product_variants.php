@@ -41,8 +41,8 @@ if ($method === 'POST') {
     $id = opd_generate_id('var');
     $now = gmdate('Y-m-d H:i:s');
     $stmt = $pdo->prepare(
-        'INSERT INTO product_variants (id, productId, name, sku, price, largeDelivery, inventory, invStockTo, invMin, status, posNum, shortDescription, longDescription, wgt, lng, wdth, hght, tags, vnName, vnContact, vnPrice, compName, compPrice, shelfNum, createdAt, updatedAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO product_variants (id, productId, name, sku, price, largeDelivery, inventory, invStockTo, invMin, status, posNum, shortDescription, longDescription, wgt, lng, wdth, hght, tags, vnName, vnContact, vnPrice, compName, compPrice, shelfNum, estFreight, parentName, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
     $stmt->execute([
         $id,
@@ -69,6 +69,8 @@ if ($method === 'POST') {
         $payload['compName'] ?? null,
         $payload['compPrice'] ?? null,
         $payload['shelfNum'] ?? null,
+        $payload['estFreight'] ?? null,
+        $payload['parentName'] ?? null,
         $now,
         $now,
     ]);
@@ -88,7 +90,7 @@ if ($method === 'PUT') {
     $now = gmdate('Y-m-d H:i:s');
     $stmt = $pdo->prepare(
         'UPDATE product_variants
-         SET productId = ?, name = ?, sku = ?, price = ?, largeDelivery = ?, inventory = ?, invStockTo = ?, invMin = ?, status = ?, posNum = ?, shortDescription = ?, longDescription = ?, wgt = ?, lng = ?, wdth = ?, hght = ?, tags = ?, vnName = ?, vnContact = ?, vnPrice = ?, compName = ?, compPrice = ?, shelfNum = ?, updatedAt = ?
+         SET productId = ?, name = ?, sku = ?, price = ?, largeDelivery = ?, inventory = ?, invStockTo = ?, invMin = ?, status = ?, posNum = ?, shortDescription = ?, longDescription = ?, wgt = ?, lng = ?, wdth = ?, hght = ?, tags = ?, vnName = ?, vnContact = ?, vnPrice = ?, compName = ?, compPrice = ?, shelfNum = ?, estFreight = ?, parentName = ?, updatedAt = ?
          WHERE id = ?'
     );
     $stmt->execute([
@@ -115,6 +117,8 @@ if ($method === 'PUT') {
         $payload['compName'] ?? null,
         $payload['compPrice'] ?? null,
         $payload['shelfNum'] ?? null,
+        $payload['estFreight'] ?? null,
+        $payload['parentName'] ?? null,
         $now,
         $id,
     ]);

@@ -28,8 +28,16 @@ if ($method === 'GET' && !empty($_GET['download'])) {
     // Auth: admin or the invoice's user
     $adminUser = opd_current_user();
     $siteUser = site_current_user();
+    $orderOwnerStmt = $pdo->prepare('SELECT userId, clientUserId FROM orders WHERE id = ? LIMIT 1');
+    $orderOwnerStmt->execute([$invoice['orderId']]);
+    $orderOwner = $orderOwnerStmt->fetch() ?: [];
     $isAdmin = $adminUser && in_array($adminUser['role'] ?? '', ['admin', 'manager'], true);
-    $isOwner = $siteUser && ($siteUser['id'] ?? '') === ($invoice['userId'] ?? '');
+    $siteUserId = (string) ($siteUser['id'] ?? '');
+    $isOwner = $siteUser && (
+        $siteUserId === (string) ($invoice['userId'] ?? '')
+        || $siteUserId === (string) ($orderOwner['userId'] ?? '')
+        || $siteUserId === (string) ($orderOwner['clientUserId'] ?? '')
+    );
 
     if (!$isAdmin && !$isOwner) {
         opd_json_response(['error' => 'Unauthorized'], 401);

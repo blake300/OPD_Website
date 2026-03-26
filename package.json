@@ -5,6 +5,8 @@
     "@playwright/test": "^1.49.0"
   },
   "scripts": {
+    "check": "php scripts/security_regression_check.php",
+    "check:security": "php scripts/security_regression_check.php",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report"

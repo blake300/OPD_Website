@@ -26,30 +26,26 @@ if ($hasMore) {
 
 $ids = array_values(array_filter(array_map(fn($item) => $item['id'] ?? null, $items)));
 $variantCounts = [];
-$assocCounts = [];
+$assocCounts = site_get_related_product_counts($ids);
 if ($ids) {
     $pdo = opd_db();
     $placeholders = implode(',', array_fill(0, count($ids), '?'));
     $variantStmt = $pdo->prepare(
-        "SELECT productId, COUNT(*) AS total FROM product_variants WHERE productId IN ({$placeholders}) GROUP BY productId"
+        "SELECT productId, COUNT(*) AS total
+         FROM product_variants
+         WHERE productId IN ({$placeholders}) AND COALESCE(status, 'active') = 'active'
+         GROUP BY productId"
     );
     $variantStmt->execute($ids);
     foreach ($variantStmt->fetchAll() as $row) {
         $variantCounts[(string) ($row['productId'] ?? '')] = (int) ($row['total'] ?? 0);
-    }
-    $assocStmt = $pdo->prepare(
-        "SELECT productId, COUNT(*) AS total FROM product_associations WHERE productId IN ({$placeholders}) GROUP BY productId"
-    );
-    $assocStmt->execute($ids);
-    foreach ($assocStmt->fetchAll() as $row) {
-        $assocCounts[(string) ($row['productId'] ?? '')] = (int) ($row['total'] ?? 0);
     }
 }
 
 $normalized = [];
 foreach ($items as $item) {
     $id = (string) ($item['id'] ?? '');
-    $normalized[] = array_merge($item, [
+    $normalized[] = array_merge(site_public_product_payload($item), [
         'hasVariants' => ($variantCounts[$id] ?? 0) > 0,
         'hasAssociations' => ($assocCounts[$id] ?? 0) > 0,
     ]);

@@ -35,6 +35,7 @@ opd_handle_crud(
         'compName',
         'compPrice',
         'shelfNum',
+        'estFreight',
         'featured',
     ],
     true,

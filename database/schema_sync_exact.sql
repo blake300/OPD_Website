@@ -18,6 +18,7 @@ DROP TABLE IF EXISTS `favorite_entries`;
 DROP TABLE IF EXISTS `clients`;
 DROP TABLE IF EXISTS `vendors`;
 DROP TABLE IF EXISTS `equipment`;
+DROP TABLE IF EXISTS `equipment_images`;
 DROP TABLE IF EXISTS `accounting_codes`;
 DROP TABLE IF EXISTS `customers`;
 DROP TABLE IF EXISTS `inventory`;
@@ -34,6 +35,7 @@ DROP TABLE IF EXISTS `integrations`;
 DROP TABLE IF EXISTS `settings`;
 DROP TABLE IF EXISTS `rate_limit`;
 DROP TABLE IF EXISTS `reliability`;
+DROP TABLE IF EXISTS `remember_me_tokens`;
 
 CREATE TABLE products (
   id VARCHAR(64) PRIMARY KEY,
@@ -44,6 +46,7 @@ CREATE TABLE products (
   status VARCHAR(50),
   featured TINYINT(1) DEFAULT 0,
   service TINYINT(1),
+  largeDelivery TINYINT(1) DEFAULT 0,
   daysOut INT,
   posNum INT,
   inventory INT,
@@ -63,6 +66,7 @@ CREATE TABLE products (
   compName VARCHAR(255),
   compPrice DECIMAL(10,2),
   shelfNum VARCHAR(120),
+  estFreight DECIMAL(10,2),
   createdAt DATETIME,
   updatedAt DATETIME
 );
@@ -121,8 +125,12 @@ CREATE TABLE orders (
   refundAmount DECIMAL(10,2),
   currency VARCHAR(10),
   shippingMethod VARCHAR(50),
+  deliveryZone TINYINT,
+  deliveryClass VARCHAR(10),
   paymentStatus VARCHAR(50),
   fulfillmentStatus VARCHAR(50),
+  approvalStatus VARCHAR(20) DEFAULT 'Not required',
+  approvalSentAt DATETIME,
   createdAt DATETIME,
   updatedAt DATETIME
 );
@@ -133,6 +141,7 @@ CREATE TABLE product_variants (
   name VARCHAR(255),
   sku VARCHAR(100),
   price DECIMAL(10,2),
+  largeDelivery TINYINT(1) DEFAULT 0,
   inventory INT,
   invStockTo INT,
   invMin INT,
@@ -151,6 +160,8 @@ CREATE TABLE product_variants (
   compName VARCHAR(255),
   compPrice DECIMAL(10,2),
   shelfNum VARCHAR(120),
+  estFreight DECIMAL(10,2),
+  parentName VARCHAR(255),
   createdAt DATETIME,
   updatedAt DATETIME
 );
@@ -179,6 +190,7 @@ CREATE TABLE cart_items (
   variantId VARCHAR(64),
   quantity INT,
   arrivalDate DATE,
+  associationSourceProductId VARCHAR(64),
   createdAt DATETIME,
   updatedAt DATETIME
 );
@@ -199,6 +211,9 @@ CREATE TABLE order_items (
   productId VARCHAR(64),
   variantId VARCHAR(64),
   name VARCHAR(255),
+  productName VARCHAR(255),
+  variantName VARCHAR(255),
+  sku VARCHAR(100),
   price DECIMAL(10,2),
   quantity INT,
   total DECIMAL(10,2),
@@ -285,11 +300,31 @@ CREATE TABLE equipment (
   userId VARCHAR(64),
   name VARCHAR(255),
   serial VARCHAR(120),
-  status VARCHAR(50),
+  status VARCHAR(50) DEFAULT 'Pending Approval',
   location VARCHAR(120),
   notes TEXT,
+  contactName VARCHAR(255),
+  contactPhone VARCHAR(50),
+  contactEmail VARCHAR(255),
+  quantity INT DEFAULT 1,
+  price DECIMAL(10,2),
+  productId VARCHAR(64),
   createdAt DATETIME,
-  updatedAt DATETIME
+  updatedAt DATETIME,
+  INDEX idx_userId (userId),
+  INDEX idx_status (status),
+  INDEX idx_productId (productId)
+);
+
+CREATE TABLE equipment_images (
+  id VARCHAR(64) PRIMARY KEY,
+  equipmentId VARCHAR(64),
+  url TEXT,
+  isPrimary TINYINT(1) DEFAULT 0,
+  sortOrder INT DEFAULT 0,
+  createdAt DATETIME,
+  updatedAt DATETIME,
+  INDEX idx_equipmentId (equipmentId)
 );
 
 CREATE TABLE accounting_codes (
@@ -445,6 +480,7 @@ CREATE TABLE users (
   stripeCustomerId VARCHAR(255),
   role VARCHAR(50),
   status VARCHAR(50),
+  allowInvoice TINYINT(1) DEFAULT 0,
   lastLogin DATETIME,
   updatedAt DATETIME
 );
@@ -484,5 +520,15 @@ CREATE TABLE reliability (
   createdAt DATETIME,
   updatedAt DATETIME
 );
+
+CREATE TABLE remember_me_tokens (
+  id VARCHAR(64) PRIMARY KEY,
+  userId VARCHAR(64) NOT NULL,
+  tokenHash VARCHAR(128) NOT NULL,
+  expiresAt DATETIME NOT NULL,
+  createdAt DATETIME NOT NULL,
+  INDEX idx_remember_user (userId),
+  INDEX idx_remember_expires (expiresAt)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 SET FOREIGN_KEY_CHECKS=1;

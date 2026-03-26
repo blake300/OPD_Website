@@ -76,12 +76,12 @@ if ($importType === 'products') {
         'daysOut', 'posNum', 'inventory', 'invStockTo', 'invMin', 'category',
         'shortDescription', 'longDescription', 'wgt', 'lng', 'wdth', 'hght',
         'tags', 'vnName', 'vnContact', 'vnPrice', 'compName', 'compPrice',
-        'shelfNum', 'featured'
+        'shelfNum', 'estFreight', 'featured'
     ];
 
     $numericFields = [
         'price', 'inventory', 'invStockTo', 'invMin', 'posNum', 'daysOut',
-        'wgt', 'lng', 'wdth', 'hght', 'vnPrice', 'compPrice'
+        'wgt', 'lng', 'wdth', 'hght', 'vnPrice', 'compPrice', 'estFreight'
     ];
     $boolFields = ['service', 'largeDelivery', 'featured'];
 
@@ -148,7 +148,7 @@ if ($importType === 'products') {
 
             $cols = array_keys($data);
             $placeholders = implode(', ', array_fill(0, count($cols), '?'));
-            $colNames = implode(', ', $cols);
+            $colNames = implode(', ', array_map(fn($c) => '`' . $c . '`', $cols));
             $stmt = $pdo->prepare("INSERT INTO products ({$colNames}) VALUES ({$placeholders})");
             $stmt->execute(array_values($data));
             $created++;
@@ -162,7 +162,7 @@ if ($importType === 'products') {
             $sets = [];
             $vals = [];
             foreach ($data as $col => $val) {
-                $sets[] = "{$col} = ?";
+                $sets[] = "`{$col}` = ?";
                 $vals[] = $val;
             }
             $vals[] = $existing['id'];
@@ -187,12 +187,12 @@ if ($importType === 'variants') {
         'name', 'sku', 'price', 'largeDelivery', 'inventory', 'allowBackorders',
         'invStockTo', 'invMin', 'status', 'posNum', 'shortDescription', 'longDescription',
         'wgt', 'lng', 'wdth', 'hght', 'tags', 'vnName', 'vnContact', 'vnPrice',
-        'compName', 'compPrice', 'shelfNum'
+        'compName', 'compPrice', 'shelfNum', 'estFreight', 'parentName'
     ];
 
     $numericFields = [
         'price', 'inventory', 'invStockTo', 'invMin', 'posNum',
-        'wgt', 'lng', 'wdth', 'hght', 'vnPrice', 'compPrice'
+        'wgt', 'lng', 'wdth', 'hght', 'vnPrice', 'compPrice', 'estFreight'
     ];
     $boolFields = ['largeDelivery', 'allowBackorders'];
 
@@ -279,7 +279,7 @@ if ($importType === 'variants') {
 
             $cols = array_keys($data);
             $placeholders = implode(', ', array_fill(0, count($cols), '?'));
-            $colNames = implode(', ', $cols);
+            $colNames = implode(', ', array_map(fn($c) => '`' . $c . '`', $cols));
             $stmt = $pdo->prepare("INSERT INTO product_variants ({$colNames}) VALUES ({$placeholders})");
             $stmt->execute(array_values($data));
             $created++;
@@ -292,7 +292,7 @@ if ($importType === 'variants') {
             $sets = [];
             $vals = [];
             foreach ($data as $col => $val) {
-                $sets[] = "{$col} = ?";
+                $sets[] = "`{$col}` = ?";
                 $vals[] = $val;
             }
             $vals[] = $existing['id'];

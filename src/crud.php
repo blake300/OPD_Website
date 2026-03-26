@@ -64,8 +64,8 @@ function opd_handle_crud(
             $selectColumns[] = 'createdAt';
         }
         $selectColumns = array_unique($selectColumns);
-        $selectList = implode(', ', $selectColumns);
-        $stmt = $pdo->query("SELECT {$selectList} FROM {$table}{$orderBy}");
+        $selectList = implode(', ', array_map(fn($c) => '`' . $c . '`', $selectColumns));
+        $stmt = $pdo->query("SELECT {$selectList} FROM `{$table}`{$orderBy}");
         $items = $stmt->fetchAll();
         opd_json_response(['items' => $items, 'total' => count($items)]);
     }
@@ -86,7 +86,8 @@ function opd_handle_crud(
             $insertColumns[] = 'createdAt';
         }
         $placeholders = implode(',', array_fill(0, count($insertColumns), '?'));
-        $sql = sprintf('INSERT INTO %s (%s) VALUES (%s)', $table, implode(',', $insertColumns), $placeholders);
+        $escapedCols = implode(',', array_map(fn($c) => '`' . $c . '`', $insertColumns));
+        $sql = sprintf('INSERT INTO `%s` (%s) VALUES (%s)', $table, $escapedCols, $placeholders);
 
         $values = [$id];
         foreach ($columns as $column) {
@@ -101,7 +102,7 @@ function opd_handle_crud(
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute($values);
-        $row = $pdo->prepare("SELECT * FROM {$table} WHERE id = ?");
+        $row = $pdo->prepare("SELECT * FROM `{$table}` WHERE id = ?");
         $row->execute([$id]);
         opd_json_response($row->fetch() ?: [], 201);
     }
@@ -122,7 +123,7 @@ function opd_handle_crud(
         $values = [];
         foreach ($columns as $column) {
             if (array_key_exists($column, $payload)) {
-                $setParts[] = "{$column} = ?";
+                $setParts[] = "`{$column}` = ?";
                 $values[] = $payload[$column];
             }
         }
@@ -135,13 +136,13 @@ function opd_handle_crud(
         }
         $values[] = $id;
 
-        $sql = sprintf('UPDATE %s SET %s WHERE id = ?', $table, implode(', ', $setParts));
+        $sql = sprintf('UPDATE `%s` SET %s WHERE id = ?', $table, implode(', ', $setParts));
         $stmt = $pdo->prepare($sql);
         $stmt->execute($values);
         if ($stmt->rowCount() === 0) {
             opd_json_response(['error' => 'Not found'], 404);
         }
-        $row = $pdo->prepare("SELECT * FROM {$table} WHERE id = ?");
+        $row = $pdo->prepare("SELECT * FROM `{$table}` WHERE id = ?");
         $row->execute([$id]);
         opd_json_response($row->fetch() ?: []);
     }
@@ -153,7 +154,7 @@ function opd_handle_crud(
         if ($id === '') {
             opd_json_response(['error' => 'Missing id'], 400);
         }
-        $stmt = $pdo->prepare("DELETE FROM {$table} WHERE id = ?");
+        $stmt = $pdo->prepare("DELETE FROM `{$table}` WHERE id = ?");
         $stmt->execute([$id]);
         opd_json_response(['ok' => $stmt->rowCount() > 0]);
     }

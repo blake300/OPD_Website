@@ -8,8 +8,6 @@ Disallow: /checkout.php
 Disallow: /cart.php
 Disallow: /dashboard*.php
 Disallow: /run_migration.php
-Disallow: /checkout-debug.php
-Disallow: /checkout-test.php
 Disallow: /dropdown-test.html
 Disallow: /uploads/examples/
 

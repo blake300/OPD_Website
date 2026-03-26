@@ -17,7 +17,7 @@ $equipment = site_simple_list('equipment', $user['id']);
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dashboard - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
-  <link rel="stylesheet" href="/assets/css/site.css" />
+  <link rel="stylesheet" href="/assets/css/site.css?v=20260326d" />
 </head>
 <body>
   <?php require __DIR__ . '/partials/site-header.php'; ?>

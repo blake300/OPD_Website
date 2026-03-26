@@ -34,25 +34,179 @@ function site_ensure_product_images_table(PDO $pdo): void
 
 function site_get_categories(): array
 {
+    $hidden = opd_hidden_categories();
     $pdo = opd_db();
     $stmt = $pdo->query("SELECT DISTINCT category FROM products WHERE category IS NOT NULL AND category <> '' ORDER BY category");
     $rows = $stmt->fetchAll();
     $dbCategories = array_map(fn($row) => $row['category'], $rows);
-    $categories = opd_product_categories();
+    $categories = opd_public_product_categories();
     foreach ($dbCategories as $category) {
-        if ($category !== '' && !in_array($category, $categories, true)) {
+        if ($category !== '' && !in_array($category, $categories, true) && !in_array($category, $hidden, true)) {
             $categories[] = $category;
         }
     }
     return $categories;
 }
 
+function site_storefront_product_columns(string $alias = 'p'): string
+{
+    return implode(', ', [
+        "{$alias}.id AS id",
+        "{$alias}.name AS name",
+        "{$alias}.sku AS sku",
+        "{$alias}.category AS category",
+        "{$alias}.price AS price",
+        "COALESCE({$alias}.status, 'active') AS status",
+        "{$alias}.shortDescription AS shortDescription",
+        "{$alias}.longDescription AS longDescription",
+        "{$alias}.service AS service",
+        "{$alias}.largeDelivery AS largeDelivery",
+        "{$alias}.daysOut AS daysOut",
+        "{$alias}.inventory AS inventory",
+        "{$alias}.wgt AS wgt",
+        "{$alias}.posNum AS posNum",
+        "{$alias}.updatedAt AS updatedAt",
+    ]);
+}
+
+function site_storefront_visibility_filter(string $alias = 'p', bool $includeHiddenCategories = false): array
+{
+    $conditions = ["COALESCE({$alias}.status, 'active') = 'active'"];
+    $params = [];
+    if (!$includeHiddenCategories) {
+        $hiddenCategories = opd_hidden_categories();
+        if ($hiddenCategories) {
+            $conditions[] = "COALESCE({$alias}.category, '') NOT IN (" . implode(',', array_fill(0, count($hiddenCategories), '?')) . ')';
+            $params = array_merge($params, $hiddenCategories);
+        }
+    }
+    return [
+        'sql' => implode(' AND ', $conditions),
+        'params' => $params,
+    ];
+}
+
+function site_association_display_filter(string $alias = 'p'): array
+{
+    return site_storefront_visibility_filter($alias, true);
+}
+
+function site_is_storefront_visible_product(array $product, bool $includeHiddenCategories = false): bool
+{
+    $status = strtolower(trim((string) ($product['status'] ?? 'active')));
+    if ($status !== '' && $status !== 'active') {
+        return false;
+    }
+    if ($includeHiddenCategories) {
+        return true;
+    }
+    $category = trim((string) ($product['category'] ?? ''));
+    return !in_array($category, opd_hidden_categories(), true);
+}
+
+function site_is_storefront_sellable_product(array $product, bool $includeHiddenCategories = false): bool
+{
+    if (!site_is_storefront_visible_product($product, $includeHiddenCategories)) {
+        return false;
+    }
+    if (($product['category'] ?? '') !== 'Used Equipment') {
+        return true;
+    }
+    $productId = (string) ($product['id'] ?? '');
+    $inventory = (int) ($product['inventory'] ?? 0);
+    if ($productId === '' || $inventory <= 0) {
+        return true;
+    }
+    return site_equipment_sold_quantity($productId) < $inventory;
+}
+
+function site_normalize_association_source_product_id(mixed $associationSourceProductId): ?string
+{
+    if (!is_string($associationSourceProductId)) {
+        return null;
+    }
+    $associationSourceProductId = trim($associationSourceProductId);
+    return $associationSourceProductId !== '' ? $associationSourceProductId : null;
+}
+
+function site_has_displayable_product_association(string $sourceProductId, string $relatedProductId): bool
+{
+    if ($sourceProductId === '' || $relatedProductId === '') {
+        return false;
+    }
+    $sourceProduct = site_get_public_product($sourceProductId);
+    if (!$sourceProduct || !site_is_storefront_sellable_product($sourceProduct)) {
+        return false;
+    }
+    $pdo = opd_db();
+    $visibility = site_association_display_filter('p');
+    $stmt = $pdo->prepare(
+        'SELECT 1
+         FROM product_associations pa
+         JOIN products p ON p.id = pa.relatedProductId
+         WHERE ' . $visibility['sql'] . ' AND pa.productId = ? AND pa.relatedProductId = ?
+         LIMIT 1'
+    );
+    $stmt->execute(array_merge($visibility['params'], [$sourceProductId, $relatedProductId]));
+    return (bool) $stmt->fetchColumn();
+}
+
+function site_is_association_context_sellable_product(array $product, ?string $associationSourceProductId = null): bool
+{
+    if (site_is_storefront_sellable_product($product)) {
+        return true;
+    }
+    $associationSourceProductId = site_normalize_association_source_product_id($associationSourceProductId);
+    if ($associationSourceProductId === null) {
+        return false;
+    }
+    if (!site_is_storefront_sellable_product($product, true)) {
+        return false;
+    }
+    return site_has_displayable_product_association($associationSourceProductId, (string) ($product['id'] ?? ''));
+}
+
+function site_resolve_cart_product_context(string $productId, ?string $associationSourceProductId = null): array
+{
+    $associationSourceProductId = site_normalize_association_source_product_id($associationSourceProductId);
+    $product = site_get_product($productId);
+    if (!$product || !site_is_association_context_sellable_product($product, $associationSourceProductId)) {
+        return [
+            'product' => null,
+            'associationSourceProductId' => null,
+        ];
+    }
+    if ($associationSourceProductId !== null && !site_has_displayable_product_association($associationSourceProductId, $productId)) {
+        $associationSourceProductId = null;
+    }
+    return [
+        'product' => $product,
+        'associationSourceProductId' => $associationSourceProductId,
+    ];
+}
+
+function site_public_product_payload(array $product): array
+{
+    return [
+        'id' => (string) ($product['id'] ?? ''),
+        'name' => (string) ($product['name'] ?? ''),
+        'sku' => (string) ($product['sku'] ?? ''),
+        'category' => (string) ($product['category'] ?? ''),
+        'price' => (float) ($product['price'] ?? 0),
+        'status' => (string) ($product['status'] ?? 'active'),
+        'imageUrl' => (string) ($product['imageUrl'] ?? ''),
+        'service' => !empty($product['service']),
+        'daysOut' => (int) ($product['daysOut'] ?? 0),
+    ];
+}
+
 function site_get_products(?string $category = null, ?string $search = null, int $limit = 24, int $offset = 0): array
 {
     $pdo = opd_db();
     site_ensure_product_images_table($pdo);
-    $conditions = [];
-    $params = [];
+    $visibility = site_storefront_visibility_filter('p');
+    $conditions = [$visibility['sql']];
+    $params = $visibility['params'];
     if ($category) {
         $conditions[] = 'p.category = ?';
         $params[] = $category;
@@ -61,7 +215,9 @@ function site_get_products(?string $category = null, ?string $search = null, int
         $like = '%' . $search . '%';
         $conditions[] = '(p.name LIKE ? OR p.sku LIKE ? OR p.tags LIKE ? OR EXISTS (
             SELECT 1 FROM product_variants pv
-            WHERE pv.productId = p.id AND (pv.name LIKE ? OR pv.sku LIKE ? OR pv.tags LIKE ?)
+            WHERE pv.productId = p.id
+              AND COALESCE(pv.status, \'active\') = \'active\'
+              AND (pv.name LIKE ? OR pv.sku LIKE ? OR pv.tags LIKE ?)
         ))';
         $params[] = $like;
         $params[] = $like;
@@ -72,12 +228,10 @@ function site_get_products(?string $category = null, ?string $search = null, int
     }
     $limit = max(1, $limit);
     $offset = max(0, $offset);
-    $sql = 'SELECT p.*, COALESCE(pi.url, p.imageUrl) AS imageUrl
+    $sql = 'SELECT ' . site_storefront_product_columns('p') . ', COALESCE(pi.url, p.imageUrl) AS imageUrl
             FROM products p
             LEFT JOIN product_images pi ON pi.productId = p.id AND pi.isPrimary = 1';
-    if ($conditions) {
-        $sql .= ' WHERE ' . implode(' AND ', $conditions);
-    }
+    $sql .= ' WHERE ' . implode(' AND ', $conditions);
     if ($category) {
         $sql .= ' ORDER BY (p.posNum IS NULL), p.posNum ASC, p.updatedAt DESC';
     } else {
@@ -100,17 +254,21 @@ function site_get_product_suggestions(string $search, int $limit = 8): array
     $limit = max(1, min(20, $limit));
     $like = '%' . $search . '%';
     $likeStart = $search . '%';
+    $visibility = site_storefront_visibility_filter('p');
     $sql = 'SELECT p.id, p.name, p.sku, p.category, COALESCE(pi.url, p.imageUrl) AS imageUrl
             FROM products p
             LEFT JOIN product_images pi ON pi.productId = p.id AND pi.isPrimary = 1
-            WHERE (p.name LIKE ? OR p.sku LIKE ? OR p.tags LIKE ? OR EXISTS (
+            WHERE ' . $visibility['sql'] . '
+              AND (p.name LIKE ? OR p.sku LIKE ? OR p.tags LIKE ? OR EXISTS (
                 SELECT 1 FROM product_variants pv
-                WHERE pv.productId = p.id AND (pv.name LIKE ? OR pv.sku LIKE ? OR pv.tags LIKE ?)
+                WHERE pv.productId = p.id
+                  AND COALESCE(pv.status, \'active\') = \'active\'
+                  AND (pv.name LIKE ? OR pv.sku LIKE ? OR pv.tags LIKE ?)
             ))
             ORDER BY (p.name LIKE ?) DESC, (p.sku LIKE ?) DESC, p.updatedAt DESC
             LIMIT ' . (int) $limit;
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$like, $like, $like, $like, $like, $like, $likeStart, $likeStart]);
+    $stmt->execute(array_merge($visibility['params'], [$like, $like, $like, $like, $like, $like, $likeStart, $likeStart]));
     return $stmt->fetchAll();
 }
 
@@ -119,25 +277,46 @@ function site_get_featured_products(int $limit = 12): array
     $pdo = opd_db();
     site_ensure_product_images_table($pdo);
     $limit = max(1, $limit);
-    $sql = 'SELECT p.*, COALESCE(pi.url, p.imageUrl) AS imageUrl
+    $visibility = site_storefront_visibility_filter('p');
+    $sql = 'SELECT ' . site_storefront_product_columns('p') . ', COALESCE(pi.url, p.imageUrl) AS imageUrl
             FROM products p
             LEFT JOIN product_images pi ON pi.productId = p.id AND pi.isPrimary = 1
-            WHERE p.featured = 1
+            WHERE ' . $visibility['sql'] . ' AND p.featured = 1
             ORDER BY p.updatedAt DESC
             LIMIT ' . (int) $limit;
     try {
-        $stmt = $pdo->query($sql);
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($visibility['params']);
         return $stmt->fetchAll();
     } catch (Throwable $e) {
         error_log('Featured products query failed: ' . $e->getMessage());
-        $fallback = 'SELECT p.*, COALESCE(pi.url, p.imageUrl) AS imageUrl
+        $fallback = 'SELECT ' . site_storefront_product_columns('p') . ', COALESCE(pi.url, p.imageUrl) AS imageUrl
                      FROM products p
                      LEFT JOIN product_images pi ON pi.productId = p.id AND pi.isPrimary = 1
+                     WHERE ' . $visibility['sql'] . '
                      ORDER BY p.updatedAt DESC
                      LIMIT ' . (int) $limit;
-        $stmt = $pdo->query($fallback);
+        $stmt = $pdo->prepare($fallback);
+        $stmt->execute($visibility['params']);
         return $stmt->fetchAll();
     }
+}
+
+function site_get_public_product(string $id): ?array
+{
+    $pdo = opd_db();
+    site_ensure_product_images_table($pdo);
+    $visibility = site_storefront_visibility_filter('p');
+    $stmt = $pdo->prepare(
+        'SELECT ' . site_storefront_product_columns('p') . ', COALESCE(pi.url, p.imageUrl) AS imageUrl
+         FROM products p
+         LEFT JOIN product_images pi ON pi.productId = p.id AND pi.isPrimary = 1
+         WHERE ' . $visibility['sql'] . ' AND p.id = ?
+         LIMIT 1'
+    );
+    $stmt->execute(array_merge($visibility['params'], [$id]));
+    $product = $stmt->fetch();
+    return $product ?: null;
 }
 
 function site_get_product(string $id): ?array
@@ -171,27 +350,90 @@ function site_get_product_variants(string $productId): array
 {
     $pdo = opd_db();
     $stmt = $pdo->prepare(
-        'SELECT * FROM product_variants WHERE productId = ? ORDER BY (posNum IS NULL), posNum ASC, name ASC'
+        "SELECT id, productId, name, sku, price, largeDelivery, wgt, COALESCE(status, 'active') AS status
+         FROM product_variants
+         WHERE productId = ? AND COALESCE(status, 'active') = 'active'
+         ORDER BY (posNum IS NULL), posNum ASC, name ASC"
     );
     $stmt->execute([$productId]);
     return $stmt->fetchAll();
+}
+
+function site_variant_exists_for_product(string $productId, string $variantId): bool
+{
+    $pdo = opd_db();
+    $stmt = $pdo->prepare(
+        "SELECT 1
+         FROM product_variants
+         WHERE id = ? AND productId = ? AND COALESCE(status, 'active') = 'active'
+         LIMIT 1"
+    );
+    $stmt->execute([$variantId, $productId]);
+    return (bool) $stmt->fetchColumn();
 }
 
 function site_get_related_products(string $productId, int $limit = 6): array
 {
     $pdo = opd_db();
     site_ensure_product_images_table($pdo);
+    $visibility = site_association_display_filter('p');
     $stmt = $pdo->prepare(
-        "SELECT p.*, COALESCE(pi.url, p.imageUrl) AS imageUrl
+        'SELECT ' . site_storefront_product_columns('p') . ", COALESCE(pi.url, p.imageUrl) AS imageUrl
          FROM product_associations pa
          JOIN products p ON p.id = pa.relatedProductId
          LEFT JOIN product_images pi ON pi.productId = p.id AND pi.isPrimary = 1
-         WHERE pa.productId = ?
-         ORDER BY COALESCE(p.category, ''), (pa.sortOrder IS NULL), pa.sortOrder ASC, p.updatedAt DESC
-         LIMIT " . (int) $limit
+         WHERE " . $visibility['sql'] . " AND pa.productId = ?
+         ORDER BY COALESCE(p.category, ''), (pa.sortOrder IS NULL), pa.sortOrder ASC, p.updatedAt DESC"
     );
-    $stmt->execute([$productId]);
-    return $stmt->fetchAll();
+    $stmt->execute(array_merge($visibility['params'], [$productId]));
+    $items = [];
+    foreach ($stmt->fetchAll() as $row) {
+        if (!site_is_storefront_sellable_product($row, true)) {
+            continue;
+        }
+        $items[] = $row;
+        if (count($items) >= $limit) {
+            break;
+        }
+    }
+    return $items;
+}
+
+function site_get_related_product_counts(array $productIds): array
+{
+    $productIds = array_values(array_filter(array_map(
+        static fn($id) => is_string($id) || is_numeric($id) ? trim((string) $id) : '',
+        $productIds
+    )));
+    if (!$productIds) {
+        return [];
+    }
+    $productIds = array_values(array_unique($productIds));
+    $pdo = opd_db();
+    site_ensure_product_images_table($pdo);
+    $visibility = site_association_display_filter('p');
+    $placeholders = implode(',', array_fill(0, count($productIds), '?'));
+    $stmt = $pdo->prepare(
+        'SELECT pa.productId AS sourceProductId, ' . site_storefront_product_columns('p') . ", COALESCE(pi.url, p.imageUrl) AS imageUrl
+         FROM product_associations pa
+         JOIN products p ON p.id = pa.relatedProductId
+         LEFT JOIN product_images pi ON pi.productId = p.id AND pi.isPrimary = 1
+         WHERE " . $visibility['sql'] . " AND pa.productId IN ({$placeholders})
+         ORDER BY pa.productId ASC, COALESCE(p.category, ''), (pa.sortOrder IS NULL), pa.sortOrder ASC, p.updatedAt DESC"
+    );
+    $stmt->execute(array_merge($visibility['params'], $productIds));
+    $counts = [];
+    foreach ($stmt->fetchAll() as $row) {
+        if (!site_is_storefront_sellable_product($row, true)) {
+            continue;
+        }
+        $sourceProductId = (string) ($row['sourceProductId'] ?? '');
+        if ($sourceProductId === '') {
+            continue;
+        }
+        $counts[$sourceProductId] = ($counts[$sourceProductId] ?? 0) + 1;
+    }
+    return $counts;
 }
 
 function site_cart_items(): array
@@ -206,18 +448,36 @@ function site_cart_items(): array
         return [];
     }
     $items = [];
+    $cartChanged = false;
     foreach ($cart as $key => $item) {
-        $product = site_get_product($item['productId']);
+        $resolved = site_resolve_cart_product_context(
+            (string) ($item['productId'] ?? ''),
+            $item['associationSourceProductId'] ?? null
+        );
+        $product = $resolved['product'] ?? null;
         if (!$product) {
+            unset($cart[$key]);
+            $cartChanged = true;
             continue;
         }
         $itemLargeDelivery = !empty($product['largeDelivery']);
         $itemWeight = (float) ($product['wgt'] ?? 0);
+        $vRow = null;
         if (!empty($item['variantId'])) {
             $pdo = opd_db();
-            $vStmt = $pdo->prepare('SELECT largeDelivery, wgt FROM product_variants WHERE id = ? LIMIT 1');
-            $vStmt->execute([$item['variantId']]);
+            $vStmt = $pdo->prepare(
+                "SELECT name, sku, price, largeDelivery, wgt
+                 FROM product_variants
+                 WHERE id = ? AND productId = ? AND COALESCE(status, 'active') = 'active'
+                 LIMIT 1"
+            );
+            $vStmt->execute([$item['variantId'], $product['id']]);
             $vRow = $vStmt->fetch();
+            if (!$vRow) {
+                unset($cart[$key]);
+                $cartChanged = true;
+                continue;
+            }
             if ($vRow) {
                 if (!empty($vRow['largeDelivery'])) {
                     $itemLargeDelivery = true;
@@ -227,19 +487,29 @@ function site_cart_items(): array
                 }
             }
         }
+        $variantName = ($vRow['name'] ?? null);
+        $variantSku = ($vRow['sku'] ?? null);
+        $variantPrice = ($vRow['price'] ?? null);
         $items[] = [
             'key' => $key,
             'productId' => $item['productId'],
             'variantId' => $item['variantId'],
-            'name' => $product['name'],
-            'price' => (float) $product['price'],
+            'name' => !empty($variantName) ? $variantName : $product['name'],
+            'productName' => $product['name'] ?? '',
+            'variantName' => $variantName ?? '',
+            'sku' => !empty($variantSku) ? (string) $variantSku : (string) ($product['sku'] ?? ''),
+            'price' => ($variantPrice !== null && $variantPrice !== '') ? (float) $variantPrice : (float) $product['price'],
             'quantity' => (int) $item['quantity'],
             'imageUrl' => $product['imageUrl'] ?? null,
             'arrivalDate' => $item['arrivalDate'] ?? null,
             'service' => !empty($product['service']),
             'largeDelivery' => $itemLargeDelivery,
             'wgt' => $itemWeight,
+            'associationSourceProductId' => $resolved['associationSourceProductId'] ?? null,
         ];
+    }
+    if ($cartChanged) {
+        $_SESSION['site_cart'] = $cart;
     }
     return $items;
 }
@@ -255,20 +525,41 @@ function site_cart_items_for_user(string $userId): array
         return [];
     }
     $stmt = $pdo->prepare(
-        'SELECT ci.id as `key`, ci.productId, ci.variantId, ci.quantity, ci.arrivalDate,
-                p.name, p.price, p.service, p.largeDelivery AS productLargeDelivery,
+        'SELECT ci.id as `key`, ci.productId, ci.variantId, ci.quantity, ci.arrivalDate, ci.associationSourceProductId,
+                p.name AS productName, p.sku AS productSku, p.price AS productPrice, p.service,
+                COALESCE(p.status, \'active\') AS productStatus, p.category AS productCategory, p.inventory AS productInventory,
+                p.largeDelivery AS productLargeDelivery,
                 p.wgt AS productWeight,
+                pv.name AS variantName, pv.sku AS variantSku, pv.price AS variantPrice,
                 pv.largeDelivery AS variantLargeDelivery,
                 pv.wgt AS variantWeight,
                 COALESCE(pi.url, p.imageUrl) AS imageUrl
          FROM cart_items ci
          JOIN products p ON p.id = ci.productId
-         LEFT JOIN product_variants pv ON pv.id = ci.variantId
+         LEFT JOIN product_variants pv ON pv.id = ci.variantId AND COALESCE(pv.status, \'active\') = \'active\'
          LEFT JOIN product_images pi ON pi.productId = p.id AND pi.isPrimary = 1
          WHERE ci.cartId = ?'
     );
     $stmt->execute([$cartId]);
-    return $stmt->fetchAll();
+    $rows = $stmt->fetchAll();
+    $items = [];
+    foreach ($rows as $row) {
+        $resolved = site_resolve_cart_product_context(
+            (string) ($row['productId'] ?? ''),
+            $row['associationSourceProductId'] ?? null
+        );
+        if (empty($resolved['product'])) {
+            continue;
+        }
+        $row['name'] = !empty($row['variantName']) ? $row['variantName'] : ($row['productName'] ?? '');
+        $row['productName'] = $row['productName'] ?? '';
+        $row['variantName'] = $row['variantName'] ?? '';
+        $row['sku'] = !empty($row['variantSku']) ? (string) $row['variantSku'] : (string) ($row['productSku'] ?? '');
+        $row['price'] = ($row['variantPrice'] !== null && $row['variantPrice'] !== '') ? $row['variantPrice'] : ($row['productPrice'] ?? 0);
+        $row['associationSourceProductId'] = $resolved['associationSourceProductId'] ?? null;
+        $items[] = $row;
+    }
+    return $items;
 }
 
 function site_get_cart_id(string $userId): ?string
@@ -287,7 +578,13 @@ function site_get_cart_id(string $userId): ?string
     return $cartId;
 }
 
-function site_add_to_cart(string $productId, int $quantity, ?string $variantId = null, ?string $arrivalDate = null): ?string
+function site_add_to_cart(
+    string $productId,
+    int $quantity,
+    ?string $variantId = null,
+    ?string $arrivalDate = null,
+    ?string $associationSourceProductId = null
+): ?string
 {
     $quantity = max(1, $quantity);
     if (!is_string($arrivalDate) || trim($arrivalDate) === '') {
@@ -298,15 +595,26 @@ function site_add_to_cart(string $productId, int $quantity, ?string $variantId =
             $arrivalDate = null;
         }
     }
+    $resolved = site_resolve_cart_product_context($productId, $associationSourceProductId);
+    $product = $resolved['product'] ?? null;
+    $associationSourceProductId = $resolved['associationSourceProductId'] ?? null;
+    if (!$product) {
+        return null;
+    }
+    if ($variantId !== null && $variantId !== '' && !site_variant_exists_for_product($productId, $variantId)) {
+        return null;
+    }
     $user = site_current_user();
     if ($user) {
         $pdo = opd_db();
         site_ensure_cart_columns($pdo);
         $cartId = site_get_cart_id($user['id']);
         $stmt = $pdo->prepare(
-            'SELECT id, quantity FROM cart_items WHERE cartId = ? AND productId = ? AND variantId <=> ? AND arrivalDate <=> ?'
+            'SELECT id, quantity
+             FROM cart_items
+             WHERE cartId = ? AND productId = ? AND variantId <=> ? AND arrivalDate <=> ? AND associationSourceProductId <=> ?'
         );
-        $stmt->execute([$cartId, $productId, $variantId, $arrivalDate]);
+        $stmt->execute([$cartId, $productId, $variantId, $arrivalDate, $associationSourceProductId]);
         $row = $stmt->fetch();
         if ($row) {
             $update = $pdo->prepare('UPDATE cart_items SET quantity = ? WHERE id = ?');
@@ -315,17 +623,17 @@ function site_add_to_cart(string $productId, int $quantity, ?string $variantId =
         }
         $itemId = opd_generate_id('ci');
         $insert = $pdo->prepare(
-            'INSERT INTO cart_items (id, cartId, productId, variantId, quantity, arrivalDate, createdAt, updatedAt)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+            'INSERT INTO cart_items (id, cartId, productId, variantId, quantity, arrivalDate, associationSourceProductId, createdAt, updatedAt)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $now = gmdate('Y-m-d H:i:s');
-        $insert->execute([$itemId, $cartId, $productId, $variantId, $quantity, $arrivalDate, $now, $now]);
+        $insert->execute([$itemId, $cartId, $productId, $variantId, $quantity, $arrivalDate, $associationSourceProductId, $now, $now]);
         return $itemId;
     }
 
     site_start_session();
     $cart = $_SESSION['site_cart'] ?? [];
-    $key = $productId . ':' . ($variantId ?? '') . ':' . ($arrivalDate ?? '');
+    $key = $productId . ':' . ($variantId ?? '') . ':' . ($arrivalDate ?? '') . ':' . ($associationSourceProductId ?? '');
     $existing = $cart[$key] ?? null;
     if ($existing) {
         $existing['quantity'] += $quantity;
@@ -336,6 +644,7 @@ function site_add_to_cart(string $productId, int $quantity, ?string $variantId =
             'variantId' => $variantId,
             'quantity' => $quantity,
             'arrivalDate' => $arrivalDate,
+            'associationSourceProductId' => $associationSourceProductId,
         ];
     }
     $_SESSION['site_cart'] = $cart;
@@ -757,6 +1066,9 @@ function site_normalize_order_address(array $data, ?array $user): array
         'billingEmail' => $normalize($data['email'] ?? ($user['email'] ?? '') ?? ''),
         'billingPhone' => $normalize($data['phone'] ?? ($user['cellPhone'] ?? '') ?? ''),
         'billingPostcode' => $normalize($data['postal'] ?? ''),
+        'shippingFirstName' => $normalize($data['shippingFirstName'] ?? ''),
+        'shippingLastName' => $normalize($data['shippingLastName'] ?? ''),
+        'shippingPhone' => $normalize($data['shippingPhone'] ?? ''),
         'notes' => $data['notes'] ?? null,
     ];
 }
@@ -768,8 +1080,8 @@ function site_normalize_order_address(array $data, ?array $user): array
 function site_insert_order_items(PDO $pdo, string $orderId, array $items, string $now): array
 {
     $itemInsert = $pdo->prepare(
-        'INSERT INTO order_items (id, orderId, productId, variantId, name, price, quantity, total, arrivalDate, createdAt, updatedAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO order_items (id, orderId, productId, variantId, name, productName, variantName, sku, price, quantity, total, arrivalDate, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
 
     $itemMap = [];
@@ -786,6 +1098,9 @@ function site_insert_order_items(PDO $pdo, string $orderId, array $items, string
             $item['productId'],
             $item['variantId'],
             $item['name'],
+            $item['productName'] ?? $item['name'] ?? '',
+            $item['variantName'] ?? '',
+            $item['sku'] ?? '',
             $item['price'],
             $item['quantity'],
             $itemTotal,
@@ -906,6 +1221,15 @@ function site_ensure_cart_columns(PDO $pdo): void
         $pdo->exec("ALTER TABLE cart_items ADD COLUMN arrivalDate DATE AFTER quantity");
     }
 
+    // associationSourceProductId on cart_items
+    $stmt = $pdo->prepare(
+        "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'cart_items' AND column_name = 'associationSourceProductId'"
+    );
+    $stmt->execute();
+    if ((int) $stmt->fetchColumn() === 0) {
+        $pdo->exec("ALTER TABLE cart_items ADD COLUMN associationSourceProductId VARCHAR(64) AFTER arrivalDate");
+    }
+
     // arrivalDate on order_items
     $stmt = $pdo->prepare(
         "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'order_items' AND column_name = 'arrivalDate'"
@@ -913,6 +1237,15 @@ function site_ensure_cart_columns(PDO $pdo): void
     $stmt->execute();
     if ((int) $stmt->fetchColumn() === 0) {
         $pdo->exec("ALTER TABLE order_items ADD COLUMN arrivalDate DATE AFTER total");
+    }
+
+    // sku on order_items
+    $stmt = $pdo->prepare(
+        "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'order_items' AND column_name = 'sku'"
+    );
+    $stmt->execute();
+    if ((int) $stmt->fetchColumn() === 0) {
+        $pdo->exec("ALTER TABLE order_items ADD COLUMN sku VARCHAR(100) AFTER variantName");
     }
 }
 
@@ -1041,6 +1374,7 @@ function site_place_order(array $data): array
 
     site_ensure_approval_columns($pdo);
     site_ensure_delivery_columns($pdo);
+    site_ensure_cart_columns($pdo);
 
     $pdo->beginTransaction();
     try {
@@ -1052,7 +1386,7 @@ function site_place_order(array $data): array
         $insert->execute([
             $orderId,
             $orderNumber,
-            'new',
+            !empty($data['paymentSucceeded']) ? 'Processing' : 'new',
             $address['customerName'],
             $address['customerEmail'],
             $address['customerPhone'],
@@ -1072,14 +1406,14 @@ function site_place_order(array $data): array
             $address['billingEmail'],
             $address['billingPhone'],
             $address['billingPostcode'],
-            $address['billingFirstName'],  // shipping mirrors billing
-            $address['billingLastName'],
+            !empty($address['shippingFirstName']) ? $address['shippingFirstName'] : $address['billingFirstName'],
+            !empty($address['shippingLastName']) ? $address['shippingLastName'] : $address['billingLastName'],
             $address['billingCompany'],
             $address['billingAddress1'],
             $address['billingAddress2'],
             $address['billingCity'],
             $address['billingStateCode'],
-            $address['billingPhone'],
+            !empty($address['shippingPhone']) ? $address['shippingPhone'] : $address['billingPhone'],
             $address['billingPostcode'],
             $address['notes'],
             $user ? $user['id'] : null,
@@ -1444,6 +1778,7 @@ function site_get_favorite_items(string $userId, string $categoryId): array
             'quantity' => $quantity,
             'splits' => $splits,
             'imageUrl' => $row['imageUrl'] ?? null,
+            'createdAt' => $row['createdAt'] ?? null,
         ];
     }
     return $items;
@@ -2011,6 +2346,7 @@ function site_equipment_create(string $userId, array $fields): string
     site_ensure_equipment_columns($pdo);
     $id = opd_generate_id('equip');
     $now = gmdate('Y-m-d H:i:s');
+    $notes = opd_sanitize_plain_text((string) ($fields['notes'] ?? ''), 4000);
     $stmt = $pdo->prepare(
         'INSERT INTO equipment (id, userId, name, serial, status, location, notes,
          contactName, contactPhone, contactEmail, quantity, price, createdAt, updatedAt)
@@ -2023,7 +2359,7 @@ function site_equipment_create(string $userId, array $fields): string
         $fields['serial'] ?? '',
         'Pending Approval',
         $fields['location'] ?? '',
-        $fields['notes'] ?? '',
+        $notes,
         $fields['contactName'] ?? '',
         $fields['contactPhone'] ?? '',
         $fields['contactEmail'] ?? '',
@@ -2040,6 +2376,7 @@ function site_equipment_update(string $id, string $userId, array $fields): void
     $pdo = opd_db();
     site_ensure_equipment_columns($pdo);
     $now = gmdate('Y-m-d H:i:s');
+    $notes = opd_sanitize_plain_text((string) ($fields['notes'] ?? ''), 4000);
     $stmt = $pdo->prepare(
         'UPDATE equipment SET name = ?, serial = ?, location = ?, notes = ?,
          contactName = ?, contactPhone = ?, contactEmail = ?, quantity = ?, price = ?,
@@ -2050,7 +2387,7 @@ function site_equipment_update(string $id, string $userId, array $fields): void
         $fields['name'] ?? '',
         $fields['serial'] ?? '',
         $fields['location'] ?? '',
-        $fields['notes'] ?? '',
+        $notes,
         $fields['contactName'] ?? '',
         $fields['contactPhone'] ?? '',
         $fields['contactEmail'] ?? '',
@@ -2210,7 +2547,7 @@ function site_equipment_approve(string $equipmentId): ?array
         $longParts[] = 'Location: ' . $equipment['location'];
     }
     if (!empty($equipment['notes'])) {
-        $longParts[] = 'Description: ' . $equipment['notes'];
+        $longParts[] = 'Description: ' . opd_sanitize_plain_text((string) $equipment['notes'], 4000);
     }
     if (!empty($equipment['serial'])) {
         $longParts[] = 'Serial: ' . $equipment['serial'];
@@ -2915,22 +3252,7 @@ function site_set_setting_value(string $key, ?string $value): void
 
 function site_get_base_url(): string
 {
-    $host = $_SERVER['HTTP_HOST'] ?? '';
-    if ($host === '') {
-        return '';
-    }
-    $isSecure = false;
-    if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
-        $isSecure = true;
-    } elseif (!empty($_SERVER['SERVER_PORT']) && (int) $_SERVER['SERVER_PORT'] === 443) {
-        $isSecure = true;
-    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string) $_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') {
-        $isSecure = true;
-    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_SSL']) && strtolower((string) $_SERVER['HTTP_X_FORWARDED_SSL']) === 'on') {
-        $isSecure = true;
-    }
-    $scheme = $isSecure ? 'https' : 'http';
-    return $scheme . '://' . $host;
+    return opd_site_base_url();
 }
 
 function site_build_invite_message(string $template, string $link, array $context = []): string

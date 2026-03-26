@@ -51,8 +51,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 $quantity = max(1, $quantity);
-                site_add_to_cart($postedProductId, $quantity, $variantId ?: null, is_string($arrivalDate) ? $arrivalDate : null);
-                $message = 'Added to cart.';
+                $addedItemId = site_add_to_cart($postedProductId, $quantity, $variantId ?: null, is_string($arrivalDate) ? $arrivalDate : null);
+                if ($addedItemId === null || $addedItemId === '') {
+                    $message = 'This product is no longer available.';
+                    $messageIsError = true;
+                } else {
+                    $message = 'Added to cart.';
+                }
             }
         }
     }
@@ -254,7 +259,7 @@ sort($uniqueClientNames);
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Orders - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
-  <link rel="stylesheet" href="/assets/css/site.css?v=20260315c" />
+  <link rel="stylesheet" href="/assets/css/site.css?v=20260326d" />
 </head>
 <body>
   <?php require __DIR__ . '/partials/site-header.php'; ?>
@@ -458,7 +463,7 @@ sort($uniqueClientNames);
   </main>
 
   <?php require __DIR__ . '/partials/site-footer.php'; ?>
-  <script>
+  <script nonce="<?php echo opd_csp_nonce(); ?>">
     (function () {
       var orderRows = document.querySelectorAll('[data-order-row]')
       if (!orderRows.length) {
@@ -880,10 +885,21 @@ sort($uniqueClientNames);
 
           var info = document.createElement('div')
           info.className = 'order-item-info'
-          var name = document.createElement('div')
-          name.className = 'order-item-name'
-          name.textContent = item.name || 'Product'
-          info.appendChild(name)
+          if (item.variantName) {
+            var prodName = document.createElement('div')
+            prodName.className = 'order-item-product-name'
+            prodName.textContent = item.productName || 'Product'
+            info.appendChild(prodName)
+            var name = document.createElement('div')
+            name.className = 'order-item-name'
+            name.textContent = item.variantName
+            info.appendChild(name)
+          } else {
+            var name = document.createElement('div')
+            name.className = 'order-item-name'
+            name.textContent = item.productName || item.name || 'Product'
+            info.appendChild(name)
+          }
           var meta = document.createElement('div')
           meta.className = 'order-item-meta'
           meta.textContent = 'Price ' + formatMoney(itemPrice)

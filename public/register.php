@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../src/site_auth.php';
+require_once __DIR__ . '/../src/store.php';
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -10,7 +11,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
-    if ($name === '' || $email === '' || $password === '') {
+    $honeypot = trim($_POST['website_url'] ?? '');
+    $formLoadedAt = $_POST['_fts'] ?? '';
+    $botError = site_check_bot($honeypot, $formLoadedAt);
+    if ($botError) {
+        $error = $botError;
+    } elseif ($name === '' || $email === '' || $password === '') {
         $error = 'All fields are required.';
     } else {
         $result = site_register($name, $email, $password);
@@ -18,7 +24,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = $result['error'];
         } else {
             site_login($email, $password);
-            header('Location: /dashboard.php');
+            $linked = site_link_pending_invitations($result['id'], $email);
+            $redirect = '/dashboard.php';
+            if ($linked['linkedClients'] > 0) {
+                $redirect = '/dashboard-clients.php';
+            } elseif ($linked['linkedVendors'] > 0) {
+                $redirect = '/dashboard-vendors.php';
+            }
+            header('Location: ' . $redirect);
             exit;
         }
     }
@@ -43,6 +56,11 @@ $csrf = site_csrf_token();
       <p class="meta">Set up your purchasing profile.</p>
       <form method="POST" class="form-grid">
         <input type="hidden" name="_csrf" value="<?php echo htmlspecialchars($csrf, ENT_QUOTES); ?>" />
+        <input type="hidden" name="_fts" value="<?php echo time(); ?>" />
+        <div style="position:absolute;left:-9999px;" aria-hidden="true">
+          <label for="website_url">Leave blank</label>
+          <input type="text" id="website_url" name="website_url" tabindex="-1" autocomplete="off" />
+        </div>
         <div>
           <label for="name">Full name</label>
           <input id="name" name="name" required />
