@@ -153,6 +153,7 @@ Last updated: 2026-03-26
 - 2026-03-26: Invoice PDFs now print Oil Patch Depot's Ada mailing address in the header and persist order-item SKUs so regenerated invoices keep historical SKU values.
 - 2026-03-26: Admin product category selects and filters now read the canonical category list from PHP/meta instead of a separate hardcoded JS subset, so hidden categories stay editable in admin.
 - 2026-03-26: Admin Orders status now uses a real select config, and the shared admin form filler preserves unknown select values by injecting a temporary option instead of blanking legacy data.
+- 2026-03-26: Temporary design/admin scratch pages placed under `public/` are deployable by the current release script; keep them out of `public/` unless they are intended to be reachable on production.
 - 2026-03-26: Product pages now use a dedicated `product-page` wrapper so phone-only edge-to-edge white panel overrides can widen product content without affecting other pages.
 - 2026-03-26: Dashboard pages now go edge-to-edge on the mobile dashboard breakpoint by removing side gutters and flattening sidebar/panel edges; dashboard templates share `site.css?v=20260326d` for the mobile layout cache-bust.
 - 2026-03-26: Association displays intentionally include active hidden related products again, but hidden items keep provenance via `associationSourceProductId` in cart/session state so they remain blocked from direct storefront browse/add flows.
