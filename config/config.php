@@ -56,6 +56,7 @@ if (!function_exists('opd_site_email')) {
 return [
     // Site identity
     'site_name' => $_ENV['SITE_NAME'] ?? 'Oil Patch Depot',
+    'site_url' => $_ENV['SITE_URL'] ?? 'https://oilpatchdepot.com',
     'site_email' => $_ENV['SITE_EMAIL'] ?? ($_ENV['Email_Username'] ?? 'orders@oilpatchdepot.com'),
 
     // Database

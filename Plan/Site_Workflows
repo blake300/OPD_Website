@@ -1,5 +1,5 @@
 # Oil Patch Depot - Complete Site Workflows
-# Date: 2026-03-15
+# Date: 2026-03-15 (Updated: 2026-03-24)
 
 ================================================================================
 TABLE OF CONTENTS
@@ -50,6 +50,19 @@ TABLE OF CONTENTS
 44. BACKEND - Sitemap & Robots
 45. FRONTEND - AccordionDropdown Component
 46. DEVOPS - Deployment & Caching
+47. AUTH - Admin Login / Logout
+48. ADMIN - Manual Stripe Charge
+49. ADMIN - Analytics Reports (CRUD)
+50. ADMIN - Content Pages (CRUD)
+51. ADMIN - Integrations (CRUD)
+52. ADMIN - Reliability Logs (CRUD)
+53. API-ONLY - Customers, Inventory, Shipments (CRUD)
+54. STOREFRONT - Hidden Product Categories
+55. BACKEND - Stripe Webhook Handler
+56. BACKEND - Guest Registration (Bot Protection)
+57. BACKEND - Order Cancellation Inventory Return
+58. NAVIGATION - Dashboard Clean URL Routing
+59. DEVOPS - Checkout Debug & Migration Tools
 
 ================================================================================
 1. STOREFRONT - Homepage
@@ -1490,6 +1503,430 @@ GIT HISTORY:
 
 API PROXY STUBS:
 - Missing stubs created: db_health, guest_register, user_shipping
+
+================================================================================
+47. AUTH - Admin Login / Logout
+================================================================================
+Files: public/admin-login.php, public/admin-logout.php
+
+NOTE: Separate auth system from customer login (uses opd_login()/opd_logout()
+from src/auth.php, NOT site_login()/site_logout() from src/site_auth.php).
+Session key: 'opd_user'. Roles: admin, manager.
+
+ADMIN LOGIN WORKFLOW:
+1. Navigate to /admin-login.php
+2. Enter email + password
+3. POST with CSRF token
+4. Server: opd_login(email, password)
+   a. Validates credentials against users table
+   b. Checks role is admin or manager
+   c. Checks status is active
+   d. Session creation with opd_user key
+5. On success: redirect to /admin.php
+6. On failure: "Invalid credentials or inactive user" error
+
+UI:
+- Branded login card with OPD badge
+- Dynamic site name via opd_site_name()
+- Styled with /assets/css/login.css
+
+ADMIN LOGOUT WORKFLOW:
+1. Click "Logout" link (in admin top bar)
+2. Navigates to /admin-logout.php
+3. Calls opd_logout() -> destroys session
+4. Redirect to /admin-login.php
+
+================================================================================
+48. ADMIN - Manual Stripe Charge
+================================================================================
+File: public/admin-charge.php
+
+REQUIRES: admin or manager role (opd_require_role)
+
+WORKFLOW:
+1. Admin enters customer email in search form (GET request)
+2. Server looks up user by email in users table
+3. If found: loads saved Stripe payment methods (stripePaymentMethodId IS NOT NULL)
+4. If not found: shows "No user found for that email" error
+5. If user has no Stripe cards: shows "No Stripe cards saved" message
+
+CHARGE WORKFLOW:
+1. Admin selects saved card from dropdown
+   - Cards displayed as: "{brand} ending {last4}" or custom label
+2. Enters charge amount (USD, min $0.50)
+3. Enters currency code (default: usd, 3-letter validation)
+4. Optionally links to an Order ID
+5. Enters charge reference (required, used for idempotency key)
+6. POST action=charge with CSRF token
+7. Server validates:
+   a. User and payment method exist
+   b. Amount is positive and numeric
+   c. Currency is valid 3-letter code
+   d. Charge reference is not empty
+8. Creates Stripe customer if needed via stripe_get_or_create_customer()
+9. Calls stripe_create_payment_intent() with:
+   - Customer ID, payment method, amount in cents
+   - Idempotency key: "manual-charge-{reference}"
+   - Metadata: orderId, userId, localPaymentMethodId, chargeReference, initiatedBy
+10. On success:
+    a. Inserts payment record in payments table (id, orderId, method, externalId, amount, status)
+    b. If orderId provided: updates orders.paymentStatus to 'paid' (if succeeded)
+    c. Shows "Charge succeeded" or "Charge created with status: {status}"
+11. On failure: shows Stripe error message
+
+UI:
+- OPD Admin branded header with "Admin Command" / "Manual Stripe Charge"
+- "Back to Admin" and "Logout" links in top bar
+- Two-form layout: search form (GET) + charge form (POST)
+- Success/error message banner
+
+================================================================================
+49. ADMIN - Analytics Reports (CRUD)
+================================================================================
+File: public/assets/js/admin.js (resource panel), api/analytics.php
+
+NOTE: This is a generic CRUD panel separate from the custom Reports system
+(Section 35). It provides raw data management for the analytics_reports table.
+
+TABLE: analytics_reports
+FIELDS:
+- Report Name (required)
+- Period (required)
+- Metric
+- Value
+
+COLUMNS: name, period, metric, value, updatedAt
+
+CRUD:
+- GET /api/analytics.php: list all (admin, manager)
+- POST /api/analytics.php: create (admin only)
+- PUT /api/analytics.php?id={id}: update (admin only)
+- DELETE /api/analytics.php?id={id}: delete (admin only)
+
+ID PREFIX: rep
+
+================================================================================
+50. ADMIN - Content Pages (CRUD)
+================================================================================
+File: public/assets/js/admin.js (resource panel), api/content.php
+
+NOTE: This is a generic CRUD panel for the content_pages table, separate from
+the custom Page Builder (Section 31) which manages the pages/page_sections tables.
+
+TABLE: content_pages
+FIELDS:
+- Title (required)
+- Slug (required)
+- Status
+
+COLUMNS: title, slug, status, updatedAt
+
+CRUD:
+- GET /api/content.php: list all (admin, manager)
+- POST /api/content.php: create (admin only)
+- PUT /api/content.php?id={id}: update (admin only)
+- DELETE /api/content.php?id={id}: delete (admin only)
+
+ID PREFIX: page
+
+================================================================================
+51. ADMIN - Integrations (CRUD)
+================================================================================
+File: public/assets/js/admin.js (resource panel), api/integrations.php
+
+TABLE: integrations
+FIELDS:
+- Name (required)
+- Type (required)
+- Status
+- Last Sync (timestamp)
+
+COLUMNS: name, type, status, lastSync
+
+CRUD:
+- GET /api/integrations.php: list all (admin, manager)
+- POST /api/integrations.php: create (admin only)
+- PUT /api/integrations.php?id={id}: update (admin only)
+- DELETE /api/integrations.php?id={id}: delete (admin only)
+
+ID PREFIX: int
+
+================================================================================
+52. ADMIN - Reliability Logs (CRUD)
+================================================================================
+File: public/assets/js/admin.js (resource panel), api/reliability.php
+
+TABLE: reliability
+FIELDS:
+- Type (required)
+- Status
+- Message
+
+COLUMNS: type, status, message, updatedAt
+
+NOTE: This resource has searchable=true, enabling text search across records.
+
+CRUD:
+- GET /api/reliability.php: list all (admin, manager)
+- POST /api/reliability.php: create (admin only)
+- PUT /api/reliability.php?id={id}: update (admin only)
+- DELETE /api/reliability.php?id={id}: delete (admin only)
+
+ID PREFIX: rel
+
+================================================================================
+53. API-ONLY - Customers, Inventory, Shipments (CRUD)
+================================================================================
+Files: api/customers.php, api/inventory.php, api/shipments.php
+
+NOTE: These three endpoints have API CRUD but no admin UI panels in admin.js.
+They exist for programmatic/future use.
+
+A. CUSTOMERS TABLE:
+- Fields: name, email, phone, status, ltv (lifetime value), tags
+- Searchable: yes
+- ID prefix: cust
+- API: /api/customers.php
+
+B. INVENTORY TABLE:
+- Fields: sku, location, onHand, reserved, available, reorderPoint
+- Searchable: no
+- ID prefix: inv
+- API: /api/inventory.php
+
+C. SHIPMENTS TABLE:
+- Fields: orderId, carrier, tracking, status, shippedAt, eta
+- Searchable: no
+- ID prefix: ship
+- API: /api/shipments.php
+
+ALL THREE:
+- Read: admin, manager
+- Write: admin only
+- Standard CRUD: GET (list), POST (create), PUT (update), DELETE (delete)
+
+================================================================================
+54. STOREFRONT - Hidden Product Categories
+================================================================================
+File: src/catalog.php
+
+CATEGORY SYSTEM:
+All categories: AutoBailer Artifical Lift, Parts, Tools, Services, Supplies,
+Used Equipment, Hidden, Hidden A, Hidden B, Hidden C
+
+HIDDEN CATEGORIES:
+- Hidden, Hidden A, Hidden B, Hidden C
+- Defined in opd_hidden_categories()
+- Filtered out of storefront by opd_public_product_categories()
+
+WORKFLOW:
+1. Admin assigns product to a Hidden category via admin panel
+2. Product exists in database and is manageable via admin
+3. Product does NOT appear in:
+   - Category browsing (filtered out of public categories)
+   - Product search results
+   - Featured products carousel
+4. Product IS still accessible via direct URL: /product.php?id={id}
+5. Useful for: internal/B2B products, staging products, bundled components
+
+FUNCTIONS:
+- opd_product_categories(): returns all categories including hidden
+- opd_hidden_categories(): returns ['Hidden', 'Hidden A', 'Hidden B', 'Hidden C']
+- opd_public_product_categories(): returns only customer-facing categories
+
+================================================================================
+55. BACKEND - Stripe Webhook Handler
+================================================================================
+File: api/stripe_webhook.php
+
+NOTE: Section 36 documents the Stripe service functions. This section documents
+the webhook endpoint that processes asynchronous Stripe events.
+
+SECURITY:
+1. Reads raw payload from php://input
+2. Reads Stripe-Signature header
+3. Verifies HMAC-SHA256 signature against STRIPE_WEBHOOK_SECRET
+4. Returns 400 if signature invalid, 500 if secret not configured
+
+HANDLED EVENTS:
+
+A. setup_intent.succeeded:
+1. Extracts userId from intent metadata
+2. If customer ID present: links Stripe customer to local user (if not already linked)
+3. Extracts payment method ID from intent
+4. Calls stripe_store_payment_method():
+   a. Retrieves full payment method details from Stripe
+   b. Filters for card type only
+   c. Checks for duplicate (by userId + stripePaymentMethodId)
+   d. Inserts into payment_methods table: label, type, brand, last4, expMonth, expYear
+5. Result: user's new card is automatically saved after Stripe setup flow
+
+B. payment_intent.succeeded:
+1. Extracts payment intent ID and orderId from metadata
+2. Calculates amount from amount_received (converts cents to dollars)
+3. Upserts payment record in payments table:
+   - If existing record: updates amount, status='succeeded', capturedAt
+   - If new: inserts with method='stripe', status='succeeded'
+4. If orderId present: updates orders.paymentStatus to 'paid'
+
+C. payment_intent.payment_failed:
+1. Same flow as succeeded but with status='failed'
+2. Updates payment record status to 'failed'
+3. Updates order paymentStatus to 'failed' (only if not already 'paid')
+
+ALL EVENTS:
+- Return HTTP 200 "ok" regardless of processing outcome
+- Errors logged via stripe_log() but don't return error status to Stripe
+
+================================================================================
+56. BACKEND - Guest Registration (Bot Protection)
+================================================================================
+File: api/guest_register.php
+
+NOTE: Section 8 documents the standard customer registration via login.php.
+This section documents the separate guest-to-account conversion API endpoint.
+
+WORKFLOW:
+1. POST only, CSRF required
+2. Parses JSON body
+3. Bot protection checks:
+   a. Honeypot field (website_url): must be empty (bots auto-fill hidden fields)
+   b. Form load timestamp (_fts): checked via site_check_bot()
+      - Rejects submissions too fast (bot speed) or too old
+4. Validates required fields:
+   a. Email: must be valid format
+   b. Password: validated via opd_validate_password() (strength rules)
+   c. Name: sanitized via opd_sanitize_name()
+5. Checks email uniqueness in users table
+6. Records registration attempt for rate limiting via site_record_registration_attempt()
+7. Creates user:
+   a. Generates ID with 'usr' prefix
+   b. Hashes password with PASSWORD_DEFAULT (bcrypt)
+   c. Sets role='customer', status='active'
+8. Auto-login: sets session with site_user key
+9. Returns JSON: {ok: true, userId, redirect: '/dashboard.php'}
+
+DIFFERENCES FROM STANDARD REGISTER (Section 8):
+- API-only endpoint (JSON request/response, no HTML form)
+- Additional bot protection (honeypot + timestamp)
+- No welcome email sent
+- No pending invitation linking
+- Designed for guest checkout -> account conversion flow
+
+================================================================================
+57. BACKEND - Order Cancellation Inventory Return
+================================================================================
+File: api/orders.php (pre-CRUD hook, lines 342-374)
+
+NOTE: Section 26 documents refund-based inventory return. This section documents
+the automatic inventory return when an order status is changed to "Cancelled".
+
+WORKFLOW:
+1. Admin updates order status to "Cancelled" via PUT /api/orders.php
+2. Before the standard CRUD update, a pre-hook intercepts:
+   a. Checks if new status is "Cancelled"
+   b. Checks if order is NOT already "Cancelled" (prevents double-return)
+3. Loads all order_items for the order (productId, variantId, quantity)
+4. For each item with quantity > 0:
+   a. If variantId present: UPDATE product_variants SET inventory = inventory + qty
+   b. Else if productId present: UPDATE products SET inventory = inventory + qty
+   c. Sets updatedAt timestamp on the inventory record
+5. Standard CRUD update then proceeds (sets order status to Cancelled)
+
+KEY DIFFERENCES FROM REFUND INVENTORY RETURN:
+- Automatic: no "Return to Inventory" checkbox needed
+- Returns ALL items: no per-item quantity selection
+- No Stripe refund: only inventory is restored, no payment reversal
+- Idempotent: double-cancel does not double-return inventory
+
+================================================================================
+58. NAVIGATION - Dashboard Clean URL Routing
+================================================================================
+Files: public/my-account/*/index.php, public/partials/dashboard-nav.php
+
+CLEAN URL ALIASES:
+The /my-account/ directory provides SEO-friendly and user-friendly URL paths
+that map to dashboard pages via PHP require (not HTTP redirects).
+
+ROUTE MAP:
+| Clean URL                       | Serves Page                        |
+|---------------------------------|------------------------------------|
+| /my-account/                    | dashboard.php                      |
+| /my-account/account-overview/   | dashboard.php                      |
+| /my-account/account/            | dashboard-account.php              |
+| /my-account/orders/             | dashboard-orders.php               |
+| /my-account/accounting-codes/   | dashboard-accounting-codes.php     |
+| /my-account/favorites/          | dashboard-favorites.php            |
+| /my-account/vendors/            | dashboard-vendors.php              |
+| /my-account/clients/            | dashboard-clients.php              |
+| /my-account/your-equipment/     | dashboard-equipment.php            |
+
+IMPLEMENTATION:
+- Each subdirectory contains a single index.php
+- Each index.php is one line: require __DIR__ . '/../../{page}.php'
+- URL stays as /my-account/{section}/ in browser (no redirect)
+- Enables clean linking and bookmarking
+
+DASHBOARD NAVIGATION SIDEBAR (partials/dashboard-nav.php):
+1. Requires site authentication
+2. Detects active page from SCRIPT_NAME
+3. Renders sidebar with 8 navigation items:
+   Dashboard, Account, Orders, Accounting Codes, Favorites, Vendors, Clients,
+   My Equipment
+4. Plus "Log out" link -> /logout.php
+5. Mobile: collapsible menu with toggle button
+   - Button shows current section name
+   - Chevron icon, aria-expanded attribute
+   - JavaScript click handler toggles 'is-open' class
+6. Active page highlighted with 'is-active' class
+
+================================================================================
+59. DEVOPS - Checkout Debug & Migration Tools
+================================================================================
+Files: public/checkout-debug.php, public/checkout-test.php, public/run_migration.php
+
+A. CHECKOUT DEBUG (checkout-debug.php):
+Developer diagnostic page that tests all checkout dependencies.
+
+CHECKS PERFORMED:
+1. PHP version
+2. Required file existence:
+   - src/store.php, site_auth.php, stripe_service.php, tax_rates.php
+   - src/api_helpers.php, db_conn.php, config/config.php
+3. Config validation:
+   - DB host, name, user (values shown)
+   - Stripe publishable/secret keys (SET/NOT SET)
+4. Database connection test
+5. Auth system load test
+6. Store module load test
+7. Stripe service availability
+
+OUTPUT: Plain text diagnostic report with pass/fail per component
+
+B. CHECKOUT TEST (checkout-test.php):
+Step-by-step checkout flow validator.
+
+STEPS TESTED:
+1. Dependency loading (all required files)
+2. Session management
+3. Authentication status
+4. Cart item loading and validation
+5. Total calculation
+6. Stripe configuration verification
+7. User profile / database queries
+
+OUTPUT: Detailed error output if any step fails
+
+C. DATABASE MIGRATION RUNNER (run_migration.php):
+One-off schema migration utility.
+
+CURRENT MIGRATION:
+1. Checks if 'featured' column exists in products table
+2. If missing: ALTER TABLE products ADD COLUMN featured TINYINT(1) DEFAULT 0
+3. Reports success or "already exists"
+
+NOTE: These are developer/debugging tools. They should be restricted or removed
+in production (robots.txt already blocks debug pages from crawlers).
 
 ================================================================================
 END OF DOCUMENT
