@@ -82,7 +82,10 @@ if ($user && ($state === '' || $postal === '')) {
 
 $total = site_cart_total($items);
 $taxableSubtotal = site_cart_taxable_total($items);
-$taxData = opd_calculate_ok_sales_tax($taxableSubtotal, $state, $postal);
+// Pickup orders always use the store zip (74820) for tax
+$taxState = $shippingMethod === 'pickup' ? 'OK' : $state;
+$taxPostal = $shippingMethod === 'pickup' ? '74820' : $postal;
+$taxData = opd_calculate_ok_sales_tax($taxableSubtotal, $taxState, $taxPostal);
 $tax = (float) ($taxData['tax'] ?? 0.0);
 $isServiceOnly = site_cart_has_only_service_items($items);
 if ($isServiceOnly) {

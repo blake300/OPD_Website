@@ -14,7 +14,7 @@ const productStatusOptions = [
 ]
 
 const orderStatusOptions = [
-  { value: 'new', label: 'New' },
+  { value: 'New', label: 'New' },
   { value: 'Processing', label: 'Processing' },
   { value: 'Cancelled', label: 'Cancelled' }
 ]
@@ -554,14 +554,17 @@ function createOrderItemsSection(orderId) {
         totalAmount += item.total || 0
       })
       let html = '<div class="order-items-header"><span>Order Items</span><span>' + items.length + ' item' + (items.length === 1 ? '' : 's') + ' &middot; ' + totalQty + ' units &middot; $' + totalAmount.toFixed(2) + '</span></div>'
-      html += '<table class="order-items-table"><thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th><th>Arrival</th></tr></thead><tbody>'
+      html += '<table class="order-items-table"><thead><tr><th>Product</th><th>SKU</th><th>Qty</th><th>Price</th><th>Total</th><th>Arrival</th></tr></thead><tbody>'
       items.forEach((item) => {
-        const name = escapeHtml(item.name || 'Unknown')
+        const productName = escapeHtml(item.productName || '')
+        const variantName = escapeHtml(item.variantName || '')
+        const displayName = variantName && productName ? productName + ' — ' + variantName : escapeHtml(item.name || 'Unknown')
+        const sku = escapeHtml(item.sku || '')
         const qty = item.quantity || 0
         const price = (item.price || 0).toFixed(2)
         const total = (item.total || 0).toFixed(2)
         const arrival = item.arrivalDate ? escapeHtml(String(item.arrivalDate)) : '—'
-        html += `<tr><td title="${name}">${name}</td><td title="${qty}">${qty}</td><td title="$${price}">$${price}</td><td title="$${total}">$${total}</td><td title="${arrival}">${arrival}</td></tr>`
+        html += `<tr><td title="${displayName}">${displayName}</td><td title="${sku}">${sku}</td><td title="${qty}">${qty}</td><td title="$${price}">$${price}</td><td title="$${total}">$${total}</td><td title="${arrival}">${arrival}</td></tr>`
       })
       html += '</tbody></table>'
       section.innerHTML = html
@@ -723,9 +726,29 @@ function createInlineEditPanel(resource, item, row, table) {
   panel.className = 'inline-edit-panel'
   panel.dataset.rowId = String(item.id || '')
 
-  // Show order line items at the top for orders
+  // Show order line items and invoice button at the top for orders
   if (resource.id === 'orders' && item.id) {
     panel.appendChild(createOrderItemsSection(item.id))
+    var invoiceWrap = document.createElement('div')
+    invoiceWrap.className = 'order-invoice-section'
+    invoiceWrap.style.cssText = 'margin:8px 0 12px;'
+    fetch('/api/invoices.php?orderId=' + encodeURIComponent(item.id))
+      .then(function (r) { return r.json().catch(function () { return {} }) })
+      .then(function (data) {
+        var invoices = data.items || []
+        if (invoices.length > 0) {
+          var inv = invoices[0]
+          var link = document.createElement('a')
+          link.href = '/api/invoices.php?download=1&id=' + encodeURIComponent(inv.id)
+          link.target = '_blank'
+          link.className = 'ghost-btn'
+          link.style.cssText = 'display:inline-flex;align-items:center;gap:6px;font-size:13px;'
+          link.textContent = 'View Invoice PDF (' + escapeHtml(inv.invoiceNumber || '') + ')'
+          invoiceWrap.appendChild(link)
+        }
+      })
+      .catch(function () { /* ignore */ })
+    panel.appendChild(invoiceWrap)
   }
 
   const form = document.createElement('form')
@@ -5111,7 +5134,7 @@ function renderTaxGroups() {
 
     const rate = document.createElement('span')
     rate.className = 'tax-group-rate'
-    rate.textContent = parseFloat(group.ratePercent).toFixed(2) + '%'
+    rate.textContent = String(parseFloat(group.ratePercent)) + '%'
     header.appendChild(rate)
 
     card.appendChild(header)
@@ -5171,7 +5194,7 @@ function renderTaxGroupForm(group) {
   rateLabel.textContent = 'Tax Rate %'
   const rateInput = document.createElement('input')
   rateInput.type = 'number'
-  rateInput.step = '0.001'
+  rateInput.step = 'any'
   rateInput.min = '0'
   rateInput.max = '100'
   rateInput.placeholder = 'e.g. 9.5'
@@ -5210,14 +5233,14 @@ function renderTaxGroupForm(group) {
   saveBtn.addEventListener('click', async () => {
     const payload = {
       name: nameInput.value.trim(),
-      rate: parseFloat(rateInput.value) || 0,
+      rate: rateInput.value.trim(),
       zips: zipsInput.value.trim()
     }
     if (!payload.zips) {
       showAdminNotification('At least one zip code is required.', true)
       return
     }
-    if (payload.rate <= 0) {
+    if (!payload.rate || isNaN(payload.rate) || Number(payload.rate) <= 0) {
       showAdminNotification('A valid tax rate is required.', true)
       return
     }

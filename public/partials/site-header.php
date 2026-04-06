@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../src/site_auth.php';
 require_once __DIR__ . '/../../src/api_helpers.php';
+require_once __DIR__ . '/../../src/store.php';
 $siteUser = site_current_user();
 $_siteName = opd_site_name();
+$_cartCount = site_cart_count();
 ?>
 <div class="site-header-wrapper">
   <div class="topbar<?php echo $siteUser ? ' topbar--signed-in' : ''; ?>">
@@ -63,10 +65,13 @@ $_siteName = opd_site_name();
           </a>
         <?php endif; ?>
 
-        <a href="/cart.php" class="header-action-link" title="Cart">
+        <a href="/cart.php" class="header-action-link header-cart-link" title="Cart">
           <svg width="20" height="20" viewBox="0 0 20 18" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
             <path d="M0 1a1 1 0 0 1 1-1h2.4a1 1 0 0 1 .98.8l.35 1.7h13.57a1 1 0 0 1 .98 1.22l-1.5 7.5a1 1 0 0 1-.98.78H7.26a1 1 0 0 1-.98-.8L3.6 2.5H1A1 1 0 0 1 0 1zm7 12a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm9 0a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/>
           </svg>
+          <?php if ($_cartCount > 0): ?>
+            <span class="cart-badge" data-cart-count="<?php echo $_cartCount; ?>"><?php echo $_cartCount; ?></span>
+          <?php endif; ?>
         </a>
       </div>
     </div>

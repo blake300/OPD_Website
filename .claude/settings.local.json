@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:oilpatchdepot.com)",
+      "Bash(curl -sI https://oilpatchdepot.com)",
+      "Bash(curl -sI https://oilpatchdepot.com/.env)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://oilpatchdepot.com)",
+      "Bash(curl -s https://oilpatchdepot.com)",
+      "Bash(curl -sI https://oilpatchdepot.com/.git/)"
+    ]
+  }
+}

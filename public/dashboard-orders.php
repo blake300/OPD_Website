@@ -66,6 +66,10 @@ $orders = site_get_orders_for_user($user['id']);
 $paymentMethods = [];
 $vendorNames = [];
 $clientNames = [];
+$filterLocations = [];
+$filterCode1s = [];
+$filterCode2s = [];
+$accountingByOrder = [];
 $csrf = site_csrf_token();
 
 // Load invoice data for all user orders
@@ -348,13 +352,9 @@ sort($uniqueClientNames);
                   <tr>
                     <th></th>
                     <th>Order</th>
-                    <th>Payment Method</th>
-                    <th>Vendor Name</th>
-                    <th>Client Name</th>
                     <th>Total</th>
                     <th>Date</th>
                     <th>Approval</th>
-                    <th>Invoice</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -399,9 +399,6 @@ sort($uniqueClientNames);
                         </button>
                       </td>
                       <td><?php echo htmlspecialchars($order['number'] ?? $orderId, ENT_QUOTES); ?></td>
-                      <td><?php echo htmlspecialchars($paymentMethod !== '' ? $paymentMethod : 'None', ENT_QUOTES); ?></td>
-                      <td><?php echo htmlspecialchars($vendorName, ENT_QUOTES); ?></td>
-                      <td><?php echo htmlspecialchars($clientName, ENT_QUOTES); ?></td>
                       <td>$<?php echo number_format((float) ($order['total'] ?? 0), 2); ?></td>
                       <td><?php echo htmlspecialchars($createdDate, ENT_QUOTES); ?></td>
                       <td>
@@ -436,17 +433,20 @@ sort($uniqueClientNames);
                           <span class="badge badge-muted">&mdash;</span>
                         <?php endif; ?>
                       </td>
-                      <td>
-                        <?php
-                        $orderInvoice = $invoicesByOrder[$orderId] ?? null;
-                        if ($orderInvoice):
-                        ?>
-                          <a href="/api/invoices.php?download=1&id=<?php echo urlencode($orderInvoice['id']); ?>" target="_blank" class="btn-outline btn-sm" title="Download Invoice <?php echo htmlspecialchars($orderInvoice['invoiceNumber'], ENT_QUOTES); ?>">Invoice</a>
-                        <?php endif; ?>
-                      </td>
                     </tr>
                     <tr class="order-details-row" data-order-details-row data-order-id="<?php echo htmlspecialchars($orderId, ENT_QUOTES); ?>" hidden>
-                      <td colspan="9">
+                      <td colspan="5">
+                        <div class="order-details-meta" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;font-size:0.9em;">
+                          <span><strong>Payment Method:</strong> <?php echo htmlspecialchars($paymentMethod !== '' ? $paymentMethod : 'None', ENT_QUOTES); ?></span>
+                          <span><strong>Vendor:</strong> <?php echo htmlspecialchars($vendorName, ENT_QUOTES); ?></span>
+                          <span><strong>Client:</strong> <?php echo htmlspecialchars($clientName, ENT_QUOTES); ?></span>
+                          <?php
+                          $orderInvoice = $invoicesByOrder[$orderId] ?? null;
+                          if ($orderInvoice):
+                          ?>
+                            <span><a href="/api/invoices.php?download=1&id=<?php echo urlencode($orderInvoice['id']); ?>" target="_blank" class="btn-outline btn-sm" title="Download Invoice <?php echo htmlspecialchars($orderInvoice['invoiceNumber'], ENT_QUOTES); ?>">Invoice</a></span>
+                          <?php endif; ?>
+                        </div>
                         <div id="<?php echo htmlspecialchars($detailsId, ENT_QUOTES); ?>" class="order-details-box" data-order-details-box>
                           <div class="order-details-loading">Click on an order row above to view details and manage the order.</div>
                         </div>

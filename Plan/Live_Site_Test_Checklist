@@ -122,6 +122,9 @@ File: public/index.php
 - [ ] Click heart (not signed in) -> "Please Sign-In" message (auto-hides 5s)
 - [ ] Click featured product -> navigates to /product.php?id={id}
 - [ ] Search bar visible in header
+- [ ] Responsive breakpoints for category buttons and value proposition cards
+- [ ] Hover/focus states on featured product cards, category buttons, and heart buttons
+- [ ] All error/empty states display meaningful messages (e.g., empty cart, no search results)
 
 ## S2: Product Listing & Search
 File: public/products.php
@@ -133,6 +136,9 @@ File: public/products.php
 - [ ] Arrow keys navigate suggestions up/down
 - [ ] Enter selects highlighted suggestion
 - [ ] Escape closes dropdown
+- [ ] Search suggestions close on outside click
+- [ ] Search handles case-insensitive match
+- [ ] No inactive items are included in search suggestions
 - [ ] Click suggestion -> navigates to product page
 - [ ] Submit search form -> /products.php?q={term}
 - [ ] Results page shows up to 48 products in 3-column grid
@@ -196,6 +202,7 @@ File: public/product.php
 - [ ] Click "Add to Cart" -> CSRF validated, item added
 - [ ] Button shows "Added!" temporarily
 - [ ] Cart badge updates
+- [ ] Variant price/inventory changes update totals/UI correctly
 
 ## S5: Shopping Cart
 File: public/cart.php
@@ -220,6 +227,10 @@ File: public/cart.php
 - [ ] Large delivery triggers different pricing tier
 - [ ] Service-only cart: no shipping options shown
 - [ ] "Continue to Checkout" button navigates to checkout
+- [ ] Cart persists across login transition
+- [ ] Empty cart shows button that directs back to shopping
+- [ ] Guest cart merges with user cart on login
+- [ ] Shipping/tax recalculates correctly after edits
 
 ## S6: Checkout
 File: public/checkout.php
@@ -253,6 +264,16 @@ File: public/checkout.php
 - [ ] Admin notification email sent
 - [ ] Redirect to order confirmation page
 - [ ] Invoice auto-generated and emailed (if pay by invoice)
+- [ ] Billing state user input get verified
+- [ ] Shipping state user input get verified
+- [ ] Browser refresh/back after payment does not duplicate charge
+- [ ] Card declined, expired, insufficient funds handled correctly
+- [ ] Customer can view placed order in dashboard immediately
+- [ ] Invoice option hidden when not allowed
+- [ ] Large-delivery item mixed with normal items calculate shipping correctly
+- [ ] Order confirmation page survives refresh without duplicating order
+- [ ] Pickup vs delivery tax is calculated correctly
+- [ ] Taxable and non-taxable items in the same cart calculate tax correctly
 
 ## S7: Favorites (Heart System)
 File: public/assets/js/site.js
@@ -355,6 +376,10 @@ Files: public/page.php
 - [ ] Layout: rows with 1-3+ columns, responsive grid
 - [ ] Hero template: gradient background on first row
 - [ ] Meta tags and canonical URL present
+- [ ] Video embeds autoplay/mute controls when applicable (YouTube/Vimeo)
+- [ ] Row/column layout responds correctly to 1–4 column sections
+- [ ] Clean URLs maintain trailing slashes, no redirect loops
+- [ ] Accessibility of headings and semantic HTML per section
 
 ================================================================================
 DASHBOARD (AUTH - Customer Login Required)
@@ -409,6 +434,8 @@ File: public/dashboard-orders.php
 - [ ] Approve -> approvalStatus='Approved'
 - [ ] Decline -> approvalStatus='Declined'
 - [ ] "Reorder" on any item -> adds to cart, redirects to cart
+- [ ] Invoice/order PDF downloads work
+- [ ] Orders page with no orders renders correctly
 
 ## S14: Favorites & Accounting Splits
 File: public/dashboard-favorites.php
@@ -498,6 +525,9 @@ Files: public/my-account/*/index.php
 - [ ] Dashboard sidebar: 8 nav items + Log out
 - [ ] Active page highlighted in sidebar
 - [ ] Mobile: sidebar collapses with toggle button
+- [ ] Role-based access: customer vs vendor vs client
+- [ ] All interactive elements have proper ARIA labels
+- [ ] Multi-select filters maintain state after page reload
 
 ================================================================================
 ADMIN PANEL (ADMIN Login Required)
@@ -705,6 +735,11 @@ BACKEND & SECURITY
 - [ ] Refund processes via Stripe
 - [ ] Idempotency keys prevent duplicate charges
 - [ ] Webhook signature verified (HMAC-SHA256)
+- [ ] 3DS authentication triggers when required
+- [ ] Manual refunds do not process duplicate inventory returns
+- [ ] Stripe SetupIntent card registration handles errors correctly
+- [ ] Saved cards list reflects real Stripe objects and updates on deletion/primary selection
+- [ ] Currency and min/max amounts enforced on all charges
 
 ## S37: Email Service
 - [ ] SMTP configured in .env
@@ -743,9 +778,10 @@ BACKEND & SECURITY
 - [ ] .git/ blocked (403)
 - [ ] Directory listing disabled (403)
 - [ ] Debug pages require admin auth (302)
-- [ ] Uploads directory blocks PHP execution
+- [ ] Uploads directory blocks PHP execution and sanitizes filenames
 - [ ] No PHP version leak (X-Powered-By absent)
 - [ ] Remember-me: DB-backed tokens, rotated on use, revoked on logout
+- [ ] Multi-role access control on all pages and APIs (customer, vendor, admin, manager)
 
 ## S40: Database Schema
 - [ ] All core tables exist (verify via DB Health Check S34)
@@ -759,6 +795,8 @@ BACKEND & SECURITY
 - [ ] PDF stored in uploads/invoices/
 - [ ] Emailed automatically
 - [ ] Sequential numbering via invoice_sequence table
+- [ ] Invoice sequence numbers strictly incremental, even with concurrent orders
+- [ ] Emailed invoice matches PDF and contains correct links
 
 ## S43: SEO System
 - [ ] opd_seo_meta() renders: description, OG tags, Twitter Cards, canonical, favicon
@@ -819,6 +857,28 @@ BACKEND & SECURITY
 - [ ] /run_migration.php requires admin auth
 - [ ] /dropdown-test.php requires admin auth
 - [ ] robots.txt blocks all debug pages
+- [ ] Migrations run without schema errors and preserve data integrity
+
+================================================================================
+API / BACKEND (Cross-Cutting)
+================================================================================
+
+- [ ] JSON API endpoints respond with correct structure and HTTP codes
+- [ ] Invalid IDs or missing resources return 404
+- [ ] POST/PUT/DELETE requests validate required fields and reject invalid data
+- [ ] CSV import/export handles all edge cases (variants, images, parent SKUs)
+
+================================================================================
+PERFORMANCE & ACCESSIBILITY (Cross-Cutting)
+================================================================================
+
+- [ ] Page load times meet targets under realistic traffic
+- [ ] Keyboard navigation across dashboards, modals, and tables
+- [ ] Touch targets ≥48px on mobile and font sizes ≥16px to prevent iOS zoom
+- [ ] Responsive layout for all dashboards, modals, tables, and components
+- [ ] Error messages are generic to avoid info disclosure
+- [ ] Footer: Privacy policy, terms, shipping/returns pages linked in footer
+- [ ] Mobile: Forms do not overflow horizontally
 
 ================================================================================
 END OF CHECKLIST

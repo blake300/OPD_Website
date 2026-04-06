@@ -1769,6 +1769,28 @@ if ($user) {
         return current;
       }
 
+      // Filter location tree to only include nodes with both zip+coordinate,
+      // keeping ancestor nodes whose descendants qualify so the cascading
+      // navigation still works.
+      function filterLocationsWithCoords(nodes) {
+        const out = [];
+        (nodes || []).forEach((node) => {
+          const hasSelf = !!(trimValue(node.zip || '') && trimValue(node.coordinate || ''));
+          const filteredChildren = filterLocationsWithCoords(node.children || []);
+          if (hasSelf || filteredChildren.length > 0) {
+            out.push({
+              id: node.id,
+              label: node.label,
+              category: node.category,
+              zip: node.zip || '',
+              coordinate: node.coordinate || '',
+              children: filteredChildren,
+            });
+          }
+        });
+        return out;
+      }
+
       function renderSavedLocations(pathValue) {
         if (!sameDaySavedSelect) return;
         sameDaySavedSelect.innerHTML = '';
@@ -1782,12 +1804,13 @@ if ($user) {
           return;
         }
 
-        const rootNodes = Array.isArray(accountingStructure.location) ? accountingStructure.location : [];
+        const allLocations = Array.isArray(accountingStructure.location) ? accountingStructure.location : [];
+        const rootNodes = filterLocationsWithCoords(allLocations);
         if (!rootNodes.length) {
           sameDaySavedSelect.disabled = true;
           if (sameDaySavedUpdate) sameDaySavedUpdate.disabled = true;
           if (sameDaySavedEmpty) {
-            sameDaySavedEmpty.textContent = 'No saved locations yet.';
+            sameDaySavedEmpty.textContent = 'No saved locations with a ZIP code and coordinates yet.';
             sameDaySavedEmpty.hidden = false;
           }
           return;
@@ -2623,6 +2646,9 @@ if ($user) {
             panel.setAttribute('hidden', '');
           }
         });
+        if (mode === 'saved') {
+          renderSavedLocations(shippingState.sameDay.saved.path || '');
+        }
         refreshSameDayReady();
         updateShippingCostLabels();
         updateSummaryTotals();

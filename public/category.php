@@ -212,6 +212,7 @@ $csrf = site_csrf_token();
           img.className = 'product-thumb'
           img.src = item.imageUrl
           img.alt = item.name || 'Product'
+          img.loading = 'lazy'
           link.appendChild(img)
         } else {
           var placeholder = document.createElement('div')

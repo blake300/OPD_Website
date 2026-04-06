@@ -514,6 +514,25 @@ function site_cart_items(): array
     return $items;
 }
 
+function site_cart_count(): int
+{
+    $user = site_current_user();
+    if ($user) {
+        $pdo = opd_db();
+        $cartId = site_get_cart_id($user['id']);
+        $stmt = $pdo->prepare('SELECT COALESCE(SUM(quantity), 0) FROM cart_items WHERE cartId = ?');
+        $stmt->execute([$cartId]);
+        return (int) $stmt->fetchColumn();
+    }
+    site_start_session();
+    $cart = $_SESSION['site_cart'] ?? [];
+    $count = 0;
+    foreach ($cart as $item) {
+        $count += (int) ($item['quantity'] ?? 1);
+    }
+    return $count;
+}
+
 function site_cart_items_for_user(string $userId): array
 {
     $pdo = opd_db();
@@ -795,6 +814,10 @@ function site_save_cart_accounting(string $cartId, ?string $clientId, array $gro
         $stmt = $pdo->prepare('SELECT id FROM cart_accounting WHERE cartId = ? AND clientId = ? LIMIT 1');
         $stmt->execute([$cartId, $clientId]);
     } else {
+        // User switched back to default — clear all client-specific rows so checkout
+        // won't pick up a stale clientId from site_get_latest_cart_accounting_client_id()
+        $pdo->prepare('DELETE FROM cart_accounting WHERE cartId = ? AND clientId IS NOT NULL')
+            ->execute([$cartId]);
         $stmt = $pdo->prepare('SELECT id FROM cart_accounting WHERE cartId = ? AND clientId IS NULL LIMIT 1');
         $stmt->execute([$cartId]);
     }
@@ -1036,15 +1059,51 @@ function site_resolve_order_client(array $data, ?array $user, float $total): arr
  * Normalize billing and shipping address fields from order data.
  * @return array Address fields ready for order insertion
  */
-function site_normalize_order_address(array $data, ?array $user): array
+function site_normalize_order_address(array $data, ?array $user, ?string $clientUserId = null): array
 {
     $normalize = static function ($value) {
         $value = trim((string) ($value ?? ''));
         return $value === '' ? null : $value;
     };
 
+    // When a vendor places an order for a client, use the client's profile for billing
+    $billingProfile = null;
+    if ($clientUserId !== null && $clientUserId !== '') {
+        $pdo = opd_db();
+        $stmt = $pdo->prepare('SELECT name, lastName, email, companyName, cellPhone, address, address2, city, state, zip FROM users WHERE id = ? LIMIT 1');
+        $stmt->execute([$clientUserId]);
+        $billingProfile = $stmt->fetch() ?: null;
+    }
+
     $fullName = trim((string) ($data['name'] ?? ($user['name'] ?? '') ?? ''));
     $nameParts = $fullName !== '' ? preg_split('/\s+/', $fullName, 2) : [];
+
+    // Billing name/address: prefer client's profile when ordering for a client
+    if ($billingProfile) {
+        $billingName = trim((string) ($billingProfile['name'] ?? ''));
+        $billingNameParts = $billingName !== '' ? preg_split('/\s+/', $billingName, 2) : [];
+        $billingFirstName = $normalize($billingNameParts[0] ?? '');
+        $billingLastName = $normalize($billingProfile['lastName'] ?? ($billingNameParts[1] ?? ''));
+        $billingCompany = $normalize($billingProfile['companyName'] ?? '');
+        $billingAddress1 = $normalize($billingProfile['address'] ?? '');
+        $billingAddress2 = $normalize($billingProfile['address2'] ?? '');
+        $billingCity = $normalize($billingProfile['city'] ?? '');
+        $billingStateCode = $normalize($billingProfile['state'] ?? '');
+        $billingEmail = $normalize($billingProfile['email'] ?? '');
+        $billingPhone = $normalize($billingProfile['cellPhone'] ?? '');
+        $billingPostcode = $normalize($billingProfile['zip'] ?? '');
+    } else {
+        $billingFirstName = $normalize($nameParts[0] ?? '');
+        $billingLastName = $normalize($nameParts[1] ?? '');
+        $billingCompany = $normalize($data['company'] ?? ($user['companyName'] ?? '') ?? '');
+        $billingAddress1 = $normalize($data['address1'] ?? '');
+        $billingAddress2 = $normalize($data['address2'] ?? '');
+        $billingCity = $normalize($data['city'] ?? '');
+        $billingStateCode = $normalize($data['state'] ?? '');
+        $billingEmail = $normalize($data['email'] ?? ($user['email'] ?? '') ?? '');
+        $billingPhone = $normalize($data['phone'] ?? ($user['cellPhone'] ?? '') ?? '');
+        $billingPostcode = $normalize($data['postal'] ?? '');
+    }
 
     return [
         'customerName' => $data['name'] ?? ($user['name'] ?? ''),
@@ -1056,19 +1115,25 @@ function site_normalize_order_address(array $data, ?array $user): array
         'state' => $data['state'] ?? null,
         'postal' => $data['postal'] ?? null,
         'country' => $data['country'] ?? 'USA',
-        'billingFirstName' => $normalize($nameParts[0] ?? ''),
-        'billingLastName' => $normalize($nameParts[1] ?? ''),
-        'billingCompany' => $normalize($data['company'] ?? ($user['companyName'] ?? '') ?? ''),
-        'billingAddress1' => $normalize($data['address1'] ?? ''),
-        'billingAddress2' => $normalize($data['address2'] ?? ''),
-        'billingCity' => $normalize($data['city'] ?? ''),
-        'billingStateCode' => $normalize($data['state'] ?? ''),
-        'billingEmail' => $normalize($data['email'] ?? ($user['email'] ?? '') ?? ''),
-        'billingPhone' => $normalize($data['phone'] ?? ($user['cellPhone'] ?? '') ?? ''),
-        'billingPostcode' => $normalize($data['postal'] ?? ''),
+        'billingFirstName' => $billingFirstName,
+        'billingLastName' => $billingLastName,
+        'billingCompany' => $billingCompany,
+        'billingAddress1' => $billingAddress1,
+        'billingAddress2' => $billingAddress2,
+        'billingCity' => $billingCity,
+        'billingStateCode' => $billingStateCode,
+        'billingEmail' => $billingEmail,
+        'billingPhone' => $billingPhone,
+        'billingPostcode' => $billingPostcode,
         'shippingFirstName' => $normalize($data['shippingFirstName'] ?? ''),
         'shippingLastName' => $normalize($data['shippingLastName'] ?? ''),
+        'shippingCompany' => $normalize($data['shippingCompany'] ?? ''),
         'shippingPhone' => $normalize($data['shippingPhone'] ?? ''),
+        'shippingAddress1' => $normalize($data['shippingAddress1'] ?? ''),
+        'shippingAddress2' => $normalize($data['shippingAddress2'] ?? ''),
+        'shippingCity' => $normalize($data['shippingCity'] ?? ''),
+        'shippingState' => $normalize($data['shippingState'] ?? ''),
+        'shippingPostcode' => $normalize($data['shippingPostcode'] ?? ''),
         'notes' => $data['notes'] ?? null,
     ];
 }
@@ -1358,8 +1423,8 @@ function site_place_order(array $data): array
         return ['error' => $clientInfo['error']];
     }
 
-    // 4. Normalize addresses
-    $address = site_normalize_order_address($data, $user);
+    // 4. Normalize addresses (use client's profile for billing when ordering for a client)
+    $address = site_normalize_order_address($data, $user, $clientInfo['clientUserId'] ?? null);
 
     // 5. Create order in transaction
     $orderId = opd_generate_id('ord');
@@ -1386,7 +1451,7 @@ function site_place_order(array $data): array
         $insert->execute([
             $orderId,
             $orderNumber,
-            !empty($data['paymentSucceeded']) ? 'Processing' : 'new',
+            'New',
             $address['customerName'],
             $address['customerEmail'],
             $address['customerPhone'],
@@ -1408,13 +1473,13 @@ function site_place_order(array $data): array
             $address['billingPostcode'],
             !empty($address['shippingFirstName']) ? $address['shippingFirstName'] : $address['billingFirstName'],
             !empty($address['shippingLastName']) ? $address['shippingLastName'] : $address['billingLastName'],
-            $address['billingCompany'],
-            $address['billingAddress1'],
-            $address['billingAddress2'],
-            $address['billingCity'],
-            $address['billingStateCode'],
+            !empty($address['shippingCompany']) ? $address['shippingCompany'] : $address['billingCompany'],
+            !empty($address['shippingAddress1']) ? $address['shippingAddress1'] : $address['billingAddress1'],
+            !empty($address['shippingAddress2']) ? $address['shippingAddress2'] : $address['billingAddress2'],
+            !empty($address['shippingCity']) ? $address['shippingCity'] : $address['billingCity'],
+            !empty($address['shippingState']) ? $address['shippingState'] : $address['billingStateCode'],
             !empty($address['shippingPhone']) ? $address['shippingPhone'] : $address['billingPhone'],
-            $address['billingPostcode'],
+            !empty($address['shippingPostcode']) ? $address['shippingPostcode'] : $address['billingPostcode'],
             $address['notes'],
             $user ? $user['id'] : null,
             $clientInfo['clientId'],

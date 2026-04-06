@@ -411,6 +411,7 @@ $csrf = site_csrf_token();
         <?php endif; ?>
         <?php foreach ($relatedGroups as $groupLabel => $groupProducts): ?>
           <div class="associated-group">
+            <h3 class="associated-group-title"><?php echo htmlspecialchars($groupLabel, ENT_QUOTES); ?></h3>
             <div class="associated-group-list">
               <?php foreach ($groupProducts as $related): ?>
                 <?php
@@ -497,27 +498,25 @@ $csrf = site_csrf_token();
                                   <?php endif; ?>
                                   <div class="favorite-actions favorite-actions--inline">
                                     <button class="btn" type="submit" form="<?php echo htmlspecialchars($assocFormId, ENT_QUOTES); ?>">Add</button>
-                                    <?php if ($showRelatedFavorite): ?>
-                                      <div class="favorite-wrap">
-                                        <div class="favorite-message-inline" data-favorite-message hidden>
-                                          Please Sign-In to Select Favorites.
-                                          <a href="/login.php">Sign in</a> or <a href="/register.php">Register</a>
-                                        </div>
-                                        <button
-                                          type="button"
-                                          class="favorite-btn favorite-btn--small"
-                                          data-favorite
-                                          data-product-id="<?php echo htmlspecialchars($relatedId, ENT_QUOTES); ?>"
-                                          data-variant-id="<?php echo htmlspecialchars($variant['id'] ?? '', ENT_QUOTES); ?>"
-                                          aria-label="Add to favorites"
-                                        >
-                                          <svg class="favorite-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                          </svg>
-                                        </button>
-                                        <div class="favorite-dropdown" data-favorite-menu hidden></div>
+                                    <div class="favorite-wrap">
+                                      <div class="favorite-message-inline" data-favorite-message hidden>
+                                        Please Sign-In to Select Favorites.
+                                        <a href="/login.php">Sign in</a> or <a href="/register.php">Register</a>
                                       </div>
-                                    <?php endif; ?>
+                                      <button
+                                        type="button"
+                                        class="favorite-btn favorite-btn--small"
+                                        data-favorite
+                                        data-product-id="<?php echo htmlspecialchars($relatedId, ENT_QUOTES); ?>"
+                                        data-variant-id="<?php echo htmlspecialchars($variant['id'] ?? '', ENT_QUOTES); ?>"
+                                        aria-label="Add to favorites"
+                                      >
+                                        <svg class="favorite-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                      </button>
+                                      <div class="favorite-dropdown" data-favorite-menu hidden></div>
+                                    </div>
                                   </div>
                                 </td>
                               </tr>
@@ -565,26 +564,24 @@ $csrf = site_csrf_token();
                                 <?php endif; ?>
                                 <div class="favorite-actions favorite-actions--inline">
                                   <button class="btn" type="submit" form="<?php echo htmlspecialchars($assocFormId, ENT_QUOTES); ?>">Add</button>
-                                  <?php if ($showRelatedFavorite): ?>
-                                    <div class="favorite-wrap">
-                                      <div class="favorite-message-inline" data-favorite-message hidden>
-                                        Please Sign-In to Select Favorites.
-                                        <a href="/login.php">Sign in</a> or <a href="/register.php">Register</a>
-                                      </div>
-                                      <button
-                                        type="button"
-                                        class="favorite-btn favorite-btn--small"
-                                        data-favorite
-                                        data-product-id="<?php echo htmlspecialchars($relatedId, ENT_QUOTES); ?>"
-                                        aria-label="Add to favorites"
-                                      >
-                                        <svg class="favorite-icon" width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                                          <path d="M16.8 3.69a4.4 4.4 0 0 0-6.22 0L10 4.26l-.58-.58a4.4 4.4 0 0 0-6.22 6.22l.58.58L10 17.38l6.22-6.22.58-.58a4.4 4.4 0 0 0 0-6.22z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                        </svg>
-                                      </button>
-                                      <div class="favorite-dropdown" data-favorite-menu hidden></div>
+                                  <div class="favorite-wrap">
+                                    <div class="favorite-message-inline" data-favorite-message hidden>
+                                      Please Sign-In to Select Favorites.
+                                      <a href="/login.php">Sign in</a> or <a href="/register.php">Register</a>
                                     </div>
-                                  <?php endif; ?>
+                                    <button
+                                      type="button"
+                                      class="favorite-btn favorite-btn--small"
+                                      data-favorite
+                                      data-product-id="<?php echo htmlspecialchars($relatedId, ENT_QUOTES); ?>"
+                                      aria-label="Add to favorites"
+                                    >
+                                      <svg class="favorite-icon" width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                        <path d="M16.8 3.69a4.4 4.4 0 0 0-6.22 0L10 4.26l-.58-.58a4.4 4.4 0 0 0-6.22 6.22l.58.58L10 17.38l6.22-6.22.58-.58a4.4 4.4 0 0 0 0-6.22z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                      </svg>
+                                    </button>
+                                    <div class="favorite-dropdown" data-favorite-menu hidden></div>
+                                  </div>
                                 </div>
                               </td>
                             </tr>
@@ -718,6 +715,8 @@ $csrf = site_csrf_token();
                     submitBtn.textContent = 'Added!'
                     setTimeout(function () { submitBtn.textContent = originalText }, 1500)
                   }
+                  var qty = parseInt(form.querySelector('[name="quantity"]')?.value || '1', 10)
+                  if (window.updateCartBadge) window.updateCartBadge(qty)
                 } else {
                   if (submitBtn) { submitBtn.textContent = originalText }
                   showProductFormError(data.message || 'Could not add to cart.')

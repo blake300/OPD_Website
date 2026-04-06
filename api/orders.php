@@ -174,7 +174,7 @@ if ($method === 'GET') {
     $itemsForOrder = $_GET['items'] ?? null;
     if ($itemsForOrder !== null && $itemsForOrder !== '') {
         $itemStmt = $pdo->prepare(
-            'SELECT oi.id, oi.productId, oi.variantId, oi.name, oi.price, oi.quantity, oi.total, oi.arrivalDate,
+            'SELECT oi.id, oi.productId, oi.variantId, oi.name, oi.productName, oi.variantName, oi.sku, oi.price, oi.quantity, oi.total, oi.arrivalDate,
                     COALESCE(p.service, 0) AS isService
              FROM order_items oi
              LEFT JOIN products p ON p.id = oi.productId
@@ -192,6 +192,9 @@ if ($method === 'GET') {
                 'productId' => (string) ($row['productId'] ?? ''),
                 'variantId' => $row['variantId'] ?? null,
                 'name' => (string) ($row['name'] ?? ''),
+                'productName' => (string) ($row['productName'] ?? ''),
+                'variantName' => (string) ($row['variantName'] ?? ''),
+                'sku' => (string) ($row['sku'] ?? ''),
                 'price' => $price,
                 'quantity' => $qty,
                 'total' => $total,
@@ -254,7 +257,7 @@ if ($method === 'GET') {
     }
 
     $itemsStmt = $pdo->prepare(
-        "SELECT oi.orderId, oi.id, oi.productId, oi.variantId, oi.name, oi.price, oi.quantity, oi.total, oi.arrivalDate,
+        "SELECT oi.orderId, oi.id, oi.productId, oi.variantId, oi.name, oi.productName, oi.variantName, oi.sku, oi.price, oi.quantity, oi.total, oi.arrivalDate,
                 COALESCE(p.service, 0) AS isService
          FROM order_items oi
          LEFT JOIN products p ON p.id = oi.productId
@@ -278,6 +281,9 @@ if ($method === 'GET') {
             'productId' => (string) ($row['productId'] ?? ''),
             'variantId' => $row['variantId'] ?? null,
             'name' => (string) ($row['name'] ?? ''),
+            'productName' => (string) ($row['productName'] ?? ''),
+            'variantName' => (string) ($row['variantName'] ?? ''),
+            'sku' => (string) ($row['sku'] ?? ''),
             'price' => $price,
             'quantity' => $qty,
             'total' => $total,

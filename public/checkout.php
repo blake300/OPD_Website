@@ -154,6 +154,14 @@ try {
         $profile['country'] = 'USA';
     }
 
+    // Load accounting locations for shipping location dropdown
+    // Uses client's locations when purchasing for a client
+    $accountingLocations = [];
+    if ($user) {
+        $acctStruct = site_get_accounting_structure_for_client($user['id'], $clientId);
+        $accountingLocations = $acctStruct['location'] ?? [];
+    }
+
     // Load saved payment methods for all signed-in users
     $userPaymentMethods = [];
     if ($user) {
@@ -333,18 +341,115 @@ try {
 
             $paymentIntentId = trim((string) ($_POST['payment_intent_id'] ?? ''));
 
-            // Calculate tax (service items are not taxed)
-            $taxableSubtotal = site_cart_taxable_total($items);
-            $taxData = opd_calculate_ok_sales_tax(
-                $taxableSubtotal,
-                (string) ($_POST['state'] ?? ''),
-                (string) ($_POST['postal'] ?? '')
-            );
-            $tax = (float) ($taxData['tax'] ?? 0.0);
-            $taxRate = (float) ($taxData['ratePercent'] ?? 0.0);
             $shippingMethodInput = trim((string) ($_POST['shipping_method'] ?? ''));
             $shippingMethod = $shippingMethodInput !== '' ? $shippingMethodInput : 'pickup';
-            $deliveryZip = trim((string) ($_POST['delivery_zip'] ?? $_POST['postal'] ?? ''));
+
+            // Determine shipping destination for tax/delivery calculation
+            $shippingDest = trim((string) ($_POST['shipping_dest'] ?? ''));
+            $taxableSubtotal = site_cart_taxable_total($items);
+            $taxState = (string) ($_POST['state'] ?? '');
+            $taxPostal = (string) ($_POST['postal'] ?? '');
+
+            // Resolve shipping address fields based on method + destination
+            $resolvedShipFirst = '';
+            $resolvedShipLast = '';
+            $resolvedShipCompany = '';
+            $resolvedShipPhone = '';
+            $resolvedShipAddr1 = '';
+            $resolvedShipAddr2 = '';
+            $resolvedShipCity = '';
+            $resolvedShipState = '';
+            $resolvedShipZip = '';
+            $savedLocLabel = '';
+
+            if ($shippingMethod === 'pickup') {
+                $taxState = 'OK';
+                $taxPostal = '74820';
+            } elseif ($shippingMethod === 'standard') {
+                if (!empty($_POST['shipSameAsBilling'])) {
+                    // Copy billing to shipping
+                    $nameParts = preg_split('/\s+/', trim((string) ($_POST['name'] ?? '')), 2);
+                    $resolvedShipFirst = $nameParts[0] ?? '';
+                    $resolvedShipLast = $nameParts[1] ?? '';
+                    $resolvedShipPhone = (string) ($_POST['phone'] ?? '');
+                    $resolvedShipAddr1 = (string) ($_POST['address1'] ?? '');
+                    $resolvedShipAddr2 = (string) ($_POST['address2'] ?? '');
+                    $resolvedShipCity = (string) ($_POST['city'] ?? '');
+                    $resolvedShipState = (string) ($_POST['state'] ?? '');
+                    $resolvedShipZip = (string) ($_POST['postal'] ?? '');
+                } else {
+                    $resolvedShipFirst = (string) ($_POST['shipFirstName'] ?? '');
+                    $resolvedShipLast = (string) ($_POST['shipLastName'] ?? '');
+                    $resolvedShipCompany = (string) ($_POST['shipCompany'] ?? '');
+                    $resolvedShipPhone = (string) ($_POST['shipPhone'] ?? '');
+                    $resolvedShipAddr1 = (string) ($_POST['shipAddress1'] ?? '');
+                    $resolvedShipAddr2 = (string) ($_POST['shipAddress2'] ?? '');
+                    $resolvedShipCity = (string) ($_POST['shipCity'] ?? '');
+                    $resolvedShipState = (string) ($_POST['shipState'] ?? '');
+                    $resolvedShipZip = (string) ($_POST['shipPostal'] ?? '');
+                }
+                $taxState = $resolvedShipState !== '' ? $resolvedShipState : $taxState;
+                $taxPostal = $resolvedShipZip !== '' ? $resolvedShipZip : $taxPostal;
+            } elseif ($shippingMethod === 'same_day') {
+                if ($shippingDest === 'address') {
+                    if (!empty($_POST['sdShipSameAsBilling'])) {
+                        $nameParts = preg_split('/\s+/', trim((string) ($_POST['name'] ?? '')), 2);
+                        $resolvedShipFirst = $nameParts[0] ?? '';
+                        $resolvedShipLast = $nameParts[1] ?? '';
+                        $resolvedShipPhone = (string) ($_POST['phone'] ?? '');
+                        $resolvedShipAddr1 = (string) ($_POST['address1'] ?? '');
+                        $resolvedShipAddr2 = (string) ($_POST['address2'] ?? '');
+                        $resolvedShipCity = (string) ($_POST['city'] ?? '');
+                        $resolvedShipState = (string) ($_POST['state'] ?? '');
+                        $resolvedShipZip = (string) ($_POST['postal'] ?? '');
+                    } else {
+                        $resolvedShipFirst = (string) ($_POST['sdShipFirstName'] ?? '');
+                        $resolvedShipLast = (string) ($_POST['sdShipLastName'] ?? '');
+                        $resolvedShipCompany = (string) ($_POST['sdShipCompany'] ?? '');
+                        $resolvedShipPhone = (string) ($_POST['sdShipPhone'] ?? '');
+                        $resolvedShipAddr1 = (string) ($_POST['sdShipAddress1'] ?? '');
+                        $resolvedShipAddr2 = (string) ($_POST['sdShipAddress2'] ?? '');
+                        $resolvedShipCity = (string) ($_POST['sdShipCity'] ?? '');
+                        $resolvedShipState = (string) ($_POST['sdShipState'] ?? '');
+                        $resolvedShipZip = (string) ($_POST['sdShipZip'] ?? '');
+                    }
+                    $taxState = $resolvedShipState !== '' ? $resolvedShipState : $taxState;
+                    $taxPostal = $resolvedShipZip !== '' ? $resolvedShipZip : $taxPostal;
+                } elseif ($shippingDest === 'coords') {
+                    $resolvedShipFirst = (string) ($_POST['sdCoordFirstName'] ?? '');
+                    $resolvedShipLast = (string) ($_POST['sdCoordLastName'] ?? '');
+                    $resolvedShipPhone = (string) ($_POST['sdCoordPhone'] ?? '');
+                    $resolvedShipState = (string) ($_POST['sdCoordState'] ?? 'OK');
+                    $resolvedShipZip = (string) ($_POST['shipCoordZip'] ?? '');
+                    $resolvedShipAddr1 = (string) ($_POST['shipCoordinate'] ?? '');
+                    $taxState = $resolvedShipState;
+                    $taxPostal = $resolvedShipZip;
+                } elseif ($shippingDest === 'saved') {
+                    $resolvedShipFirst = (string) ($_POST['sdSavedFirstName'] ?? '');
+                    $resolvedShipLast = (string) ($_POST['sdSavedLastName'] ?? '');
+                    $resolvedShipPhone = (string) ($_POST['sdSavedPhone'] ?? '');
+                    $taxState = 'OK';
+                    $savedLocId = (string) ($_POST['shipSavedLocation'] ?? '');
+                    if ($savedLocId !== '') {
+                        $locStmt = $pdo->prepare('SELECT code, description FROM accounting_codes WHERE id = ? LIMIT 1');
+                        $locStmt->execute([$savedLocId]);
+                        $locRow = $locStmt->fetch();
+                        if ($locRow) {
+                            $locData = json_decode($locRow['description'] ?? '', true);
+                            $locLabel = trim((string) ($locRow['code'] ?? ''));
+                            $taxPostal = (string) ($locData['zip'] ?? $taxPostal);
+                            $resolvedShipAddr1 = (string) ($locData['coordinate'] ?? '');
+                            $resolvedShipAddr2 = $locLabel;
+                            $resolvedShipZip = (string) ($locData['zip'] ?? '');
+                            $savedLocLabel = $locLabel;
+                        }
+                    }
+                }
+            }
+            $taxData = opd_calculate_ok_sales_tax($taxableSubtotal, $taxState, $taxPostal);
+            $tax = (float) ($taxData['tax'] ?? 0.0);
+            $taxRate = (float) ($taxData['ratePercent'] ?? 0.0);
+            $deliveryZip = trim((string) ($_POST['delivery_zip'] ?? $taxPostal));
             if ($isServiceOnlyCart) {
                 $shippingCost = 0.0;
                 $shippingMethod = 'service';
@@ -356,7 +461,7 @@ try {
                 $shippingCost = $deliveryResult['cost'];
             } elseif ($shippingMethod === 'standard') {
                 $stdResult = site_calculate_standard_shipping(
-                    (string) ($_POST['state'] ?? ''),
+                    $taxState,
                     $items
                 );
                 if ($stdResult['error']) {
@@ -425,9 +530,15 @@ try {
                     'postal' => $_POST['postal'] ?? '',
                     'country' => $_POST['country'] ?? '',
                     'notes' => $_POST['notes'] ?? '',
-                    'shippingFirstName' => $_POST['shippingFirstName'] ?? '',
-                    'shippingLastName' => $_POST['shippingLastName'] ?? '',
-                    'shippingPhone' => $_POST['shippingPhone'] ?? '',
+                    'shippingFirstName' => $resolvedShipFirst,
+                    'shippingLastName' => $resolvedShipLast,
+                    'shippingCompany' => $resolvedShipCompany,
+                    'shippingPhone' => $resolvedShipPhone,
+                    'shippingAddress1' => $resolvedShipAddr1,
+                    'shippingAddress2' => $resolvedShipAddr2,
+                    'shippingCity' => $resolvedShipCity,
+                    'shippingState' => $resolvedShipState,
+                    'shippingPostcode' => $resolvedShipZip,
                     'shipping_method' => $shippingMethod,
                     'delivery_zip' => $deliveryZip,
                     'accounting' => $accountingPayload,
@@ -544,7 +655,7 @@ try {
   <title>Checkout - <?php echo htmlspecialchars(opd_site_name(), ENT_QUOTES); ?></title>
   <link rel="stylesheet" href="/assets/css/site.css?v=20260315c" />
   <?php if ($stripeEnabled): ?>
-    <script src="https://js.stripe.com/v3/"></script>
+    <script src="https://js.stripe.com/v3/" nonce="<?php echo opd_csp_nonce(); ?>"></script>
   <?php endif; ?>
   <style>
     .card-field {
@@ -842,6 +953,9 @@ try {
               <div class="notice">Accounting groups will be attached to this order.</div>
             </div>
           <?php endif; ?>
+          <div class="span-2" style="margin-bottom:4px;">
+            <label style="font-weight:600;font-size:1.05rem;display:block;">Billing name and address</label>
+          </div>
           <div>
             <label for="name">Full name</label>
             <input id="name" name="name" value="<?php echo htmlspecialchars($user['name'] ?? '', ENT_QUOTES); ?>" required />
@@ -878,21 +992,6 @@ try {
             <label for="postal">Postal code</label>
             <input id="postal" name="postal" value="<?php echo htmlspecialchars($profile['zip'] ?? '', ENT_QUOTES); ?>" required />
           </div>
-          <div class="span-2" style="border-top:1px solid var(--stroke);padding-top:16px;margin-top:8px;">
-            <label style="font-weight:600;margin-bottom:8px;display:block;">Ship to a different name/phone? (optional)</label>
-          </div>
-          <div>
-            <label for="shippingFirstName">Shipping first name</label>
-            <input id="shippingFirstName" name="shippingFirstName" value="<?php echo htmlspecialchars($profile['shippingFirstName'] ?? '', ENT_QUOTES); ?>" />
-          </div>
-          <div>
-            <label for="shippingLastName">Shipping last name</label>
-            <input id="shippingLastName" name="shippingLastName" value="<?php echo htmlspecialchars($profile['shippingLastName'] ?? '', ENT_QUOTES); ?>" />
-          </div>
-          <div>
-            <label for="shippingPhone">Shipping phone</label>
-            <input id="shippingPhone" name="shippingPhone" value="<?php echo htmlspecialchars($profile['shippingPhone'] ?? '', ENT_QUOTES); ?>" />
-          </div>
           <?php if ($isServiceOnlyCart): ?>
           <input type="hidden" name="shipping_method" value="service" />
           <div class="span-2">
@@ -920,6 +1019,199 @@ try {
               </label>
               <div class="notice is-error" id="checkout-delivery-zone-error" role="alert" hidden></div>
               <input type="hidden" name="delivery_zip" id="checkout-delivery-zip" value="" />
+            </div>
+          </div>
+          <!-- Standard delivery: shipping address fields -->
+          <div class="span-2" id="checkout-standard-ship-section" hidden>
+            <div style="border-top:1px solid var(--stroke);padding-top:16px;margin-top:8px;">
+              <label style="font-weight:600;margin-bottom:8px;display:block;">Shipping name and address</label>
+              <label class="checkbox-row" style="margin-bottom:10px;">
+                <input type="checkbox" id="shipSameAsBilling" name="shipSameAsBilling" value="1" />
+                Same as billing
+              </label>
+              <div id="checkout-standard-ship-fields" class="form-grid cols-2">
+                <div>
+                  <label for="shipFirstName">Shipping first name</label>
+                  <input id="shipFirstName" name="shipFirstName" type="text" />
+                </div>
+                <div>
+                  <label for="shipLastName">Shipping last name</label>
+                  <input id="shipLastName" name="shipLastName" type="text" />
+                </div>
+                <div>
+                  <label for="shipCompany">Company</label>
+                  <input id="shipCompany" name="shipCompany" type="text" />
+                </div>
+                <div>
+                  <label for="shipPhone">Phone</label>
+                  <input id="shipPhone" name="shipPhone" type="text" />
+                </div>
+                <div>
+                  <label for="shipAddress1">Address line 1</label>
+                  <input id="shipAddress1" name="shipAddress1" type="text" placeholder="123 Main St" />
+                </div>
+                <div>
+                  <label for="shipAddress2">Address line 2</label>
+                  <input id="shipAddress2" name="shipAddress2" type="text" placeholder="Suite 100" />
+                </div>
+                <div>
+                  <label for="shipCity">City</label>
+                  <input id="shipCity" name="shipCity" type="text" />
+                </div>
+                <div>
+                  <label for="shipState">State</label>
+                  <input id="shipState" name="shipState" type="text" placeholder="OK" maxlength="2" />
+                </div>
+                <div>
+                  <label for="shipPostal">ZIP code</label>
+                  <input id="shipPostal" name="shipPostal" type="text" placeholder="73301" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Same-day delivery: sub-options -->
+          <div class="span-2" id="checkout-sameday-dest-section" hidden>
+            <div style="border-top:1px solid var(--stroke);padding-top:16px;margin-top:8px;">
+              <label style="font-weight:600;margin-bottom:8px;display:block;">Delivery destination</label>
+              <div class="shipping-options" id="checkout-shipping-dest-options">
+                <label class="radio-row">
+                  <input type="radio" name="shipping_dest" value="address" checked />
+                  <span class="radio-label">Deliver to address</span>
+                </label>
+                <label class="radio-row">
+                  <input type="radio" name="shipping_dest" value="coords" />
+                  <span class="radio-label">Deliver to coordinates</span>
+                </label>
+                <label class="radio-row">
+                  <input type="radio" name="shipping_dest" value="saved" />
+                  <span class="radio-label">Deliver to saved location</span>
+                </label>
+              </div>
+
+              <!-- Same-day: Deliver to address -->
+              <div id="checkout-sd-address-fields" class="form-grid cols-2" style="margin-top:12px;">
+                <div class="span-2">
+                  <label class="checkbox-row">
+                    <input type="checkbox" id="sdShipSameAsBilling" name="sdShipSameAsBilling" value="1" />
+                    Same as billing
+                  </label>
+                </div>
+                <div id="checkout-sd-address-inputs">
+                  <div class="form-grid cols-2">
+                    <div>
+                      <label for="sdShipFirstName">Shipping first name</label>
+                      <input id="sdShipFirstName" name="sdShipFirstName" type="text" />
+                    </div>
+                    <div>
+                      <label for="sdShipLastName">Shipping last name</label>
+                      <input id="sdShipLastName" name="sdShipLastName" type="text" />
+                    </div>
+                    <div>
+                      <label for="sdShipCompany">Company</label>
+                      <input id="sdShipCompany" name="sdShipCompany" type="text" />
+                    </div>
+                    <div>
+                      <label for="sdShipPhone">Phone</label>
+                      <input id="sdShipPhone" name="sdShipPhone" type="text" />
+                    </div>
+                    <div>
+                      <label for="sdShipAddress1">Address line 1</label>
+                      <input id="sdShipAddress1" name="sdShipAddress1" type="text" placeholder="123 Main St" />
+                    </div>
+                    <div>
+                      <label for="sdShipAddress2">Address line 2</label>
+                      <input id="sdShipAddress2" name="sdShipAddress2" type="text" placeholder="Suite 100" />
+                    </div>
+                    <div>
+                      <label for="sdShipCity">City</label>
+                      <input id="sdShipCity" name="sdShipCity" type="text" />
+                    </div>
+                    <div>
+                      <label for="sdShipState">State</label>
+                      <input id="sdShipState" name="sdShipState" type="text" placeholder="OK" maxlength="2" />
+                    </div>
+                    <div>
+                      <label for="sdShipZip">ZIP code</label>
+                      <input id="sdShipZip" name="sdShipZip" type="text" placeholder="73301" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Same-day: Deliver to coordinates -->
+              <div id="checkout-sd-coords-fields" class="form-grid cols-2" style="margin-top:12px;" hidden>
+                <div>
+                  <label for="sdCoordFirstName">Shipping first name</label>
+                  <input id="sdCoordFirstName" name="sdCoordFirstName" type="text" />
+                </div>
+                <div>
+                  <label for="sdCoordLastName">Shipping last name</label>
+                  <input id="sdCoordLastName" name="sdCoordLastName" type="text" />
+                </div>
+                <div>
+                  <label for="sdCoordPhone">Phone</label>
+                  <input id="sdCoordPhone" name="sdCoordPhone" type="text" />
+                </div>
+                <div>
+                  <label for="sdCoordState">State</label>
+                  <input id="sdCoordState" name="sdCoordState" type="text" placeholder="OK" maxlength="2" />
+                </div>
+                <div>
+                  <label for="shipCoordZip">ZIP code</label>
+                  <input id="shipCoordZip" name="shipCoordZip" type="text" placeholder="73301" />
+                </div>
+                <div>
+                  <label for="shipCoordinate">Coordinates</label>
+                  <input id="shipCoordinate" name="shipCoordinate" type="text" placeholder="35.4676,-97.5164" />
+                </div>
+              </div>
+
+              <!-- Same-day: Deliver to saved location -->
+              <div id="checkout-sd-saved-fields" style="margin-top:12px;" hidden>
+                <div class="form-grid cols-2">
+                  <div>
+                    <label for="sdSavedFirstName">Shipping first name</label>
+                    <input id="sdSavedFirstName" name="sdSavedFirstName" type="text" />
+                  </div>
+                  <div>
+                    <label for="sdSavedLastName">Shipping last name</label>
+                    <input id="sdSavedLastName" name="sdSavedLastName" type="text" />
+                  </div>
+                  <div>
+                    <label for="sdSavedPhone">Phone</label>
+                    <input id="sdSavedPhone" name="sdSavedPhone" type="text" />
+                  </div>
+                </div>
+                <div style="margin-top:10px;">
+                  <label for="shipSavedLocation">Saved location</label>
+                  <select id="shipSavedLocation" name="shipSavedLocation">
+                    <option value="">— Select location —</option>
+                    <?php
+                    function render_location_options(array $nodes, string $prefix = ''): void {
+                        foreach ($nodes as $node) {
+                            $zip = trim((string) ($node['zip'] ?? ''));
+                            $coord = trim((string) ($node['coordinate'] ?? ''));
+                            if ($zip === '' || $coord === '') {
+                                if (!empty($node['children'])) {
+                                    render_location_options($node['children'], $prefix);
+                                }
+                                continue;
+                            }
+                            $label = $prefix . htmlspecialchars($node['label'] ?? '', ENT_QUOTES);
+                            echo '<option value="' . htmlspecialchars($node['id'] ?? '', ENT_QUOTES) . '" data-zip="' . htmlspecialchars($zip, ENT_QUOTES) . '" data-coord="' . htmlspecialchars($coord, ENT_QUOTES) . '" data-label="' . $label . '">' . $label . ' (' . htmlspecialchars($zip, ENT_QUOTES) . ')</option>';
+                            if (!empty($node['children'])) {
+                                render_location_options($node['children'], $prefix . '  ');
+                            }
+                        }
+                    }
+                    if (!empty($accountingLocations)) {
+                        render_location_options($accountingLocations);
+                    }
+                    ?>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
           <?php endif; ?>
@@ -952,7 +1244,7 @@ try {
             </fieldset>
           </div>
           <?php endif; ?>
-          <div>
+          <div class="span-2">
             <label for="notes">Notes</label>
             <textarea id="notes" name="notes"></textarea>
           </div>
@@ -1111,6 +1403,123 @@ try {
         var standardCostLabel = document.getElementById('checkout-standard-cost');
         var standardErrorEl = document.getElementById('checkout-standard-error');
 
+        // Shipping destination sections
+        var standardShipSection = document.getElementById('checkout-standard-ship-section');
+        var samedayDestSection = document.getElementById('checkout-sameday-dest-section');
+        var shipDestRadios = Array.prototype.slice.call(form.querySelectorAll('input[name="shipping_dest"]'));
+        var sdAddressFields = document.getElementById('checkout-sd-address-fields');
+        var sdCoordsFields = document.getElementById('checkout-sd-coords-fields');
+        var sdSavedFields = document.getElementById('checkout-sd-saved-fields');
+        var sdAddressInputs = document.getElementById('checkout-sd-address-inputs');
+        var standardShipFields = document.getElementById('checkout-standard-ship-fields');
+        var shipSavedSelect = document.getElementById('shipSavedLocation');
+        var shipSameAsBilling = document.getElementById('shipSameAsBilling');
+        var sdShipSameAsBilling = document.getElementById('sdShipSameAsBilling');
+
+        function getShippingDest() {
+          for (var i = 0; i < shipDestRadios.length; i++) {
+            if (shipDestRadios[i].checked) return shipDestRadios[i].value;
+          }
+          return 'address';
+        }
+
+        function toggleShipDestPanels() {
+          var dest = getShippingDest();
+          if (sdAddressFields) sdAddressFields.hidden = dest !== 'address';
+          if (sdCoordsFields) sdCoordsFields.hidden = dest !== 'coords';
+          if (sdSavedFields) sdSavedFields.hidden = dest !== 'saved';
+        }
+
+        function showShipSection() {
+          var method = getSelectedShippingMethod();
+          if (standardShipSection) standardShipSection.hidden = method !== 'standard';
+          if (samedayDestSection) samedayDestSection.hidden = method !== 'same_day';
+        }
+
+        // Same as billing checkbox: standard delivery
+        if (shipSameAsBilling) {
+          shipSameAsBilling.addEventListener('change', function () {
+            if (standardShipFields) standardShipFields.hidden = shipSameAsBilling.checked;
+          });
+        }
+        // Same as billing checkbox: same-day deliver to address
+        if (sdShipSameAsBilling) {
+          sdShipSameAsBilling.addEventListener('change', function () {
+            if (sdAddressInputs) sdAddressInputs.hidden = sdShipSameAsBilling.checked;
+          });
+        }
+
+        function getShippingStateAndPostal() {
+          var method = getSelectedShippingMethod();
+          if (method === 'pickup') return { state: 'OK', postal: '74820' };
+          if (method === 'standard') {
+            if (shipSameAsBilling && shipSameAsBilling.checked) {
+              return {
+                state: (document.getElementById('state') || {}).value || '',
+                postal: (document.getElementById('postal') || {}).value || ''
+              };
+            }
+            return {
+              state: (document.getElementById('shipState') || {}).value || '',
+              postal: (document.getElementById('shipPostal') || {}).value || ''
+            };
+          }
+          if (method === 'same_day') {
+            var dest = getShippingDest();
+            if (dest === 'address') {
+              if (sdShipSameAsBilling && sdShipSameAsBilling.checked) {
+                return {
+                  state: (document.getElementById('state') || {}).value || '',
+                  postal: (document.getElementById('postal') || {}).value || ''
+                };
+              }
+              return {
+                state: (document.getElementById('sdShipState') || {}).value || '',
+                postal: (document.getElementById('sdShipZip') || {}).value || ''
+              };
+            }
+            if (dest === 'coords') {
+              return {
+                state: (document.getElementById('sdCoordState') || {}).value || 'OK',
+                postal: (document.getElementById('shipCoordZip') || {}).value || ''
+              };
+            }
+            if (dest === 'saved' && shipSavedSelect) {
+              var opt = shipSavedSelect.options[shipSavedSelect.selectedIndex];
+              return {
+                state: 'OK',
+                postal: opt ? (opt.getAttribute('data-zip') || '') : ''
+              };
+            }
+          }
+          return {
+            state: (document.getElementById('state') || {}).value || '',
+            postal: (document.getElementById('postal') || {}).value || ''
+          };
+        }
+
+        shipDestRadios.forEach(function (radio) {
+          radio.addEventListener('change', function () {
+            toggleShipDestPanels();
+            refreshShipping();
+            queueTaxQuote();
+          });
+        });
+        if (shipSavedSelect) {
+          shipSavedSelect.addEventListener('change', function () {
+            refreshShipping();
+            queueTaxQuote();
+          });
+        }
+        ['shipState', 'shipPostal', 'shipCoordZip', 'sdShipState', 'sdShipZip', 'sdCoordState'].forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el) {
+            ['input', 'change', 'blur'].forEach(function (ev) {
+              el.addEventListener(ev, function () { refreshShipping(); queueTaxQuote(); });
+            });
+          }
+        });
+
         // Sync payment method dropdown selection to hidden input
         if (selectPaymentMethod && userSavedMethodInput) {
           selectPaymentMethod.addEventListener('change', function () {
@@ -1231,15 +1640,16 @@ try {
         }
 
         function refreshShipping() {
+          showShipSection();
           if (isServiceOnlyCart) {
             setShippingDisplay(0);
             return;
           }
           var selected = findSelectedShippingInput();
           var method = selected ? selected.value : 'pickup';
+          var shipData = getShippingStateAndPostal();
           if (method === 'same_day') {
-            var postalField = document.getElementById('postal');
-            var zip = postalField ? postalField.value.trim() : '';
+            var zip = shipData.postal;
             if (deliveryZipInput) deliveryZipInput.value = zip;
             var result = calcCheckoutDeliveryCost(zip);
             if (deliveryZoneErrorEl) {
@@ -1259,8 +1669,7 @@ try {
           } else if (method === 'standard') {
             if (deliveryZoneErrorEl) { deliveryZoneErrorEl.hidden = true; }
             if (sameDayCostLabel) { sameDayCostLabel.textContent = 'Enter ZIP for rate'; }
-            var stateField = document.getElementById('state');
-            var stateVal = stateField ? stateField.value.trim() : '';
+            var stateVal = shipData.state.trim();
             var stdResult = calcCheckoutStandardCost(stateVal);
             if (standardErrorEl) {
               if (stdResult.error) {
@@ -1329,10 +1738,10 @@ try {
         }
 
         function fetchTaxQuote() {
-          var stateInput = form.querySelector('#state');
-          var postalInput = form.querySelector('#postal');
-          var stateValue = stateInput ? stateInput.value.trim() : '';
-          var postalValue = postalInput ? postalInput.value.trim() : '';
+          var method = getSelectedShippingMethod();
+          var shipData = getShippingStateAndPostal();
+          var stateValue = shipData.state.trim();
+          var postalValue = shipData.postal.trim();
           if (!stateValue || !postalValue) {
             setTaxDisplay(0, true);
             return;
@@ -1340,7 +1749,7 @@ try {
           fetch('/api/tax_quote.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ subtotal: taxableSubtotal, state: stateValue, postal: postalValue })
+            body: JSON.stringify({ subtotal: taxableSubtotal, state: stateValue, postal: postalValue, shippingMethod: method })
           })
             .then(function (resp) {
               return resp.json().catch(function () {
@@ -1547,7 +1956,10 @@ try {
           if (!input) {
             return;
           }
-          input.addEventListener('change', refreshShipping);
+          input.addEventListener('change', function () {
+            refreshShipping();
+            queueTaxQuote();
+          });
         });
         applyCartShippingPrefill();
         refreshShipping();

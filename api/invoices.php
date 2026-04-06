@@ -66,22 +66,26 @@ if ($method === 'GET' && !empty($_GET['download'])) {
 if ($method === 'GET') {
     opd_require_role(['admin', 'manager']);
 
-    // List all invoices with order info
+    // List invoices with order info
     $status = trim((string) ($_GET['status'] ?? ''));
-    $sql = 'SELECT i.*, o.number AS orderNumber, o.customerName, o.customerEmail
-            FROM invoices i
-            LEFT JOIN orders o ON o.id = i.orderId
-            ORDER BY i.createdAt DESC';
+    $orderId = trim((string) ($_GET['orderId'] ?? ''));
+    $where = [];
     $params = [];
 
     if ($status !== '' && in_array($status, ['pending', 'paid', 'overdue'], true)) {
-        $sql = 'SELECT i.*, o.number AS orderNumber, o.customerName, o.customerEmail
-                FROM invoices i
-                LEFT JOIN orders o ON o.id = i.orderId
-                WHERE i.status = ?
-                ORDER BY i.createdAt DESC';
-        $params = [$status];
+        $where[] = 'i.status = ?';
+        $params[] = $status;
     }
+    if ($orderId !== '') {
+        $where[] = 'i.orderId = ?';
+        $params[] = $orderId;
+    }
+
+    $sql = 'SELECT i.*, o.number AS orderNumber, o.customerName, o.customerEmail
+            FROM invoices i
+            LEFT JOIN orders o ON o.id = i.orderId'
+        . ($where ? ' WHERE ' . implode(' AND ', $where) : '')
+        . ' ORDER BY i.createdAt DESC';
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);

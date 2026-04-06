@@ -130,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'company' => $profileRow['companyName'] ?? $user['name'] ?? '',
                         'recipient' => $recipientName,
                     ];
-                    $link = $baseUrl . '/dashboard-clients.php';
+                    $link = $baseUrl . '/login.php?redirect=/dashboard-clients.php';
                     $smsText = site_build_invite_message($template, $link, $context);
                     $rateKey = 'vendor_invite:' . ($user['id'] ?? 'user') . ':' . $normalizedPhone;
                     $sendResult = site_send_invite_sms($normalizedPhone, $smsText, $rateKey);
@@ -182,7 +182,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     if ($action === 'delete') {
-        site_simple_delete('vendors', $_POST['id'] ?? '');
+        $deleteVendorId = $_POST['id'] ?? '';
+        if (is_string($deleteVendorId) && $deleteVendorId !== '') {
+            // Look up the vendor record to find the linked user and remove the reverse client record
+            $vendorLookup = $pdo->prepare('SELECT linkedUserId, email FROM vendors WHERE id = ? AND userId = ? LIMIT 1');
+            $vendorLookup->execute([$deleteVendorId, $user['id']]);
+            $vendorRow = $vendorLookup->fetch();
+            if ($vendorRow) {
+                $vendorLinkedUserId = trim((string) ($vendorRow['linkedUserId'] ?? ''));
+                // If we don't have a linked user ID, try to resolve by email.
+                if ($vendorLinkedUserId === '' && !empty($vendorRow['email'])) {
+                    $inviter = site_find_user_by_email((string) $vendorRow['email']);
+                    $vendorLinkedUserId = (string) ($inviter['id'] ?? '');
+                }
+                // Remove the reverse client record on the vendor's side.
+                // Match by linkedUserId OR by the current user's email, so invites
+                // that were never fully linked still get cleaned up.
+                if ($vendorLinkedUserId !== '') {
+                    $removeClient = $pdo->prepare(
+                        'DELETE FROM clients WHERE userId = ? AND (linkedUserId = ? OR LOWER(email) = LOWER(?))'
+                    );
+                    $removeClient->execute([
+                        $vendorLinkedUserId,
+                        $user['id'],
+                        (string) ($user['email'] ?? ''),
+                    ]);
+                }
+            }
+            site_simple_delete('vendors', $deleteVendorId);
+        }
         $message = 'Vendor removed.';
     }
     if ($action === 'accept' || $action === 'decline') {
@@ -313,6 +341,12 @@ $csrf = site_csrf_token();
       .vendor-add-toggle-chevron { transition: transform 0.2s; flex-shrink: 0; }
       .vendor-add-form { display: none; margin-top: 12px; }
       .vendor-add-form.is-open { display: block; }
+      .form-grid.cols-2.vendor-add-grid {
+        grid-template-columns: 1fr;
+      }
+      .vendor-add-grid .span-2 {
+        grid-column: 1 / -1;
+      }
     }
     .vendor-table { width: 100%; border-collapse: collapse; }
     .vendor-table th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); padding: 8px 9px; white-space: nowrap; }
@@ -444,7 +478,7 @@ $csrf = site_csrf_token();
             <div class="<?php echo htmlspecialchars($messageClass, ENT_QUOTES); ?>"><?php echo htmlspecialchars($message, ENT_QUOTES); ?></div>
           <?php endif; ?>
           <div id="vendor-add-form" class="vendor-add-form<?php echo $isFormError ? ' is-open' : ''; ?>">
-          <form method="POST" class="form-grid cols-2">
+          <form method="POST" class="form-grid cols-2 vendor-add-grid">
             <input type="hidden" name="_csrf" value="<?php echo htmlspecialchars($csrf, ENT_QUOTES); ?>" />
             <div>
               <label for="name">Vendor name</label>

@@ -350,7 +350,26 @@ for (let i = 0; i < qtyButtons.length; i += 1) {
       clearSuggestions()
     }
   })
-})()
+})();
+
+/* Cart badge: update the header cart count */
+window.updateCartBadge = function (delta) {
+  var badge = document.querySelector('.cart-badge')
+  var link = document.querySelector('.header-cart-link')
+  if (!link) return
+  if (!badge) {
+    badge = document.createElement('span')
+    badge.className = 'cart-badge'
+    badge.setAttribute('data-cart-count', '0')
+    badge.textContent = '0'
+    link.appendChild(badge)
+  }
+  var current = parseInt(badge.getAttribute('data-cart-count') || '0', 10)
+  var next = Math.max(0, current + (delta || 1))
+  badge.setAttribute('data-cart-count', String(next))
+  badge.textContent = String(next)
+  badge.style.display = next > 0 ? '' : 'none'
+};
 
 /* Favorites module - centralized handling for favorite buttons across the site */
 (function () {
@@ -595,5 +614,5 @@ for (let i = 0; i < qtyButtons.length; i += 1) {
   }
 
   window.Favorites = { init: FavoritesInit }
-})()
+})();
 

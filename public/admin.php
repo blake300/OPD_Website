@@ -304,6 +304,6 @@ header('Pragma: no-cache');
     </main>
   </div>
 
-  <script src="/assets/js/admin.js?v=20260326b"></script>
+  <script src="/assets/js/admin.js?v=20260331a" nonce="<?php echo opd_csp_nonce(); ?>"></script>
 </body>
 </html>

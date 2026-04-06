@@ -39,11 +39,11 @@ $_seoTitle = opd_site_name() . ' | Oilfield Equipment, Tools & Supplies';
         </div>
       </div>
       <div class="home-hero-buttons">
-        <a class="category-button" href="/category.php?category=AutoBailer%20Artifical%20Lift">
+        <a class="category-button" href="/category.php?category=AutoBailer%20Artificial%20Lift">
           <span class="category-circle">
             <span class="category-icon category-icon--autobailer" aria-hidden="true"></span>
           </span>
-          <span class="category-label">AutoBailer Artifical Lift</span>
+          <span class="category-label">AutoBailer Artificial Lift</span>
         </a>
         <a class="category-button" href="/category.php?category=Parts">
           <span class="category-circle">
@@ -107,7 +107,7 @@ $_seoTitle = opd_site_name() . ' | Oilfield Equipment, Tools & Supplies';
                 <div class="card">
                   <div class="tag"><?php echo htmlspecialchars($product['status'] ?? 'available', ENT_QUOTES); ?></div>
                   <?php if (!empty($product['imageUrl'])): ?>
-                    <img class="product-thumb" src="<?php echo htmlspecialchars($product['imageUrl'], ENT_QUOTES); ?>" alt="<?php echo htmlspecialchars($product['name'] ?? 'Product', ENT_QUOTES); ?>" />
+                    <img class="product-thumb" src="<?php echo htmlspecialchars($product['imageUrl'], ENT_QUOTES); ?>" alt="<?php echo htmlspecialchars($product['name'] ?? 'Product', ENT_QUOTES); ?>" loading="lazy" />
                   <?php else: ?>
                     <div class="image-placeholder">No image</div>
                   <?php endif; ?>

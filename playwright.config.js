@@ -1,6 +1,6 @@
 const { defineConfig } = require('@playwright/test');
 
-const baseURL = process.env.BASE_URL || 'http://localhost:8000';
+const baseURL = process.env.BASE_URL || 'https://oilpatchdepot.com';
 
 module.exports = defineConfig({
   testDir: './tests',
@@ -8,13 +8,20 @@ module.exports = defineConfig({
   expect: {
     timeout: 10000
   },
-  fullyParallel: true,
+  fullyParallel: false, // sequential for auth-dependent tests
   retries: process.env.CI ? 1 : 0,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure'
-  }
+    video: 'retain-on-failure',
+    ignoreHTTPSErrors: true,
+  },
+  projects: [
+    {
+      name: 'chromium',
+      use: { browserName: 'chromium' },
+    },
+  ],
 });

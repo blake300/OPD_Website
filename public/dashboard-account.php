@@ -705,7 +705,7 @@ $csrf = site_csrf_token();
   <?php require __DIR__ . '/partials/site-footer.php'; ?>
 
   <?php if ($stripePublishableKey !== ''): ?>
-    <script src="https://js.stripe.com/v3"></script>
+    <script src="https://js.stripe.com/v3" nonce="<?php echo opd_csp_nonce(); ?>"></script>
     <script nonce="<?php echo opd_csp_nonce(); ?>">
       (function () {
         var form = document.getElementById('stripe-card-form');

@@ -29,7 +29,7 @@ if ($method === 'GET') {
                 'id'          => $g['id'],
                 'name'        => $g['name'] ?? '',
                 'rate'        => (float) $g['rate'],
-                'ratePercent' => round((float) $g['rate'] * 100, 4),
+                'ratePercent' => (float) $g['rate'] * 100,
                 'zips'        => $zips,
                 'createdAt'   => $g['createdAt'] ?? '',
                 'updatedAt'   => $g['updatedAt'] ?? '',
@@ -59,7 +59,7 @@ if ($method === 'POST') {
     if ($ratePercent < 0 || $ratePercent > 100) {
         opd_json_response(['error' => 'Rate must be between 0 and 100.'], 400);
     }
-    $rate = round($ratePercent / 100, 6);
+    $rate = $ratePercent / 100;
 
     $zips = opd_parse_zip_list($zipsRaw);
     if (empty($zips)) {
@@ -139,7 +139,7 @@ if ($method === 'PUT') {
     if ($ratePercent < 0 || $ratePercent > 100) {
         opd_json_response(['error' => 'Rate must be between 0 and 100.'], 400);
     }
-    $rate = round($ratePercent / 100, 6);
+    $rate = $ratePercent / 100;
 
     $zips = opd_parse_zip_list($zipsRaw);
     if (empty($zips)) {

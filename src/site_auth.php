@@ -455,6 +455,16 @@ function site_ensure_password_reset_table(): void
             INDEX idx_user_id (userId)
         )'
     );
+
+    // Add `used` column to older table variants that were created without it.
+    try {
+        $col = $pdo->query("SHOW COLUMNS FROM password_reset_tokens LIKE 'used'")->fetch();
+        if (!$col) {
+            $pdo->exec('ALTER TABLE password_reset_tokens ADD COLUMN used TINYINT(1) DEFAULT 0');
+        }
+    } catch (\Throwable $e) {
+        // Ignore — if the query fails we'll surface the original error on read.
+    }
 }
 
 /**

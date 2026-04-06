@@ -34,7 +34,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($rememberMe) {
                     site_remember_me();
                 }
-                header('Location: ' . $defaultRedirect);
+                // If no explicit redirect, check for pending invitations
+                $loginRedirect = $defaultRedirect;
+                if ($redirectUrl === '') {
+                    $linked = site_link_pending_invitations($user['id'], $email);
+                    if ($linked['linkedClients'] > 0) {
+                        $loginRedirect = '/dashboard-clients.php';
+                    } elseif ($linked['linkedVendors'] > 0) {
+                        $loginRedirect = '/dashboard-vendors.php';
+                    }
+                }
+                header('Location: ' . $loginRedirect);
                 exit;
             }
             $loginError = 'Invalid credentials.';

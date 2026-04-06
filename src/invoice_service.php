@@ -140,32 +140,51 @@ function opd_invoice_lookup_client_email(string $orderUserId, string $clientId):
  */
 function opd_resolve_invoice_recipient(array $orderData): array
 {
-    $clientUserEmail = opd_invoice_lookup_user_email((string) ($orderData['clientUserId'] ?? ''));
-    if ($clientUserEmail !== '') {
-        return ['email' => $clientUserEmail, 'source' => 'clientUserId'];
+    // Primary recipient: the customer who placed the order.
+    // Prefer customerEmail on the order (set from the logged-in user), fall back
+    // to a lookup on userId.
+    $primary = '';
+    $source = 'none';
+
+    $customerEmail = trim((string) ($orderData['customerEmail'] ?? ''));
+    if (filter_var($customerEmail, FILTER_VALIDATE_EMAIL)) {
+        $primary = $customerEmail;
+        $source = 'customerEmail';
     }
 
+    if ($primary === '') {
+        $orderUserEmail = opd_invoice_lookup_user_email((string) ($orderData['userId'] ?? ''));
+        if ($orderUserEmail !== '') {
+            $primary = $orderUserEmail;
+            $source = 'orderUserId';
+        }
+    }
+
+    // Additional recipients: billed-to client (when placing on behalf of a client).
+    $extras = [];
+    $clientUserEmail = opd_invoice_lookup_user_email((string) ($orderData['clientUserId'] ?? ''));
+    if ($clientUserEmail !== '' && strcasecmp($clientUserEmail, $primary) !== 0) {
+        $extras[] = $clientUserEmail;
+    }
     $clientRecordEmail = opd_invoice_lookup_client_email(
         (string) ($orderData['userId'] ?? ''),
         (string) ($orderData['clientId'] ?? '')
     );
-    if ($clientRecordEmail !== '') {
-        return ['email' => $clientRecordEmail, 'source' => 'clientRecord'];
+    if ($clientRecordEmail !== '' && strcasecmp($clientRecordEmail, $primary) !== 0 && !in_array(strtolower($clientRecordEmail), array_map('strtolower', $extras), true)) {
+        $extras[] = $clientRecordEmail;
+    }
+    $billingEmail = trim((string) ($orderData['billingEmail'] ?? ''));
+    if (filter_var($billingEmail, FILTER_VALIDATE_EMAIL) && strcasecmp($billingEmail, $primary) !== 0 && !in_array(strtolower($billingEmail), array_map('strtolower', $extras), true)) {
+        $extras[] = $billingEmail;
     }
 
-    foreach (['billingEmail', 'customerEmail'] as $field) {
-        $email = trim((string) ($orderData[$field] ?? ''));
-        if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return ['email' => $email, 'source' => $field];
-        }
+    // Final fallback: if no primary recipient but a billing email exists, use it.
+    if ($primary === '' && !empty($extras)) {
+        $primary = array_shift($extras);
+        $source = 'fallback';
     }
 
-    $orderUserEmail = opd_invoice_lookup_user_email((string) ($orderData['userId'] ?? ''));
-    if ($orderUserEmail !== '') {
-        return ['email' => $orderUserEmail, 'source' => 'orderUserId'];
-    }
-
-    return ['email' => '', 'source' => 'none'];
+    return ['email' => $primary, 'source' => $source, 'extras' => $extras];
 }
 
 function opd_invoice_item_sku(array $item): string
@@ -178,6 +197,29 @@ function opd_invoice_item_sku(array $item): string
     }
 
     return '';
+}
+
+function opd_invoice_fit_cell_text(\FPDF $pdf, string $text, float $maxWidth, string $ellipsis = '...'): string
+{
+    $text = trim($text);
+    if ($text === '' || $pdf->GetStringWidth($text) <= $maxWidth) {
+        return $text;
+    }
+
+    if ($pdf->GetStringWidth($ellipsis) > $maxWidth) {
+        return '';
+    }
+
+    $truncated = $text;
+    while ($truncated !== '') {
+        $truncated = substr($truncated, 0, -1);
+        $candidate = rtrim($truncated) . $ellipsis;
+        if ($candidate === $ellipsis || $pdf->GetStringWidth($candidate) <= $maxWidth) {
+            return $candidate;
+        }
+    }
+
+    return $ellipsis;
 }
 
 /**
@@ -330,7 +372,9 @@ function opd_generate_invoice_pdf(string $invoiceId): string
         } else {
             $pdf->Cell(90, $rowH, '  ' . substr($productName, 0, 50), 1, 0, 'L', $fill);
         }
-        $pdf->Cell(25, $rowH, $sku, 1, 0, 'C', $fill);
+        $pdf->SetFont('Helvetica', '', 8);
+        $pdf->Cell(25, $rowH, opd_invoice_fit_cell_text($pdf, $sku, 23.0), 1, 0, 'C', $fill);
+        $pdf->SetFont('Helvetica', '', 9);
         $pdf->Cell(20, $rowH, (string) $qty, 1, 0, 'C', $fill);
         $pdf->Cell(27, $rowH, '$' . number_format($price, 2), 1, 0, 'R', $fill);
         $pdf->Cell(28, $rowH, '$' . number_format($lineTotal, 2), 1, 1, 'R', $fill);
@@ -487,6 +531,11 @@ function opd_email_invoice(string $invoiceId): bool
 
     try {
         $mail->addAddress($recipientEmail);
+        foreach ((array) ($recipient['extras'] ?? []) as $extraEmail) {
+            if (is_string($extraEmail) && filter_var($extraEmail, FILTER_VALIDATE_EMAIL)) {
+                $mail->addCC($extraEmail);
+            }
+        }
         $mail->Subject = "Invoice {$invoiceNumber} - {$siteName}";
         $mail->Body = $body;
         $mail->AltBody = strip_tags($body);

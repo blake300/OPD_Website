@@ -20,6 +20,13 @@ if ($method === 'POST') {
 $subtotal = isset($payload['subtotal']) && is_numeric($payload['subtotal']) ? (float) $payload['subtotal'] : 0.0;
 $state = trim((string) ($payload['state'] ?? ''));
 $postal = trim((string) ($payload['postal'] ?? $payload['zip'] ?? ''));
+$shippingMethod = trim((string) ($payload['shippingMethod'] ?? ''));
+
+// Pickup orders always use the store zip (74820) for tax
+if ($shippingMethod === 'pickup') {
+    $state = 'OK';
+    $postal = '74820';
+}
 
 $taxData = opd_calculate_ok_sales_tax($subtotal, $state, $postal);
 

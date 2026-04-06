@@ -1,6 +1,6 @@
 # Webby Memory
 
-Last updated: 2026-03-26
+Last updated: 2026-03-30
 
 ## Global Design Preferences
 - Colors:
@@ -25,6 +25,7 @@ Last updated: 2026-03-26
 - `c:\Users\blakecantrell\.vscode\Opd\OPD_Website`: Hidden-category products stay out of direct storefront queries, but association displays may surface active hidden related products when cart/session state preserves the originating visible source product.
 
 ## Recent Updates
+- 2026-03-30: Checkout notes field now spans the full two-column checkout form; vendor/client dashboard forms use page-level mobile overrides to stack fields one per row.
 - 2026-01-25: Initialized Webby memory.
 - 2026-01-27: Noted run-on-save schema sync script output to database/schema_sync.sql.
 - 2026-01-27: Updated run-on-save regex to match Windows path separators.
@@ -151,6 +152,7 @@ Last updated: 2026-03-26
 - 2026-03-26: Hardened storefront visibility, public product serialization, login throttling, and config-based site URLs; removed public checkout debug pages and added `scripts/security_regression_check.php`.
 - 2026-03-26: Invoice checkout no longer writes the nonexistent `orders.paymentMethod` column; invoice email delivery now resolves client-linked recipients before billing/customer fallbacks and warns when automatic invoice email fails.
 - 2026-03-26: Invoice PDFs now print Oil Patch Depot's Ada mailing address in the header and persist order-item SKUs so regenerated invoices keep historical SKU values.
+- 2026-03-30: Invoice PDFs now shrink the SKU text slightly and apply width-aware truncation in the 25mm SKU column so long line-item SKUs stay inside the table borders.
 - 2026-03-26: Admin product category selects and filters now read the canonical category list from PHP/meta instead of a separate hardcoded JS subset, so hidden categories stay editable in admin.
 - 2026-03-26: Admin Orders status now uses a real select config, and the shared admin form filler preserves unknown select values by injecting a temporary option instead of blanking legacy data.
 - 2026-03-26: Temporary design/admin scratch pages placed under `public/` are deployable by the current release script; keep them out of `public/` unless they are intended to be reachable on production.
