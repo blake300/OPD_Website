@@ -4,7 +4,7 @@
 CREATE TABLE IF NOT EXISTS tax_rate_groups (
   id VARCHAR(64) PRIMARY KEY,
   name VARCHAR(255),
-  rate DECIMAL(6,4) NOT NULL,
+  rate DECIMAL(10,8) NOT NULL,
   createdAt DATETIME,
   updatedAt DATETIME,
   INDEX idx_rate (rate)

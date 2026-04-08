@@ -9,6 +9,14 @@ require_once __DIR__ . '/../src/tax_rates.php';
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
+// Ensure rate column has enough decimal precision (idempotent)
+try {
+    $pdo = opd_db();
+    $pdo->exec('ALTER TABLE tax_rate_groups MODIFY COLUMN rate DECIMAL(10,8) NOT NULL');
+} catch (\Throwable $e) {
+    // ignore — table may not exist yet or column already correct
+}
+
 // ── GET: list all tax rate groups with their zips ──
 if ($method === 'GET') {
     opd_require_role(['admin', 'manager']);
@@ -25,11 +33,16 @@ if ($method === 'GET') {
             $stmt->execute([$g['id']]);
             $zips = $stmt->fetchAll(\PDO::FETCH_COLUMN);
 
+            // Use string math to avoid float precision loss (e.g. 0.05375 * 100)
+            $rateDecimal = (string) $g['rate'];
+            $ratePercentVal = (float) $rateDecimal * 100;
+            // Round to 10 decimal places to eliminate float noise, then trim
+            $ratePercentClean = rtrim(rtrim(number_format($ratePercentVal, 10, '.', ''), '0'), '.');
             $items[] = [
                 'id'          => $g['id'],
                 'name'        => $g['name'] ?? '',
                 'rate'        => (float) $g['rate'],
-                'ratePercent' => (float) $g['rate'] * 100,
+                'ratePercent' => (float) $ratePercentClean,
                 'zips'        => $zips,
                 'createdAt'   => $g['createdAt'] ?? '',
                 'updatedAt'   => $g['updatedAt'] ?? '',
