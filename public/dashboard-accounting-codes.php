@@ -490,11 +490,48 @@ $csrf = site_csrf_token();
                   structure[category] = [];
                 }
                 const target = structure[category];
+                // Location rows support multiple column layouts:
+                //   Location, Sub Location, Sub Sub Location, Zip, Coordinates
+                //   Location, Sub Location,                   Zip, Coordinates
+                //   Location,                                 Zip, Coordinates
+                //   (with coordinates optionally split across Lat, Lng cells)
+                // Detect the ZIP column by content (5-digit US zip) rather than
+                // by position so users can import any of these layouts without
+                // having to reshape the file to match the template exactly.
+                const isZip = (s) => /^\d{5}(-\d{4})?$/.test(String(s || '').trim());
                 dataRows.forEach((row) => {
-                  const level1 = (row[0] || '').trim();
-                  const level2 = (row[1] || '').trim();
-                  const level3 = (row[2] || '').trim();
+                  const cells = row.map((c) => (c || '').trim());
+                  const level1 = cells[0] || '';
                   if (!level1) return;
+
+                  let zip = '';
+                  let coord = '';
+                  let level2 = '';
+                  let level3 = '';
+
+                  if (category === 'location') {
+                    // Find the first cell from column 1 onward that looks like
+                    // a zip code. Cells before it are sub-location labels;
+                    // cells after it form the coordinate.
+                    let zipIdx = -1;
+                    for (let i = 1; i < cells.length; i++) {
+                      if (isZip(cells[i])) { zipIdx = i; break; }
+                    }
+                    if (zipIdx === -1) {
+                      // No zip found — fall back to hierarchical positions.
+                      level2 = cells[1] || '';
+                      level3 = cells[2] || '';
+                    } else {
+                      if (zipIdx >= 2) level2 = cells[1] || '';
+                      if (zipIdx >= 3) level3 = cells[2] || '';
+                      zip = cells[zipIdx];
+                      coord = cells.slice(zipIdx + 1).filter((c) => c !== '').join(',');
+                    }
+                  } else {
+                    level2 = cells[1] || '';
+                    level3 = cells[2] || '';
+                  }
+
                   const root = ensureNode(target, level1);
                   if (!root) return;
                   let deepest = root;
@@ -510,17 +547,7 @@ $csrf = site_csrf_token();
                       }
                     }
                   }
-                  // For locations, zip/coordinates apply to the deepest node
-                  // named in the row — not just the top-level parent. This lets
-                  // each sub-location keep its own ZIP and coordinates.
-                  // If a coordinate value containing a comma was saved without
-                  // quotes (e.g. "34.09,-118.40"), the parser splits it across
-                  // row[4] and row[5]+ — rejoin those trailing cells so the
-                  // coordinate still lands intact on the deepest node.
                   if (category === 'location') {
-                    const zip = (row[3] || '').trim();
-                    const coordCells = row.slice(4).map((c) => (c || '').trim()).filter((c) => c !== '');
-                    const coord = coordCells.join(',');
                     if (zip) deepest.zip = zip;
                     if (coord) deepest.coordinate = coord;
                   }
