@@ -40,9 +40,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS products (
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_products_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_products_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_products_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_products_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   name VARCHAR(255),
   sku VARCHAR(100),
@@ -78,9 +78,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_products_2026
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','name','sku','imageUrl','price','status','featured','service','largeDelivery','daysOut','posNum','inventory','invStockTo','invMin','category','shortDescription','longDescription','wgt','lng','wdth','hght','tags','vnName','vnContact','vnPrice','compName','compPrice','shelfNum','estFreight','createdAt','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'products' AND column_name IN ('id','name','sku','imageUrl','price','status','featured','service','largeDelivery','daysOut','posNum','inventory','invStockTo','invMin','category','shortDescription','longDescription','wgt','lng','wdth','hght','tags','vnName','vnContact','vnPrice','compName','compPrice','shelfNum','estFreight','createdAt','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_products_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `products`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_products_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `products`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `products` TO `__schema_sync_old_products_20260413_154159`, `__schema_sync_new_products_20260413_154159` TO `products`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `products` TO `__schema_sync_old_products_20260413_154406`, `__schema_sync_new_products_20260413_154406` TO `products`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- product_images
@@ -96,9 +96,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS product_images (
   INDEX productId (productId)
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_product_images_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_product_images_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_product_images_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_product_images_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   productId VARCHAR(64),
   url TEXT,
@@ -111,9 +111,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_product_image
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','productId','url','isPrimary','sortOrder','createdAt','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'product_images' AND column_name IN ('id','productId','url','isPrimary','sortOrder','createdAt','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_product_images_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `product_images`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_product_images_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `product_images`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `product_images` TO `__schema_sync_old_product_images_20260413_154159`, `__schema_sync_new_product_images_20260413_154159` TO `product_images`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `product_images` TO `__schema_sync_old_product_images_20260413_154406`, `__schema_sync_new_product_images_20260413_154406` TO `product_images`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- orders
@@ -171,9 +171,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS orders (
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_orders_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_orders_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_orders_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_orders_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   number VARCHAR(100),
   status VARCHAR(50),
@@ -228,9 +228,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_orders_202604
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','number','status','customerName','customerEmail','customerPhone','address1','address2','city','state','postal','country','billingFirstName','billingLastName','billingCompany','billingAddress1','billingAddress2','billingCity','billingStateCode','billingEmail','billingPhone','billingPostcode','shippingFirstName','shippingLastName','shippingCompany','shippingAddress1','shippingAddress2','shippingCity','shippingStateCode','shippingPhone','shippingPostcode','notes','userId','clientId','clientUserId','orderAmount','total','tax','shipping','refundAmount','currency','shippingMethod','deliveryZone','deliveryClass','paymentStatus','fulfillmentStatus','approvalStatus','approvalSentAt','createdAt','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'orders' AND column_name IN ('id','number','status','customerName','customerEmail','customerPhone','address1','address2','city','state','postal','country','billingFirstName','billingLastName','billingCompany','billingAddress1','billingAddress2','billingCity','billingStateCode','billingEmail','billingPhone','billingPostcode','shippingFirstName','shippingLastName','shippingCompany','shippingAddress1','shippingAddress2','shippingCity','shippingStateCode','shippingPhone','shippingPostcode','notes','userId','clientId','clientUserId','orderAmount','total','tax','shipping','refundAmount','currency','shippingMethod','deliveryZone','deliveryClass','paymentStatus','fulfillmentStatus','approvalStatus','approvalSentAt','createdAt','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_orders_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `orders`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_orders_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `orders`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `orders` TO `__schema_sync_old_orders_20260413_154159`, `__schema_sync_new_orders_20260413_154159` TO `orders`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `orders` TO `__schema_sync_old_orders_20260413_154406`, `__schema_sync_new_orders_20260413_154406` TO `orders`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- product_variants
@@ -266,9 +266,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS product_variants (
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_product_variants_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_product_variants_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_product_variants_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_product_variants_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   productId VARCHAR(64),
   name VARCHAR(255),
@@ -301,9 +301,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_product_varia
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','productId','name','sku','price','largeDelivery','inventory','invStockTo','invMin','status','posNum','shortDescription','longDescription','wgt','lng','wdth','hght','tags','vnName','vnContact','vnPrice','compName','compPrice','shelfNum','estFreight','parentName','createdAt','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'product_variants' AND column_name IN ('id','productId','name','sku','price','largeDelivery','inventory','invStockTo','invMin','status','posNum','shortDescription','longDescription','wgt','lng','wdth','hght','tags','vnName','vnContact','vnPrice','compName','compPrice','shelfNum','estFreight','parentName','createdAt','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_product_variants_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `product_variants`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_product_variants_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `product_variants`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `product_variants` TO `__schema_sync_old_product_variants_20260413_154159`, `__schema_sync_new_product_variants_20260413_154159` TO `product_variants`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `product_variants` TO `__schema_sync_old_product_variants_20260413_154406`, `__schema_sync_new_product_variants_20260413_154406` TO `product_variants`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- product_associations
@@ -317,9 +317,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS product_associatio
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_product_associations_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_product_associations_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_product_associations_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_product_associations_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   productId VARCHAR(64),
   relatedProductId VARCHAR(64),
@@ -330,9 +330,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_product_assoc
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','productId','relatedProductId','sortOrder','createdAt','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'product_associations' AND column_name IN ('id','productId','relatedProductId','sortOrder','createdAt','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_product_associations_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `product_associations`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_product_associations_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `product_associations`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `product_associations` TO `__schema_sync_old_product_associations_20260413_154159`, `__schema_sync_new_product_associations_20260413_154159` TO `product_associations`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `product_associations` TO `__schema_sync_old_product_associations_20260413_154406`, `__schema_sync_new_product_associations_20260413_154406` TO `product_associations`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- carts
@@ -345,9 +345,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS carts (
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_carts_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_carts_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_carts_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_carts_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   userId VARCHAR(64),
   status VARCHAR(50),
@@ -357,9 +357,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_carts_2026041
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','userId','status','createdAt','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'carts' AND column_name IN ('id','userId','status','createdAt','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_carts_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `carts`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_carts_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `carts`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `carts` TO `__schema_sync_old_carts_20260413_154159`, `__schema_sync_new_carts_20260413_154159` TO `carts`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `carts` TO `__schema_sync_old_carts_20260413_154406`, `__schema_sync_new_carts_20260413_154406` TO `carts`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- cart_items
@@ -376,9 +376,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS cart_items (
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_cart_items_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_cart_items_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_cart_items_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_cart_items_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   cartId VARCHAR(64),
   productId VARCHAR(64),
@@ -392,9 +392,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_cart_items_20
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','cartId','productId','variantId','quantity','arrivalDate','associationSourceProductId','createdAt','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'cart_items' AND column_name IN ('id','cartId','productId','variantId','quantity','arrivalDate','associationSourceProductId','createdAt','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_cart_items_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `cart_items`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_cart_items_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `cart_items`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `cart_items` TO `__schema_sync_old_cart_items_20260413_154159`, `__schema_sync_new_cart_items_20260413_154159` TO `cart_items`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `cart_items` TO `__schema_sync_old_cart_items_20260413_154406`, `__schema_sync_new_cart_items_20260413_154406` TO `cart_items`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- cart_accounting
@@ -409,9 +409,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS cart_accounting (
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_cart_accounting_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_cart_accounting_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_cart_accounting_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_cart_accounting_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   cartId VARCHAR(64),
   clientId VARCHAR(64),
@@ -423,9 +423,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_cart_accounti
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','cartId','clientId','groupsJson','assignmentsJson','createdAt','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'cart_accounting' AND column_name IN ('id','cartId','clientId','groupsJson','assignmentsJson','createdAt','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_cart_accounting_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `cart_accounting`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_cart_accounting_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `cart_accounting`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `cart_accounting` TO `__schema_sync_old_cart_accounting_20260413_154159`, `__schema_sync_new_cart_accounting_20260413_154159` TO `cart_accounting`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `cart_accounting` TO `__schema_sync_old_cart_accounting_20260413_154406`, `__schema_sync_new_cart_accounting_20260413_154406` TO `cart_accounting`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- order_items
@@ -447,9 +447,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS order_items (
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_order_items_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_order_items_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_order_items_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_order_items_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   orderId VARCHAR(64),
   productId VARCHAR(64),
@@ -468,9 +468,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_order_items_2
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','orderId','productId','variantId','name','productName','variantName','sku','price','quantity','total','arrivalDate','createdAt','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'order_items' AND column_name IN ('id','orderId','productId','variantId','name','productName','variantName','sku','price','quantity','total','arrivalDate','createdAt','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_order_items_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `order_items`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_order_items_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `order_items`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `order_items` TO `__schema_sync_old_order_items_20260413_154159`, `__schema_sync_new_order_items_20260413_154159` TO `order_items`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `order_items` TO `__schema_sync_old_order_items_20260413_154406`, `__schema_sync_new_order_items_20260413_154406` TO `order_items`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- order_accounting
@@ -485,9 +485,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS order_accounting (
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_order_accounting_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_order_accounting_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_order_accounting_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_order_accounting_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   orderId VARCHAR(64),
   clientId VARCHAR(64),
@@ -499,9 +499,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_order_account
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','orderId','clientId','groupsJson','assignmentsJson','createdAt','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'order_accounting' AND column_name IN ('id','orderId','clientId','groupsJson','assignmentsJson','createdAt','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_order_accounting_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `order_accounting`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_order_accounting_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `order_accounting`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `order_accounting` TO `__schema_sync_old_order_accounting_20260413_154159`, `__schema_sync_new_order_accounting_20260413_154159` TO `order_accounting`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `order_accounting` TO `__schema_sync_old_order_accounting_20260413_154406`, `__schema_sync_new_order_accounting_20260413_154406` TO `order_accounting`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- favorites
@@ -514,9 +514,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS favorites (
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_favorites_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_favorites_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_favorites_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_favorites_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   userId VARCHAR(64),
   productId VARCHAR(64),
@@ -526,9 +526,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_favorites_202
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','userId','productId','createdAt','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'favorites' AND column_name IN ('id','userId','productId','createdAt','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_favorites_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `favorites`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_favorites_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `favorites`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `favorites` TO `__schema_sync_old_favorites_20260413_154159`, `__schema_sync_new_favorites_20260413_154159` TO `favorites`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `favorites` TO `__schema_sync_old_favorites_20260413_154406`, `__schema_sync_new_favorites_20260413_154406` TO `favorites`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- favorite_categories
@@ -542,9 +542,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS favorite_categorie
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_favorite_categories_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_favorite_categories_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_favorite_categories_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_favorite_categories_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   userId VARCHAR(64),
   name VARCHAR(120),
@@ -555,9 +555,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_favorite_cate
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','userId','name','sortOrder','createdAt','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'favorite_categories' AND column_name IN ('id','userId','name','sortOrder','createdAt','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_favorite_categories_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `favorite_categories`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_favorite_categories_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `favorite_categories`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `favorite_categories` TO `__schema_sync_old_favorite_categories_20260413_154159`, `__schema_sync_new_favorite_categories_20260413_154159` TO `favorite_categories`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `favorite_categories` TO `__schema_sync_old_favorite_categories_20260413_154406`, `__schema_sync_new_favorite_categories_20260413_154406` TO `favorite_categories`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- favorite_entries
@@ -575,9 +575,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS favorite_entries (
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_favorite_entries_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_favorite_entries_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_favorite_entries_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_favorite_entries_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   userId VARCHAR(64),
   categoryId VARCHAR(64),
@@ -592,9 +592,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_favorite_entr
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','userId','categoryId','productId','variantId','quantity','splitsJson','sortOrder','createdAt','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'favorite_entries' AND column_name IN ('id','userId','categoryId','productId','variantId','quantity','splitsJson','sortOrder','createdAt','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_favorite_entries_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `favorite_entries`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_favorite_entries_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `favorite_entries`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `favorite_entries` TO `__schema_sync_old_favorite_entries_20260413_154159`, `__schema_sync_new_favorite_entries_20260413_154159` TO `favorite_entries`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `favorite_entries` TO `__schema_sync_old_favorite_entries_20260413_154406`, `__schema_sync_new_favorite_entries_20260413_154406` TO `favorite_entries`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- clients
@@ -612,9 +612,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS clients (
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_clients_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_clients_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_clients_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_clients_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   userId VARCHAR(64),
   name VARCHAR(255),
@@ -629,9 +629,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_clients_20260
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','userId','name','email','linkedUserId','phone','status','notes','createdAt','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'clients' AND column_name IN ('id','userId','name','email','linkedUserId','phone','status','notes','createdAt','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_clients_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `clients`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_clients_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `clients`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `clients` TO `__schema_sync_old_clients_20260413_154159`, `__schema_sync_new_clients_20260413_154159` TO `clients`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `clients` TO `__schema_sync_old_clients_20260413_154406`, `__schema_sync_new_clients_20260413_154406` TO `clients`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- vendors
@@ -656,9 +656,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS vendors (
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_vendors_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_vendors_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_vendors_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_vendors_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   userId VARCHAR(64),
   name VARCHAR(255),
@@ -680,9 +680,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_vendors_20260
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','userId','name','contact','email','linkedUserId','phone','status','purchaseLimitOrder','purchaseLimitDay','purchaseLimitMonth','limitNone','autoApprove','paymentMethodId','smsConsent','createdAt','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'vendors' AND column_name IN ('id','userId','name','contact','email','linkedUserId','phone','status','purchaseLimitOrder','purchaseLimitDay','purchaseLimitMonth','limitNone','autoApprove','paymentMethodId','smsConsent','createdAt','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_vendors_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `vendors`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_vendors_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `vendors`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `vendors` TO `__schema_sync_old_vendors_20260413_154159`, `__schema_sync_new_vendors_20260413_154159` TO `vendors`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `vendors` TO `__schema_sync_old_vendors_20260413_154406`, `__schema_sync_new_vendors_20260413_154406` TO `vendors`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- equipment
@@ -708,9 +708,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS equipment (
   INDEX idx_productId (productId)
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_equipment_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_equipment_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_equipment_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_equipment_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   userId VARCHAR(64),
   name VARCHAR(255),
@@ -733,9 +733,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_equipment_202
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','userId','name','serial','status','location','notes','contactName','contactPhone','contactEmail','quantity','price','productId','createdAt','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'equipment' AND column_name IN ('id','userId','name','serial','status','location','notes','contactName','contactPhone','contactEmail','quantity','price','productId','createdAt','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_equipment_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `equipment`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_equipment_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `equipment`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `equipment` TO `__schema_sync_old_equipment_20260413_154159`, `__schema_sync_new_equipment_20260413_154159` TO `equipment`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `equipment` TO `__schema_sync_old_equipment_20260413_154406`, `__schema_sync_new_equipment_20260413_154406` TO `equipment`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- equipment_images
@@ -751,9 +751,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS equipment_images (
   INDEX idx_equipmentId (equipmentId)
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_equipment_images_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_equipment_images_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_equipment_images_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_equipment_images_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   equipmentId VARCHAR(64),
   url TEXT,
@@ -766,9 +766,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_equipment_ima
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','equipmentId','url','isPrimary','sortOrder','createdAt','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'equipment_images' AND column_name IN ('id','equipmentId','url','isPrimary','sortOrder','createdAt','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_equipment_images_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `equipment_images`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_equipment_images_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `equipment_images`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `equipment_images` TO `__schema_sync_old_equipment_images_20260413_154159`, `__schema_sync_new_equipment_images_20260413_154159` TO `equipment_images`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `equipment_images` TO `__schema_sync_old_equipment_images_20260413_154406`, `__schema_sync_new_equipment_images_20260413_154406` TO `equipment_images`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- accounting_codes
@@ -786,9 +786,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS accounting_codes (
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_accounting_codes_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_accounting_codes_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_accounting_codes_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_accounting_codes_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   userId VARCHAR(64),
   code VARCHAR(120),
@@ -803,9 +803,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_accounting_co
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','userId','code','description','status','parentId','category','position','createdAt','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'accounting_codes' AND column_name IN ('id','userId','code','description','status','parentId','category','position','createdAt','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_accounting_codes_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `accounting_codes`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_accounting_codes_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `accounting_codes`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `accounting_codes` TO `__schema_sync_old_accounting_codes_20260413_154159`, `__schema_sync_new_accounting_codes_20260413_154159` TO `accounting_codes`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `accounting_codes` TO `__schema_sync_old_accounting_codes_20260413_154406`, `__schema_sync_new_accounting_codes_20260413_154406` TO `accounting_codes`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- customers
@@ -822,9 +822,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS customers (
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_customers_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_customers_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_customers_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_customers_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   name VARCHAR(255),
   email VARCHAR(255),
@@ -838,9 +838,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_customers_202
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','name','email','phone','status','ltv','tags','createdAt','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'customers' AND column_name IN ('id','name','email','phone','status','ltv','tags','createdAt','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_customers_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `customers`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_customers_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `customers`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `customers` TO `__schema_sync_old_customers_20260413_154159`, `__schema_sync_new_customers_20260413_154159` TO `customers`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `customers` TO `__schema_sync_old_customers_20260413_154406`, `__schema_sync_new_customers_20260413_154406` TO `customers`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- inventory
@@ -856,9 +856,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS inventory (
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_inventory_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_inventory_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_inventory_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_inventory_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   sku VARCHAR(100),
   location VARCHAR(120),
@@ -871,9 +871,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_inventory_202
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','sku','location','onHand','reserved','available','reorderPoint','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'inventory' AND column_name IN ('id','sku','location','onHand','reserved','available','reorderPoint','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_inventory_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `inventory`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_inventory_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `inventory`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `inventory` TO `__schema_sync_old_inventory_20260413_154159`, `__schema_sync_new_inventory_20260413_154159` TO `inventory`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `inventory` TO `__schema_sync_old_inventory_20260413_154406`, `__schema_sync_new_inventory_20260413_154406` TO `inventory`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- promotions
@@ -891,9 +891,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS promotions (
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_promotions_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_promotions_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_promotions_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_promotions_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   code VARCHAR(100),
   type VARCHAR(50),
@@ -908,9 +908,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_promotions_20
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','code','type','value','status','startsAt','endsAt','usageLimit','used','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'promotions' AND column_name IN ('id','code','type','value','status','startsAt','endsAt','usageLimit','used','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_promotions_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `promotions`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_promotions_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `promotions`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `promotions` TO `__schema_sync_old_promotions_20260413_154159`, `__schema_sync_new_promotions_20260413_154159` TO `promotions`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `promotions` TO `__schema_sync_old_promotions_20260413_154406`, `__schema_sync_new_promotions_20260413_154406` TO `promotions`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- payments
@@ -926,9 +926,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS payments (
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_payments_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_payments_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_payments_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_payments_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   orderId VARCHAR(64),
   method VARCHAR(60),
@@ -941,9 +941,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_payments_2026
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','orderId','method','externalId','amount','status','capturedAt','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'payments' AND column_name IN ('id','orderId','method','externalId','amount','status','capturedAt','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_payments_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `payments`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_payments_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `payments`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `payments` TO `__schema_sync_old_payments_20260413_154159`, `__schema_sync_new_payments_20260413_154159` TO `payments`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `payments` TO `__schema_sync_old_payments_20260413_154406`, `__schema_sync_new_payments_20260413_154406` TO `payments`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- payment_methods
@@ -962,9 +962,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS payment_methods (
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_payment_methods_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_payment_methods_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_payment_methods_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_payment_methods_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   userId VARCHAR(64),
   label VARCHAR(255),
@@ -980,9 +980,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_payment_metho
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','userId','label','type','brand','last4','stripePaymentMethodId','expMonth','expYear','createdAt','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'payment_methods' AND column_name IN ('id','userId','label','type','brand','last4','stripePaymentMethodId','expMonth','expYear','createdAt','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_payment_methods_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `payment_methods`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_payment_methods_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `payment_methods`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `payment_methods` TO `__schema_sync_old_payment_methods_20260413_154159`, `__schema_sync_new_payment_methods_20260413_154159` TO `payment_methods`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `payment_methods` TO `__schema_sync_old_payment_methods_20260413_154406`, `__schema_sync_new_payment_methods_20260413_154406` TO `payment_methods`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- shipments
@@ -998,9 +998,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS shipments (
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_shipments_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_shipments_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_shipments_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_shipments_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   orderId VARCHAR(64),
   carrier VARCHAR(100),
@@ -1013,9 +1013,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_shipments_202
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','orderId','carrier','tracking','status','shippedAt','eta','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'shipments' AND column_name IN ('id','orderId','carrier','tracking','status','shippedAt','eta','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_shipments_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `shipments`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_shipments_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `shipments`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `shipments` TO `__schema_sync_old_shipments_20260413_154159`, `__schema_sync_new_shipments_20260413_154159` TO `shipments`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `shipments` TO `__schema_sync_old_shipments_20260413_154406`, `__schema_sync_new_shipments_20260413_154406` TO `shipments`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- analytics_reports
@@ -1029,9 +1029,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS analytics_reports 
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_analytics_reports_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_analytics_reports_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_analytics_reports_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_analytics_reports_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   name VARCHAR(255),
   period VARCHAR(50),
@@ -1042,9 +1042,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_analytics_rep
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','name','period','metric','value','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'analytics_reports' AND column_name IN ('id','name','period','metric','value','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_analytics_reports_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `analytics_reports`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_analytics_reports_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `analytics_reports`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `analytics_reports` TO `__schema_sync_old_analytics_reports_20260413_154159`, `__schema_sync_new_analytics_reports_20260413_154159` TO `analytics_reports`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `analytics_reports` TO `__schema_sync_old_analytics_reports_20260413_154406`, `__schema_sync_new_analytics_reports_20260413_154406` TO `analytics_reports`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- content_pages
@@ -1057,9 +1057,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS content_pages (
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_content_pages_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_content_pages_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_content_pages_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_content_pages_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   title VARCHAR(255),
   slug VARCHAR(255),
@@ -1069,9 +1069,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_content_pages
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','title','slug','status','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'content_pages' AND column_name IN ('id','title','slug','status','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_content_pages_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `content_pages`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_content_pages_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `content_pages`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `content_pages` TO `__schema_sync_old_content_pages_20260413_154159`, `__schema_sync_new_content_pages_20260413_154159` TO `content_pages`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `content_pages` TO `__schema_sync_old_content_pages_20260413_154406`, `__schema_sync_new_content_pages_20260413_154406` TO `content_pages`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- pages
@@ -1089,9 +1089,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS pages (
   INDEX idx_status (status)
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_pages_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_pages_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_pages_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_pages_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   slug VARCHAR(100) NOT NULL UNIQUE,
   title VARCHAR(255) NOT NULL,
@@ -1106,9 +1106,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_pages_2026041
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','slug','title','template','status','metaDescription','createdAt','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'pages' AND column_name IN ('id','slug','title','template','status','metaDescription','createdAt','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_pages_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `pages`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_pages_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `pages`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `pages` TO `__schema_sync_old_pages_20260413_154159`, `__schema_sync_new_pages_20260413_154159` TO `pages`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `pages` TO `__schema_sync_old_pages_20260413_154406`, `__schema_sync_new_pages_20260413_154406` TO `pages`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- page_sections
@@ -1125,9 +1125,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS page_sections (
   FOREIGN KEY (pageId) REFERENCES pages(id) ON DELETE CASCADE
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_page_sections_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_page_sections_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_page_sections_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_page_sections_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   pageId VARCHAR(64) NOT NULL,
   sectionType VARCHAR(50) NOT NULL,
@@ -1141,9 +1141,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_page_sections
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','pageId','sectionType','content','sortOrder','createdAt','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'page_sections' AND column_name IN ('id','pageId','sectionType','content','sortOrder','createdAt','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_page_sections_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `page_sections`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_page_sections_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `page_sections`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `page_sections` TO `__schema_sync_old_page_sections_20260413_154159`, `__schema_sync_new_page_sections_20260413_154159` TO `page_sections`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `page_sections` TO `__schema_sync_old_page_sections_20260413_154406`, `__schema_sync_new_page_sections_20260413_154406` TO `page_sections`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- users
@@ -1180,9 +1180,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS users (
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_users_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_users_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_users_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_users_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   name VARCHAR(255),
   lastName VARCHAR(120),
@@ -1216,9 +1216,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_users_2026041
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','name','lastName','email','companyName','cellPhone','ccEmail','address','address2','city','state','zip','shippingFirstName','shippingLastName','shippingCompany','shippingAddress1','shippingAddress2','shippingCity','shippingState','shippingPostcode','shippingPhone','bioNotes','passwordHash','stripeCustomerId','role','status','allowInvoice','lastLogin','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'users' AND column_name IN ('id','name','lastName','email','companyName','cellPhone','ccEmail','address','address2','city','state','zip','shippingFirstName','shippingLastName','shippingCompany','shippingAddress1','shippingAddress2','shippingCity','shippingState','shippingPostcode','shippingPhone','bioNotes','passwordHash','stripeCustomerId','role','status','allowInvoice','lastLogin','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_users_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `users`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_users_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `users`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `users` TO `__schema_sync_old_users_20260413_154159`, `__schema_sync_new_users_20260413_154159` TO `users`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `users` TO `__schema_sync_old_users_20260413_154406`, `__schema_sync_new_users_20260413_154406` TO `users`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- integrations
@@ -1232,9 +1232,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS integrations (
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_integrations_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_integrations_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_integrations_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_integrations_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   name VARCHAR(255),
   type VARCHAR(100),
@@ -1245,9 +1245,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_integrations_
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','name','type','status','lastSync','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'integrations' AND column_name IN ('id','name','type','status','lastSync','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_integrations_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `integrations`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_integrations_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `integrations`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `integrations` TO `__schema_sync_old_integrations_20260413_154159`, `__schema_sync_new_integrations_20260413_154159` TO `integrations`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `integrations` TO `__schema_sync_old_integrations_20260413_154406`, `__schema_sync_new_integrations_20260413_154406` TO `integrations`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- settings
@@ -1259,9 +1259,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS settings (
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_settings_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_settings_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_settings_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_settings_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   `key` VARCHAR(100),
   `value` TEXT,
@@ -1270,9 +1270,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_settings_2026
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','key','value','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'settings' AND column_name IN ('id','key','value','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_settings_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `settings`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_settings_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `settings`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `settings` TO `__schema_sync_old_settings_20260413_154159`, `__schema_sync_new_settings_20260413_154159` TO `settings`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `settings` TO `__schema_sync_old_settings_20260413_154406`, `__schema_sync_new_settings_20260413_154406` TO `settings`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- rate_limit
@@ -1288,9 +1288,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS rate_limit (
   INDEX idx_locked_until (locked_until)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_rate_limit_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_rate_limit_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_rate_limit_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_rate_limit_20260413_154406` (
   id VARCHAR(255) PRIMARY KEY,
   identifier VARCHAR(255) NOT NULL,
   type VARCHAR(50) NOT NULL,
@@ -1303,9 +1303,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_rate_limit_20
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','identifier','type','attempts','locked_until','last_attempt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'rate_limit' AND column_name IN ('id','identifier','type','attempts','locked_until','last_attempt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_rate_limit_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `rate_limit`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_rate_limit_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `rate_limit`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `rate_limit` TO `__schema_sync_old_rate_limit_20260413_154159`, `__schema_sync_new_rate_limit_20260413_154159` TO `rate_limit`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `rate_limit` TO `__schema_sync_old_rate_limit_20260413_154406`, `__schema_sync_new_rate_limit_20260413_154406` TO `rate_limit`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- reliability
@@ -1319,9 +1319,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS reliability (
   updatedAt DATETIME
 )', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_reliability_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_reliability_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_reliability_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_reliability_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   type VARCHAR(50),
   status VARCHAR(50),
@@ -1332,9 +1332,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_reliability_2
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','type','status','message','createdAt','updatedAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'reliability' AND column_name IN ('id','type','status','message','createdAt','updatedAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_reliability_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `reliability`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_reliability_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `reliability`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `reliability` TO `__schema_sync_old_reliability_20260413_154159`, `__schema_sync_new_reliability_20260413_154159` TO `reliability`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `reliability` TO `__schema_sync_old_reliability_20260413_154406`, `__schema_sync_new_reliability_20260413_154406` TO `reliability`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- remember_me_tokens
@@ -1349,9 +1349,9 @@ SET @sql := IF(@table_exists = 0, 'CREATE TABLE IF NOT EXISTS remember_me_tokens
   INDEX idx_remember_expires (expiresAt)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_remember_me_tokens_20260413_154159`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'DROP TABLE IF EXISTS `__schema_sync_new_remember_me_tokens_20260413_154406`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_remember_me_tokens_20260413_154159` (
+SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_remember_me_tokens_20260413_154406` (
   id VARCHAR(64) PRIMARY KEY,
   userId VARCHAR(64) NOT NULL,
   tokenHash VARCHAR(128) NOT NULL,
@@ -1363,9 +1363,9 @@ SET @sql := IF(@table_exists = 1, 'CREATE TABLE `__schema_sync_new_remember_me_t
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @cols := NULL;
 SELECT GROUP_CONCAT(CONCAT('`', column_name, '`') ORDER BY FIELD(column_name, 'id','userId','tokenHash','expiresAt','createdAt')) INTO @cols FROM information_schema.columns WHERE table_schema = @db AND table_name = 'remember_me_tokens' AND column_name IN ('id','userId','tokenHash','expiresAt','createdAt');
-SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_remember_me_tokens_20260413_154159` (', @cols, ') SELECT ', @cols, ' FROM `remember_me_tokens`'), 'SELECT 1');
+SET @sql := IF(@table_exists = 1 AND @cols IS NOT NULL AND @cols <> '', CONCAT('INSERT INTO `__schema_sync_new_remember_me_tokens_20260413_154406` (', @cols, ') SELECT ', @cols, ' FROM `remember_me_tokens`'), 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql := IF(@table_exists = 1, 'RENAME TABLE `remember_me_tokens` TO `__schema_sync_old_remember_me_tokens_20260413_154159`, `__schema_sync_new_remember_me_tokens_20260413_154159` TO `remember_me_tokens`', 'SELECT 1');
+SET @sql := IF(@table_exists = 1, 'RENAME TABLE `remember_me_tokens` TO `__schema_sync_old_remember_me_tokens_20260413_154406`, `__schema_sync_new_remember_me_tokens_20260413_154406` TO `remember_me_tokens`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET FOREIGN_KEY_CHECKS=1;
