@@ -213,45 +213,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $messageClass = 'notice is-error';
             }
         }
-    } elseif ($action === 'payment_method') {
-        $label = trim($_POST['pm_label'] ?? '');
-        $type = trim($_POST['pm_type'] ?? '');
-        $last4 = trim($_POST['pm_last4'] ?? '');
-        $expMonthRaw = trim($_POST['pm_exp_month'] ?? '');
-        $expYearRaw = trim($_POST['pm_exp_year'] ?? '');
-        $expMonth = $expMonthRaw === '' ? null : (int) $expMonthRaw;
-        $expYear = $expYearRaw === '' ? null : (int) $expYearRaw;
-
-        if ($label === '') {
-            $message = 'Payment method label is required.';
-            $messageClass = 'notice is-error';
-        } elseif ($last4 !== '' && !preg_match('/^\d{4}$/', $last4)) {
-            $message = 'Last 4 must be exactly four digits.';
-            $messageClass = 'notice is-error';
-        } elseif ($expMonth !== null && ($expMonth < 1 || $expMonth > 12)) {
-            $message = 'Expiration month must be between 1 and 12.';
-            $messageClass = 'notice is-error';
-        } else {
-            $now = gmdate('Y-m-d H:i:s');
-            $stmt = $pdo->prepare(
-                'INSERT INTO payment_methods (id, userId, label, type, brand, last4, stripePaymentMethodId, expMonth, expYear, createdAt, updatedAt)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-            );
-            $stmt->execute([
-                opd_generate_id('pm'),
-                $user['id'],
-                $label,
-                $type !== '' ? $type : null,
-                null,
-                $last4 !== '' ? $last4 : null,
-                null,
-                $expMonth,
-                $expYear,
-                $now,
-                $now
-            ]);
-            $message = 'Payment method added.';
-        }
     }
 }
 
@@ -519,7 +480,7 @@ $csrf = site_csrf_token();
 
         <section class="panel">
           <h2>Payment methods</h2>
-          <p class="meta">Save a card with Stripe for manual recharges, or add non-card methods for reference.</p>
+          <p class="meta">Save a card with Stripe for manual recharges.</p>
           <?php if (!$paymentMethods): ?>
             <div class="notice">No payment methods saved.</div>
           <?php else: ?>
@@ -686,37 +647,6 @@ $csrf = site_csrf_token();
               <?php endif; ?>
             </div>
 
-            <div>
-              <h3>Add non-card method</h3>
-              <p class="meta">Use this for ACH, wire, or internal payment references.</p>
-              <form method="POST" class="form-grid cols-2">
-                <input type="hidden" name="_csrf" value="<?php echo htmlspecialchars($csrf, ENT_QUOTES); ?>" />
-                <input type="hidden" name="action" value="payment_method" />
-                <div class="span-2">
-                  <label for="pm_label">Payment method label</label>
-                  <input id="pm_label" name="pm_label" placeholder="ACH - Main, Wire - Primary" required />
-                </div>
-                <div>
-                  <label for="pm_type">Type</label>
-                  <input id="pm_type" name="pm_type" placeholder="ACH, Wire, Internal" />
-                </div>
-                <div>
-                  <label for="pm_last4">Last 4 (optional)</label>
-                  <input id="pm_last4" name="pm_last4" inputmode="numeric" maxlength="4" />
-                </div>
-                <div>
-                  <label for="pm_exp_month">Exp month (optional)</label>
-                  <input id="pm_exp_month" name="pm_exp_month" type="number" min="1" max="12" placeholder="MM" />
-                </div>
-                <div>
-                  <label for="pm_exp_year">Exp year (optional)</label>
-                  <input id="pm_exp_year" name="pm_exp_year" type="number" min="2024" max="2100" placeholder="YYYY" />
-                </div>
-                <div class="span-2">
-                  <button class="btn" type="submit">Add payment method</button>
-                </div>
-              </form>
-            </div>
           </div>
         </section>
       </div>
