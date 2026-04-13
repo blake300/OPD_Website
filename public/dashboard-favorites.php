@@ -565,6 +565,38 @@ $csrf = site_csrf_token();
           });
           saveRow.appendChild(saveBtn);
 
+          var removeItemBtn = document.createElement('button');
+          removeItemBtn.type = 'button';
+          removeItemBtn.className = 'btn-outline btn-link-danger';
+          removeItemBtn.textContent = 'Remove';
+          removeItemBtn.style.marginLeft = '8px';
+          removeItemBtn.addEventListener('click', function () {
+            var label = item.variantName || item.name || item.productName || 'this item';
+            if (!window.confirm('Remove "' + label + '" from this category?')) {
+              return;
+            }
+            clearMessage();
+            removeItemBtn.disabled = true;
+            saveBtn.disabled = true;
+            fetchJson('/api/favorites.php', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+              },
+              body: JSON.stringify({ action: 'remove_item', entryId: item.id })
+            }).then(function () {
+              itemsState = itemsState.filter(function (i) { return i.id !== item.id; });
+              renderItems();
+              showMessage('Item removed from category.', false);
+            }).catch(function (err) {
+              removeItemBtn.disabled = false;
+              saveBtn.disabled = false;
+              showMessage(err.message || 'Unable to remove item.', true);
+            });
+          });
+          saveRow.appendChild(removeItemBtn);
+
           card.appendChild(splitsWrap);
           card.appendChild(saveRow);
           itemsListEl.appendChild(card);

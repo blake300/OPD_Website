@@ -1981,6 +1981,17 @@ function site_set_favorite_item_categories(string $userId, string $productId, ?s
     return $categoryIds;
 }
 
+function site_delete_favorite_entry(string $userId, string $entryId): bool
+{
+    if ($userId === '' || $entryId === '') {
+        return false;
+    }
+    $pdo = opd_db();
+    $stmt = $pdo->prepare('DELETE FROM favorite_entries WHERE userId = ? AND id = ?');
+    $stmt->execute([$userId, $entryId]);
+    return $stmt->rowCount() > 0;
+}
+
 function site_update_favorite_entries(string $userId, array $updates): void
 {
     $pdo = opd_db();

@@ -76,6 +76,17 @@ if ($method === 'POST') {
         $selected = site_set_favorite_item_categories($user['id'], $productId, $variantId ?: null, $categoryIds);
         favorites_json_response(['selectedCategoryIds' => $selected]);
     }
+    if ($action === 'remove_item') {
+        $entryId = (string) ($payload['entryId'] ?? '');
+        if ($entryId === '') {
+            favorites_json_response(['error' => 'Missing entryId'], 400);
+        }
+        $removed = site_delete_favorite_entry($user['id'], $entryId);
+        if (!$removed) {
+            favorites_json_response(['error' => 'Favorite not found'], 404);
+        }
+        favorites_json_response(['ok' => true]);
+    }
     if ($action === 'add_to_cart') {
         $entryIds = is_array($payload['entryIds'] ?? null) ? $payload['entryIds'] : [];
         $result = site_add_favorites_to_cart($user['id'], $entryIds);
