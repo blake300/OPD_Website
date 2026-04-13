@@ -48,6 +48,8 @@ $csrf = site_csrf_token();
           <p>Manage three top-level categories. Each item may have up to two nested sublevels (children and grandchildren).</p>
 
           <div id="acct-notification" class="notice" style="display:none;" role="alert"></div>
+          <!-- Build marker: if this text is missing from View Source, the page is cached. -->
+          <div style="font-size:11px;color:#888;margin-bottom:6px;">Import build: v3-deepest-zip (2026-04-13)</div>
 
           <div id="accounting-hierarchy">
             <div class="hier-row">
