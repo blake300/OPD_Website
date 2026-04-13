@@ -493,19 +493,27 @@ $csrf = site_csrf_token();
                   if (!level1) return;
                   const root = ensureNode(target, level1);
                   if (!root) return;
-                  if (category === 'location') {
-                    const zip = (row[3] || '').trim();
-                    const coord = (row[4] || '').trim();
-                    if (zip) root.zip = zip;
-                    if (coord) root.coordinate = coord;
-                  }
+                  let deepest = root;
                   if (level2) {
                     root.children = root.children || [];
                     const child = ensureNode(root.children, level2);
-                    if (child && level3) {
-                      child.children = child.children || [];
-                      ensureNode(child.children, level3);
+                    if (child) {
+                      deepest = child;
+                      if (level3) {
+                        child.children = child.children || [];
+                        const grandchild = ensureNode(child.children, level3);
+                        if (grandchild) deepest = grandchild;
+                      }
                     }
+                  }
+                  // For locations, zip/coordinates apply to the deepest node
+                  // named in the row — not just the top-level parent. This lets
+                  // each sub-location keep its own ZIP and coordinates.
+                  if (category === 'location') {
+                    const zip = (row[3] || '').trim();
+                    const coord = (row[4] || '').trim();
+                    if (zip) deepest.zip = zip;
+                    if (coord) deepest.coordinate = coord;
                   }
                 });
                 loadStructure(structure);
