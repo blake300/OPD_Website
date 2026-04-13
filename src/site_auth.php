@@ -400,14 +400,24 @@ function site_record_registration_attempt(): void
     opd_record_failed_attempt($ip, 'registration');
 }
 
-function site_register(string $name, string $email, string $password): array
+function site_register(string $name, string $email, string $password, string $phone = ''): array
 {
     // Record the attempt for IP rate limiting
     site_record_registration_attempt();
 
-    // Validate email format
-    if (!opd_validate_email($email)) {
+    $email = trim($email);
+    $phone = trim($phone);
+    $normalizedPhone = $phone !== '' ? opd_normalize_us_phone($phone) : null;
+
+    // Require at least one valid contact method (email or 10-digit US cell phone).
+    if ($email === '' && $normalizedPhone === null) {
+        return ['error' => 'Please enter an email address or a 10-digit cell phone number.'];
+    }
+    if ($email !== '' && !opd_validate_email($email)) {
         return ['error' => 'Invalid email address'];
+    }
+    if ($phone !== '' && $normalizedPhone === null) {
+        return ['error' => 'Cell phone must be 10 digits.'];
     }
 
     // Validate name
@@ -425,22 +435,49 @@ function site_register(string $name, string $email, string $password): array
     $name = opd_sanitize_name($name);
 
     $pdo = opd_db();
-    $stmt = $pdo->prepare('SELECT id FROM users WHERE email = ? LIMIT 1');
-    $stmt->execute([$email]);
-    if ($stmt->fetch()) {
-        // SECURITY: Don't reveal that email exists - use generic message
-        return ['error' => 'Registration failed. Please try again or contact support.'];
+    if ($email !== '') {
+        $stmt = $pdo->prepare('SELECT id FROM users WHERE email = ? LIMIT 1');
+        $stmt->execute([$email]);
+        if ($stmt->fetch()) {
+            return ['error' => 'Registration failed. Please try again or contact support.'];
+        }
+    }
+    if ($normalizedPhone !== null) {
+        $phoneCheck = $pdo->prepare(
+            "SELECT id FROM users
+             WHERE REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(cellPhone,''),' ',''),'-',''),'(',''),')',''),'.',''),'+','') IN (?, ?)
+             LIMIT 1"
+        );
+        $phoneCheck->execute([$normalizedPhone, '1' . $normalizedPhone]);
+        if ($phoneCheck->fetch()) {
+            return ['error' => 'Registration failed. Please try again or contact support.'];
+        }
     }
 
     $id = 'user-' . bin2hex(random_bytes(16));
     $hash = password_hash($password, PASSWORD_DEFAULT);
     $now = gmdate('Y-m-d H:i:s');
     $insert = $pdo->prepare(
-        'INSERT INTO users (id, name, email, passwordHash, role, status, lastLogin, updatedAt) VALUES (?, ?, ?, ?, ?, ?, NULL, ?)'
+        'INSERT INTO users (id, name, email, cellPhone, passwordHash, role, status, lastLogin, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?)'
     );
-    $insert->execute([$id, $name, $email, $hash, 'customer', 'active', $now]);
+    $insert->execute([
+        $id,
+        $name,
+        $email !== '' ? $email : null,
+        $normalizedPhone,
+        $hash,
+        'customer',
+        'active',
+        $now,
+    ]);
 
-    return ['id' => $id, 'name' => $name, 'email' => $email, 'role' => 'customer'];
+    return [
+        'id' => $id,
+        'name' => $name,
+        'email' => $email,
+        'cellPhone' => $normalizedPhone,
+        'role' => 'customer',
+    ];
 }
 
 function site_logout(): void

@@ -924,6 +924,19 @@ function site_calculate_order_totals(array $items, array $data, ?array $user): a
         }
     }
 
+    // Allow caller (checkout) to override the tax/shipping destination based on
+    // resolved shipping method — e.g. pickup forces OK/74820, same_day uses the
+    // delivery address, standard uses the shipping address. Without this override
+    // the totals would be recomputed from the billing address and come out wrong.
+    $taxStateOverride = trim((string) ($data['tax_state'] ?? ''));
+    $taxPostalOverride = trim((string) ($data['tax_postal'] ?? ''));
+    if ($taxStateOverride !== '') {
+        $stateInput = $taxStateOverride;
+    }
+    if ($taxPostalOverride !== '') {
+        $postalInput = $taxPostalOverride;
+    }
+
     $taxableSubtotal = site_cart_taxable_total($items);
     $taxData = opd_calculate_ok_sales_tax($taxableSubtotal, $stateInput, $postalInput);
     $tax = (float) ($taxData['tax'] ?? 0.0);

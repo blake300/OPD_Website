@@ -102,11 +102,27 @@ window.AccordionDropdown = (function () {
           var gcW = document.createElement('div'); gcW.className = 'accdd-gcw'
           secGcWraps.push(gcW)
 
+          // Dropdown chevron on the right of the child row — mirrors the parent
+          // arrow so users can see that grandchildren are available. Points
+          // right (▶) when collapsed, rotates to down (▼) when open.
+          var cArr = document.createElement('span')
+          cArr.className = 'accdd-child-arr'
+          cArr.textContent = '\u25B6'
+          cDiv.appendChild(cArr)
+
           cDiv.addEventListener('click', function () {
             var was = gcW.classList.contains('open')
             secGcWraps.forEach(function (w) { w.classList.remove('open') })
-            secChildren.forEach(function (c) { c.classList.remove('accdd-child-open') })
-            if (!was) { gcW.classList.add('open'); cDiv.classList.add('accdd-child-open') }
+            secChildren.forEach(function (c) {
+              c.classList.remove('accdd-child-open')
+              var a = c.querySelector('.accdd-child-arr')
+              if (a) a.classList.remove('open')
+            })
+            if (!was) {
+              gcW.classList.add('open')
+              cDiv.classList.add('accdd-child-open')
+              cArr.classList.add('open')
+            }
           })
 
           child.children.forEach(function (gc) {

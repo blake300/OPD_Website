@@ -162,9 +162,34 @@ try {
     // Load accounting locations for shipping location dropdown
     // Uses client's locations when purchasing for a client
     $accountingLocations = [];
+    $accountingLocationsFlat = [];
     if ($user) {
         $acctStruct = site_get_accounting_structure_for_client($user['id'], $clientId);
         $accountingLocations = $acctStruct['location'] ?? [];
+
+        // Also build a flat list of every location node (at any depth) that has
+        // both a zip and coordinate saved, so the saved-location dropdown can
+        // surface all eligible entries even if the tree walker misses one.
+        $collectFlat = function (array $nodes, string $prefix, callable $self) use (&$accountingLocationsFlat) {
+            foreach ($nodes as $node) {
+                $zip = trim((string) ($node['zip'] ?? ''));
+                $coord = trim((string) ($node['coordinate'] ?? ''));
+                $label = trim((string) ($node['label'] ?? ''));
+                $fullLabel = ($prefix !== '' ? $prefix . ' / ' : '') . $label;
+                if ($zip !== '' && $coord !== '') {
+                    $accountingLocationsFlat[] = [
+                        'id' => (string) ($node['id'] ?? ''),
+                        'label' => $fullLabel !== '' ? $fullLabel : $label,
+                        'zip' => $zip,
+                        'coord' => $coord,
+                    ];
+                }
+                if (!empty($node['children']) && is_array($node['children'])) {
+                    $self($node['children'], $fullLabel, $self);
+                }
+            }
+        };
+        $collectFlat($accountingLocations, '', $collectFlat);
     }
 
     // Load saved payment methods for all signed-in users
@@ -564,6 +589,8 @@ try {
                     'shippingPostcode' => $resolvedShipZip,
                     'shipping_method' => $shippingMethod,
                     'delivery_zip' => $deliveryZip,
+                    'tax_state' => $taxState,
+                    'tax_postal' => $taxPostal,
                     'accounting' => $accountingPayload,
                     'clientId' => $clientId,
                     'guest' => $isGuestMode,
@@ -1211,25 +1238,12 @@ try {
                   <select id="shipSavedLocation" name="shipSavedLocation">
                     <option value="">— Select location —</option>
                     <?php
-                    function render_location_options(array $nodes, string $prefix = ''): void {
-                        foreach ($nodes as $node) {
-                            $zip = trim((string) ($node['zip'] ?? ''));
-                            $coord = trim((string) ($node['coordinate'] ?? ''));
-                            if ($zip === '' || $coord === '') {
-                                if (!empty($node['children'])) {
-                                    render_location_options($node['children'], $prefix);
-                                }
-                                continue;
-                            }
-                            $label = $prefix . htmlspecialchars($node['label'] ?? '', ENT_QUOTES);
-                            echo '<option value="' . htmlspecialchars($node['id'] ?? '', ENT_QUOTES) . '" data-zip="' . htmlspecialchars($zip, ENT_QUOTES) . '" data-coord="' . htmlspecialchars($coord, ENT_QUOTES) . '" data-label="' . $label . '">' . $label . ' (' . htmlspecialchars($zip, ENT_QUOTES) . ')</option>';
-                            if (!empty($node['children'])) {
-                                render_location_options($node['children'], $prefix . '  ');
-                            }
-                        }
-                    }
-                    if (!empty($accountingLocations)) {
-                        render_location_options($accountingLocations);
+                    foreach ($accountingLocationsFlat as $loc) {
+                        $label = htmlspecialchars($loc['label'], ENT_QUOTES);
+                        $zip = htmlspecialchars($loc['zip'], ENT_QUOTES);
+                        $coord = htmlspecialchars($loc['coord'], ENT_QUOTES);
+                        $id = htmlspecialchars($loc['id'], ENT_QUOTES);
+                        echo '<option value="' . $id . '" data-zip="' . $zip . '" data-coord="' . $coord . '" data-label="' . $label . '">' . $label . ' (' . $zip . ')</option>';
                     }
                     ?>
                   </select>
@@ -1446,30 +1460,42 @@ try {
           return 'address';
         }
 
+        function setPanelHidden(el, isHidden) {
+          if (!el) return;
+          el.hidden = isHidden;
+          el.style.display = isHidden ? 'none' : '';
+        }
+
         function toggleShipDestPanels() {
           var dest = getShippingDest();
-          if (sdAddressFields) sdAddressFields.hidden = dest !== 'address';
-          if (sdCoordsFields) sdCoordsFields.hidden = dest !== 'coords';
-          if (sdSavedFields) sdSavedFields.hidden = dest !== 'saved';
+          setPanelHidden(sdAddressFields, dest !== 'address');
+          setPanelHidden(sdCoordsFields, dest !== 'coords');
+          setPanelHidden(sdSavedFields, dest !== 'saved');
         }
 
         function showShipSection() {
           var method = getSelectedShippingMethod();
-          if (standardShipSection) standardShipSection.hidden = method !== 'standard';
-          if (samedayDestSection) samedayDestSection.hidden = method !== 'same_day';
+          setPanelHidden(standardShipSection, method !== 'standard');
+          setPanelHidden(samedayDestSection, method !== 'same_day');
         }
 
+        function setGridHidden(el, isHidden) {
+          if (!el) return;
+          el.hidden = isHidden;
+          // Override CSS `display: grid` — [hidden] has lower specificity than a class.
+          el.style.display = isHidden ? 'none' : '';
+        }
         // Same as billing checkbox: standard delivery
         if (shipSameAsBilling) {
-          shipSameAsBilling.addEventListener('change', function () {
-            if (standardShipFields) standardShipFields.hidden = shipSameAsBilling.checked;
-          });
+          var applyStandardSame = function () { setGridHidden(standardShipFields, shipSameAsBilling.checked); };
+          shipSameAsBilling.addEventListener('change', applyStandardSame);
+          applyStandardSame();
         }
         // Same as billing checkbox: same-day deliver to address
         if (sdShipSameAsBilling) {
-          sdShipSameAsBilling.addEventListener('change', function () {
-            if (sdAddressInputs) sdAddressInputs.hidden = sdShipSameAsBilling.checked;
-          });
+          var applySdSame = function () { setGridHidden(sdAddressInputs, sdShipSameAsBilling.checked); };
+          sdShipSameAsBilling.addEventListener('change', applySdSame);
+          applySdSame();
         }
 
         function getShippingStateAndPostal() {

@@ -10,20 +10,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     site_require_csrf();
     $name = trim($_POST['name'] ?? '');
     $email = trim($_POST['email'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
     $password = $_POST['password'] ?? '';
     $honeypot = trim($_POST['website_url'] ?? '');
     $formLoadedAt = $_POST['_fts'] ?? '';
     $botError = site_check_bot($honeypot, $formLoadedAt);
     if ($botError) {
         $error = $botError;
-    } elseif ($name === '' || $email === '' || $password === '') {
-        $error = 'All fields are required.';
+    } elseif ($name === '' || $password === '' || ($email === '' && $phone === '')) {
+        $error = 'Please enter your name, a password, and either an email or cell phone number.';
     } else {
-        $result = site_register($name, $email, $password);
+        $result = site_register($name, $email, $password, $phone);
         if (!empty($result['error'])) {
             $error = $result['error'];
         } else {
-            site_login($email, $password);
+            $loginIdentifier = $email !== '' ? $email : $phone;
+            site_login($loginIdentifier, $password);
             $linked = site_link_pending_invitations($result['id'], $email);
             $redirect = '/dashboard.php';
             if ($linked['linkedClients'] > 0) {
@@ -65,9 +67,14 @@ $csrf = site_csrf_token();
           <label for="name">Full name</label>
           <input id="name" name="name" required />
         </div>
+        <p class="meta" style="margin:0;">Sign up with an email, a cell phone number, or both.</p>
         <div>
-          <label for="email">Email</label>
-          <input id="email" name="email" type="email" required />
+          <label for="email">Email <span class="meta" style="font-weight:400;">(optional if phone is provided)</span></label>
+          <input id="email" name="email" type="email" value="<?php echo htmlspecialchars($_POST['email'] ?? '', ENT_QUOTES); ?>" />
+        </div>
+        <div>
+          <label for="phone">Cell phone <span class="meta" style="font-weight:400;">(optional if email is provided)</span></label>
+          <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="10-digit US number" value="<?php echo htmlspecialchars($_POST['phone'] ?? '', ENT_QUOTES); ?>" />
         </div>
         <div>
           <label for="password">Password</label>

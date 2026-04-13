@@ -3599,6 +3599,8 @@ input[type="number"]::-webkit-outer-spin-button {
 .accdd-child:hover { background: #e8f0fe; }
 .accdd-child-bar { width: 3px; height: 10px; background: #93c5fd; border-radius: 1px; margin-right: 8px; flex-shrink: 0; transition: all .15s; }
 .accdd-child-text { flex: 1; }
+.accdd-child-arr { font-size: 10px; color: #aaa; margin-left: 8px; transition: transform .2s; flex-shrink: 0; }
+.accdd-child-arr.open { transform: rotate(90deg); }
 .accdd-child-open { border-left: 4px solid #2563eb; padding-left: 20px; font-weight: 600; color: #1e40af; background: #f0f5ff; }
 .accdd-gcw { overflow: hidden; max-height: 0; transition: max-height .25s ease; }
 .accdd-gcw.open { max-height: 300px; }
@@ -3681,15 +3683,38 @@ input[type="number"]::-webkit-outer-spin-button {
   #favorite-message { min-width: 0; max-width: 90vw; }
 
   /* Favorites dropdown: keep text inside menu on mobile */
-  .favorite-dropdown { max-width: calc(100vw - 40px); min-width: 180px; }
-  .favorite-option { white-space: normal; word-break: break-word; }
-  .favorite-option span { white-space: normal; word-break: break-word; }
+  .favorite-dropdown { max-width: calc(100vw - 40px); min-width: 220px; padding: 12px; }
+  .favorite-option {
+    white-space: normal;
+    word-break: break-word;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .favorite-option span {
+    display: inline-block;
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: normal;
+    word-break: break-word;
+    color: var(--ink);
+    font-size: 13px;
+    line-height: 1.3;
+  }
 
   /* Checkout + confirmation summary: shift value 10px left */
   .checkout-summary .summary-line > span:last-child { margin-right: 10px; }
 
   /* Order total box (dashboard order details): shift values 10px left */
   .order-total-box { padding-right: 26px; }
+
+  /* Dashboard order dropdown: shrink accounting subtotal labels/values so each fits on one line */
+  .order-split-subtotal .subtotal-values { gap: 6px; }
+  .subtotal-col { gap: 2px; min-width: 0; flex: 1 1 0; }
+  .subtotal-label { font-size: 9px; white-space: nowrap; }
+  .subtotal-value { font-size: 10px; white-space: nowrap; }
 
   /* Accounting codes: shift Require Sub checkbox right, text stays */
   .require-sub-label { gap: 2px; flex-wrap: nowrap; white-space: nowrap; }

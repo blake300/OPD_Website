@@ -56,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif ($action === 'register') {
         $email = trim($_POST['register_email'] ?? '');
+        $phone = trim($_POST['register_phone'] ?? '');
         $password = $_POST['register_password'] ?? '';
         $rememberMe = !empty($_POST['register_remember_me']);
         $honeypot = trim($_POST['register_website_url'] ?? '');
@@ -64,20 +65,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($botError) {
             $registerError = $botError;
-        } elseif ($email === '' || $password === '') {
-            $registerError = 'Email and password are required.';
+        } elseif (($email === '' && $phone === '') || $password === '') {
+            $registerError = 'Please enter an email or cell phone number and a password.';
         } else {
-            // Use email as name for simplified registration
-            $result = site_register($email, $email, $password);
+            // Use email/phone as name for simplified registration
+            $displayName = $email !== '' ? $email : $phone;
+            $result = site_register($displayName, $email, $password, $phone);
             if (!empty($result['error'])) {
                 $registerError = $result['error'];
             } else {
-                site_login($email, $password);
+                $loginIdentifier = $email !== '' ? $email : $phone;
+                site_login($loginIdentifier, $password);
                 if ($rememberMe) {
                     site_remember_me();
                 }
                 // Link any pending vendor/client invitations for this email
-                $linked = site_link_pending_invitations($result['id'], $email);
+                $linked = site_link_pending_invitations($result['id'], $email !== '' ? $email : '');
                 $regRedirect = $defaultRedirect;
                 if ($redirectUrl === '' && $linked['linkedClients'] > 0) {
                     $regRedirect = '/dashboard-clients.php';
@@ -188,9 +191,14 @@ $showServiceNotice = $serviceCheckoutFlag || ($isCheckoutRedirect && $cartHasSer
               <label for="register_website_url">Leave blank</label>
               <input type="text" id="register_website_url" name="register_website_url" tabindex="-1" autocomplete="off" />
             </div>
+            <p class="meta" style="margin:0;">Sign up with an email, a cell phone number, or both.</p>
             <div>
-              <label for="register_email">Email</label>
-              <input id="register_email" name="register_email" type="email" required />
+              <label for="register_email">Email <span class="meta" style="font-weight:400;">(optional if phone is provided)</span></label>
+              <input id="register_email" name="register_email" type="email" value="<?php echo htmlspecialchars($_POST['register_email'] ?? '', ENT_QUOTES); ?>" />
+            </div>
+            <div>
+              <label for="register_phone">Cell phone <span class="meta" style="font-weight:400;">(optional if email is provided)</span></label>
+              <input id="register_phone" name="register_phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="10-digit US number" value="<?php echo htmlspecialchars($_POST['register_phone'] ?? '', ENT_QUOTES); ?>" />
             </div>
             <div>
               <label for="register_password">Password</label>
