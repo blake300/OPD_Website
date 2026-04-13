@@ -6,8 +6,10 @@ require_once __DIR__ . '/../src/site_auth.php';
 require_once __DIR__ . '/../src/db_conn.php';
 require_once __DIR__ . '/../src/store.php';
 require_once __DIR__ . '/../src/stripe_service.php';
+require_once __DIR__ . '/../src/email_service.php';
 
 $user = site_require_auth();
+opd_ensure_cc_email_column();
 $pdo = opd_db();
 $stmt = $pdo->prepare('SELECT * FROM users WHERE id = ? LIMIT 1');
 $stmt->execute([$user['id']]);
@@ -21,6 +23,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'profile') {
         $name = trim($_POST['name'] ?? '');
         $email = trim($_POST['email'] ?? '');
+        $ccEmailRaw = trim($_POST['cc_email'] ?? '');
+        $ccEmail = null;
+        $ccEmailError = '';
+        if ($ccEmailRaw !== '') {
+            if (!filter_var($ccEmailRaw, FILTER_VALIDATE_EMAIL)) {
+                $ccEmailError = 'CC Email must be a valid email address.';
+            } else {
+                $ccEmail = $ccEmailRaw;
+            }
+        }
         $companyName = trim($_POST['company_name'] ?? '');
         $cellPhoneRaw = trim($_POST['cell_phone'] ?? '');
         $cellPhone = $cellPhoneRaw !== '' ? opd_normalize_us_phone($cellPhoneRaw) : null;
@@ -69,14 +81,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($shippingPhoneError !== '') {
             $message = $shippingPhoneError;
             $messageClass = 'notice is-error';
+        } elseif ($ccEmailError !== '') {
+            $message = $ccEmailError;
+            $messageClass = 'notice is-error';
         } else {
             $stmt = $pdo->prepare(
-                'UPDATE users SET name = ?, lastName = ?, email = ?, companyName = ?, cellPhone = ?, address = ?, address2 = ?, city = ?, state = ?, zip = ?, shippingFirstName = ?, shippingLastName = ?, shippingCompany = ?, shippingPhone = ?, shippingAddress1 = ?, shippingAddress2 = ?, shippingCity = ?, shippingState = ?, shippingPostcode = ?, updatedAt = ? WHERE id = ?'
+                'UPDATE users SET name = ?, lastName = ?, email = ?, ccEmail = ?, companyName = ?, cellPhone = ?, address = ?, address2 = ?, city = ?, state = ?, zip = ?, shippingFirstName = ?, shippingLastName = ?, shippingCompany = ?, shippingPhone = ?, shippingAddress1 = ?, shippingAddress2 = ?, shippingCity = ?, shippingState = ?, shippingPostcode = ?, updatedAt = ? WHERE id = ?'
             );
             $stmt->execute([
                 $name,
                 $billingLastName !== '' ? $billingLastName : null,
                 $email,
+                $ccEmail,
                 $companyName !== '' ? $companyName : null,
                 $cellPhone,
                 $address !== '' ? $address : null,
@@ -329,6 +345,11 @@ $csrf = site_csrf_token();
             <div>
               <label for="email">Email</label>
               <input id="email" name="email" type="email" value="<?php echo htmlspecialchars($userRecord['email'] ?? '', ENT_QUOTES); ?>" required />
+            </div>
+            <div>
+              <label for="cc_email">CC Email</label>
+              <input id="cc_email" name="cc_email" type="email" value="<?php echo htmlspecialchars($userRecord['ccEmail'] ?? '', ENT_QUOTES); ?>" placeholder="optional" />
+              <small class="field-help">Also receives a copy of all account emails.</small>
             </div>
             <div>
               <label for="company_name">Company name</label>

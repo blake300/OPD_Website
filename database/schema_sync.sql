@@ -399,6 +399,7 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(255),
   companyName VARCHAR(255),
   cellPhone VARCHAR(50),
+  ccEmail VARCHAR(255),
   address VARCHAR(255),
   address2 VARCHAR(255),
   city VARCHAR(120),
@@ -1783,6 +1784,10 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'users' AND column_name = 'cellPhone');
 SET @sql := IF(@col_exists = 0, 'ALTER TABLE `users` ADD COLUMN `cellPhone` VARCHAR(50)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'users' AND column_name = 'ccEmail');
+SET @sql := IF(@col_exists = 0, 'ALTER TABLE `users` ADD COLUMN `ccEmail` VARCHAR(255)', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = @db AND table_name = 'users' AND column_name = 'address');

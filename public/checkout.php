@@ -144,7 +144,7 @@ try {
     // Get user profile (only if logged in)
     $pdo = opd_db();
     if ($user) {
-        $profileStmt = $pdo->prepare('SELECT address, city, state, zip, cellPhone FROM users WHERE id = ? LIMIT 1');
+        $profileStmt = $pdo->prepare('SELECT name, email, companyName, address, address2, city, state, zip, cellPhone FROM users WHERE id = ? LIMIT 1');
         $profileStmt->execute([$user['id']]);
         $profile = $profileStmt->fetch() ?: [];
     }
@@ -153,6 +153,11 @@ try {
     if (!isset($profile['country'])) {
         $profile['country'] = 'USA';
     }
+
+    // When purchasing for a client, load client's billing profile
+    $billingProfile = $profile;
+    $billingName = $user['name'] ?? '';
+    $billingEmail = $user['email'] ?? '';
 
     // Load accounting locations for shipping location dropdown
     // Uses client's locations when purchasing for a client
@@ -250,6 +255,22 @@ try {
             }
         } catch (Throwable $e) {
             error_log('Error loading client payment method: ' . $e->getMessage());
+        }
+    }
+
+    // When purchasing for a client, load client's billing profile for form pre-fill
+    if ($clientUserId !== '') {
+        try {
+            $clientProfileStmt = $pdo->prepare('SELECT name, email, companyName, address, address2, city, state, zip, cellPhone FROM users WHERE id = ? LIMIT 1');
+            $clientProfileStmt->execute([$clientUserId]);
+            $clientProfileRow = $clientProfileStmt->fetch();
+            if ($clientProfileRow) {
+                $billingProfile = $clientProfileRow;
+                $billingName = $clientProfileRow['name'] ?? '';
+                $billingEmail = $clientProfileRow['email'] ?? '';
+            }
+        } catch (Throwable $e) {
+            error_log('Error loading client billing profile: ' . $e->getMessage());
         }
     }
 
@@ -371,6 +392,7 @@ try {
                     $nameParts = preg_split('/\s+/', trim((string) ($_POST['name'] ?? '')), 2);
                     $resolvedShipFirst = $nameParts[0] ?? '';
                     $resolvedShipLast = $nameParts[1] ?? '';
+                    $resolvedShipCompany = (string) ($_POST['company'] ?? '');
                     $resolvedShipPhone = (string) ($_POST['phone'] ?? '');
                     $resolvedShipAddr1 = (string) ($_POST['address1'] ?? '');
                     $resolvedShipAddr2 = (string) ($_POST['address2'] ?? '');
@@ -396,6 +418,7 @@ try {
                         $nameParts = preg_split('/\s+/', trim((string) ($_POST['name'] ?? '')), 2);
                         $resolvedShipFirst = $nameParts[0] ?? '';
                         $resolvedShipLast = $nameParts[1] ?? '';
+                        $resolvedShipCompany = (string) ($_POST['company'] ?? '');
                         $resolvedShipPhone = (string) ($_POST['phone'] ?? '');
                         $resolvedShipAddr1 = (string) ($_POST['address1'] ?? '');
                         $resolvedShipAddr2 = (string) ($_POST['address2'] ?? '');
@@ -958,39 +981,43 @@ try {
           </div>
           <div>
             <label for="name">Full name</label>
-            <input id="name" name="name" value="<?php echo htmlspecialchars($user['name'] ?? '', ENT_QUOTES); ?>" required />
+            <input id="name" name="name" value="<?php echo htmlspecialchars($billingName, ENT_QUOTES); ?>" required />
           </div>
           <div>
             <label for="email">Email</label>
-            <input id="email" name="email" type="email" value="<?php echo htmlspecialchars($user['email'] ?? '', ENT_QUOTES); ?>" required />
+            <input id="email" name="email" type="email" value="<?php echo htmlspecialchars($billingEmail, ENT_QUOTES); ?>" required />
+          </div>
+          <div>
+            <label for="company">Company</label>
+            <input id="company" name="company" value="<?php echo htmlspecialchars($billingProfile['companyName'] ?? '', ENT_QUOTES); ?>" />
           </div>
           <div>
             <label for="phone">Phone</label>
-            <input id="phone" name="phone" value="<?php echo htmlspecialchars($profile['cellPhone'] ?? '', ENT_QUOTES); ?>" />
-          </div>
-          <div>
-            <label for="country">Country</label>
-            <input id="country" name="country" value="<?php echo htmlspecialchars($profile['country'] ?? 'USA', ENT_QUOTES); ?>" />
+            <input id="phone" name="phone" value="<?php echo htmlspecialchars($billingProfile['cellPhone'] ?? '', ENT_QUOTES); ?>" />
           </div>
           <div>
             <label for="address1">Address line 1</label>
-            <input id="address1" name="address1" value="<?php echo htmlspecialchars($profile['address'] ?? '', ENT_QUOTES); ?>" required />
+            <input id="address1" name="address1" value="<?php echo htmlspecialchars($billingProfile['address'] ?? '', ENT_QUOTES); ?>" required />
           </div>
           <div>
             <label for="address2">Address line 2</label>
-            <input id="address2" name="address2" />
+            <input id="address2" name="address2" value="<?php echo htmlspecialchars($billingProfile['address2'] ?? '', ENT_QUOTES); ?>" />
           </div>
           <div>
             <label for="city">City</label>
-            <input id="city" name="city" value="<?php echo htmlspecialchars($profile['city'] ?? '', ENT_QUOTES); ?>" required />
+            <input id="city" name="city" value="<?php echo htmlspecialchars($billingProfile['city'] ?? '', ENT_QUOTES); ?>" required />
           </div>
           <div>
             <label for="state">State</label>
-            <input id="state" name="state" value="<?php echo htmlspecialchars($profile['state'] ?? '', ENT_QUOTES); ?>" required />
+            <input id="state" name="state" value="<?php echo htmlspecialchars($billingProfile['state'] ?? '', ENT_QUOTES); ?>" required />
           </div>
           <div>
             <label for="postal">Postal code</label>
-            <input id="postal" name="postal" value="<?php echo htmlspecialchars($profile['zip'] ?? '', ENT_QUOTES); ?>" required />
+            <input id="postal" name="postal" value="<?php echo htmlspecialchars($billingProfile['zip'] ?? '', ENT_QUOTES); ?>" required />
+          </div>
+          <div>
+            <label for="country">Country</label>
+            <input id="country" name="country" value="<?php echo htmlspecialchars($billingProfile['country'] ?? 'USA', ENT_QUOTES); ?>" />
           </div>
           <?php if ($isServiceOnlyCart): ?>
           <input type="hidden" name="shipping_method" value="service" />
@@ -1090,51 +1117,47 @@ try {
               </div>
 
               <!-- Same-day: Deliver to address -->
-              <div id="checkout-sd-address-fields" class="form-grid cols-2" style="margin-top:12px;">
-                <div class="span-2">
-                  <label class="checkbox-row">
-                    <input type="checkbox" id="sdShipSameAsBilling" name="sdShipSameAsBilling" value="1" />
-                    Same as billing
-                  </label>
-                </div>
-                <div id="checkout-sd-address-inputs">
-                  <div class="form-grid cols-2">
-                    <div>
-                      <label for="sdShipFirstName">Shipping first name</label>
-                      <input id="sdShipFirstName" name="sdShipFirstName" type="text" />
-                    </div>
-                    <div>
-                      <label for="sdShipLastName">Shipping last name</label>
-                      <input id="sdShipLastName" name="sdShipLastName" type="text" />
-                    </div>
-                    <div>
-                      <label for="sdShipCompany">Company</label>
-                      <input id="sdShipCompany" name="sdShipCompany" type="text" />
-                    </div>
-                    <div>
-                      <label for="sdShipPhone">Phone</label>
-                      <input id="sdShipPhone" name="sdShipPhone" type="text" />
-                    </div>
-                    <div>
-                      <label for="sdShipAddress1">Address line 1</label>
-                      <input id="sdShipAddress1" name="sdShipAddress1" type="text" placeholder="123 Main St" />
-                    </div>
-                    <div>
-                      <label for="sdShipAddress2">Address line 2</label>
-                      <input id="sdShipAddress2" name="sdShipAddress2" type="text" placeholder="Suite 100" />
-                    </div>
-                    <div>
-                      <label for="sdShipCity">City</label>
-                      <input id="sdShipCity" name="sdShipCity" type="text" />
-                    </div>
-                    <div>
-                      <label for="sdShipState">State</label>
-                      <input id="sdShipState" name="sdShipState" type="text" placeholder="OK" maxlength="2" />
-                    </div>
-                    <div>
-                      <label for="sdShipZip">ZIP code</label>
-                      <input id="sdShipZip" name="sdShipZip" type="text" placeholder="73301" />
-                    </div>
+              <div id="checkout-sd-address-fields" style="margin-top:12px;">
+                <label class="checkbox-row" style="margin-bottom:10px;">
+                  <input type="checkbox" id="sdShipSameAsBilling" name="sdShipSameAsBilling" value="1" />
+                  Same as billing
+                </label>
+                <div id="checkout-sd-address-inputs" class="form-grid cols-2">
+                  <div>
+                    <label for="sdShipFirstName">Shipping first name</label>
+                    <input id="sdShipFirstName" name="sdShipFirstName" type="text" />
+                  </div>
+                  <div>
+                    <label for="sdShipLastName">Shipping last name</label>
+                    <input id="sdShipLastName" name="sdShipLastName" type="text" />
+                  </div>
+                  <div>
+                    <label for="sdShipCompany">Company</label>
+                    <input id="sdShipCompany" name="sdShipCompany" type="text" />
+                  </div>
+                  <div>
+                    <label for="sdShipPhone">Phone</label>
+                    <input id="sdShipPhone" name="sdShipPhone" type="text" />
+                  </div>
+                  <div>
+                    <label for="sdShipAddress1">Address line 1</label>
+                    <input id="sdShipAddress1" name="sdShipAddress1" type="text" placeholder="123 Main St" />
+                  </div>
+                  <div>
+                    <label for="sdShipAddress2">Address line 2</label>
+                    <input id="sdShipAddress2" name="sdShipAddress2" type="text" placeholder="Suite 100" />
+                  </div>
+                  <div>
+                    <label for="sdShipCity">City</label>
+                    <input id="sdShipCity" name="sdShipCity" type="text" />
+                  </div>
+                  <div>
+                    <label for="sdShipState">State</label>
+                    <input id="sdShipState" name="sdShipState" type="text" placeholder="OK" maxlength="2" />
+                  </div>
+                  <div>
+                    <label for="sdShipZip">ZIP code</label>
+                    <input id="sdShipZip" name="sdShipZip" type="text" placeholder="73301" />
                   </div>
                 </div>
               </div>

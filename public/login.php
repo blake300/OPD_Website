@@ -26,8 +26,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $password = $_POST['password'] ?? '';
         $rememberMe = !empty($_POST['remember_me']);
 
-        if ($email === '' || $password === '') {
-            $loginError = 'Email and password are required.';
+        // Identifier can be email OR a 10-digit US cell phone. If all-digits and not 10 digits, reject.
+        $identifierDigits = preg_replace('/\D+/', '', $email);
+        $looksLikePhone = $email !== '' && strpos($email, '@') === false;
+        if ($looksLikePhone && strlen((string) $identifierDigits) !== 10 && strlen((string) $identifierDigits) !== 11) {
+            $loginError = 'Cell phone must be 10 digits.';
+        } elseif ($email === '' || $password === '') {
+            $loginError = 'Email (or cell phone) and password are required.';
         } else {
             $user = site_login($email, $password);
             if ($user) {
@@ -149,12 +154,13 @@ $showServiceNotice = $serviceCheckoutFlag || ($isCheckoutRedirect && $cartHasSer
             <input type="hidden" name="action" value="login" />
             <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($redirect, ENT_QUOTES); ?>" />
             <div>
-              <label for="email">Email</label>
-              <input id="email" name="email" type="email" required />
+              <label for="email">Email or Cell Phone</label>
+              <input id="email" name="email" type="text" autocomplete="username" required />
+              <small class="meta" style="display:block;margin-top:4px;">Enter your email address, or 10-digit cell phone number.</small>
             </div>
             <div>
               <label for="password">Password</label>
-              <input id="password" name="password" type="password" required />
+              <input id="password" name="password" type="password" autocomplete="current-password" required />
             </div>
             <div>
               <label class="checkbox-label">

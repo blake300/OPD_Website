@@ -54,7 +54,7 @@ $csrf = site_csrf_token();
               <div class="hier-header">
                 <h3>Location</h3>
                 <div class="hier-header-actions">
-                  <button class="btn-outline import-btn" type="button" data-import-button="location" title="CSV columns: Location, Sub Location, Sub Sub Location">Excel Import</button>
+                  <button class="btn-outline import-btn" type="button" data-import-button="location" title="CSV columns: Location, Sub Location, Sub Sub Location, Zip, Coordinates">Excel Import</button>
                   <button class="btn-outline template-btn" type="button" data-template="location">Excel Template</button>
                   <input id="import-location" class="import-input" type="file" accept=".csv" data-import-category="location" data-import-label="Location" data-import-child="Sub Location" data-import-grandchild="Sub Sub Location" />
                   <label class="require-sub-label">
@@ -386,7 +386,7 @@ $csrf = site_csrf_token();
               });
 
               const categoryTemplates = {
-                location: { file: 'location-template.csv', headers: ['Location', 'Sub Location', 'Sub Sub Location'], example: ['Warehouse A', 'Zone 1', 'Shelf 3'] },
+                location: { file: 'location-template.csv', headers: ['Location', 'Sub Location', 'Sub Sub Location', 'Zip', 'Coordinates'], example: ['Warehouse A', 'Zone 1', 'Shelf 3', '90210', '34.0901,-118.4065'] },
                 code1: { file: 'code1-template.csv', headers: ['Code 1', 'Sub Code 1', 'Sub Sub Code 1'], example: ['Division A', 'Team 2', ''] },
                 code2: { file: 'code2-template.csv', headers: ['Code 2', 'Sub Code 2', 'Sub Sub Code 2'], example: ['Project X', 'Phase 1', 'Task 5'] }
               };
@@ -396,7 +396,11 @@ $csrf = site_csrf_token();
                   const category = btn.dataset.template || '';
                   const tmpl = categoryTemplates[category];
                   if (!tmpl) return;
-                  const csv = [tmpl.headers.join(','), tmpl.example.join(',')].join('\n');
+                  const csvEscape = (v) => {
+                    const s = String(v == null ? '' : v);
+                    return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+                  };
+                  const csv = [tmpl.headers.map(csvEscape).join(','), tmpl.example.map(csvEscape).join(',')].join('\n');
                   const blob = new Blob([csv], { type: 'text/csv' });
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement('a');
@@ -489,6 +493,12 @@ $csrf = site_csrf_token();
                   if (!level1) return;
                   const root = ensureNode(target, level1);
                   if (!root) return;
+                  if (category === 'location') {
+                    const zip = (row[3] || '').trim();
+                    const coord = (row[4] || '').trim();
+                    if (zip) root.zip = zip;
+                    if (coord) root.coordinate = coord;
+                  }
                   if (level2) {
                     root.children = root.children || [];
                     const child = ensureNode(root.children, level2);

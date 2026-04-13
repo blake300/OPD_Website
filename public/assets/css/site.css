@@ -985,10 +985,16 @@ img {
   gap: 8px;
   font-size: 12px;
   color: var(--ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding-right: 4px;
+  cursor: pointer;
+}
+
+.favorite-option input[type="checkbox"] {
+  flex-shrink: 0;
+}
+
+.favorite-option span {
+  flex: 1;
+  min-width: 0;
 }
 
 .favorite-empty {
@@ -3638,9 +3644,18 @@ input[type="number"]::-webkit-outer-spin-button {
     justify-content: flex-start;
     width: 100%;
     text-align: left;
-    padding-left: 20px;
+    position: relative;
+    padding-left: 60px;
   }
-  .radio-pill input[type="radio"] { flex-shrink: 0; margin: 0; margin-right: 8px; }
+  .shipping-mode-block .radio-pill input[type="radio"] {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    flex-shrink: 0;
+    margin: 0;
+  }
+  .radio-pill input[type="radio"] { flex-shrink: 0; margin: 0; }
 
   /* Checkout form grids: single column */
   .form-grid.cols-2,
@@ -3666,9 +3681,9 @@ input[type="number"]::-webkit-outer-spin-button {
   #favorite-message { min-width: 0; max-width: 90vw; }
 
   /* Favorites dropdown: keep text inside menu on mobile */
-  .favorite-dropdown { max-width: calc(100vw - 40px); overflow: hidden; }
+  .favorite-dropdown { max-width: calc(100vw - 40px); min-width: 180px; }
   .favorite-option { white-space: normal; word-break: break-word; }
-  .favorite-option span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .favorite-option span { white-space: normal; word-break: break-word; }
 
   /* Checkout + confirmation summary: shift value 10px left */
   .checkout-summary .summary-line > span:last-child { margin-right: 10px; }
@@ -3676,8 +3691,9 @@ input[type="number"]::-webkit-outer-spin-button {
   /* Order total box (dashboard order details): shift values 10px left */
   .order-total-box { padding-right: 26px; }
 
-  /* Accounting codes: keep Require Sub text next to checkbox, shifted left */
-  .require-sub-label { gap: 2px; flex-wrap: nowrap; white-space: nowrap; margin-left: -60px; }
+  /* Accounting codes: shift Require Sub checkbox right, text stays */
+  .require-sub-label { gap: 2px; flex-wrap: nowrap; white-space: nowrap; }
+  .require-sub-label input[type="checkbox"] { margin-left: 40px; }
   .hier-header-actions { gap: 6px; flex-wrap: wrap; }
   .hier-header-actions .require-sub-label { flex-shrink: 0; }
 

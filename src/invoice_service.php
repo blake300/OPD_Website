@@ -140,18 +140,40 @@ function opd_invoice_lookup_client_email(string $orderUserId, string $clientId):
  */
 function opd_resolve_invoice_recipient(array $orderData): array
 {
-    // Primary recipient: the customer who placed the order.
-    // Prefer customerEmail on the order (set from the logged-in user), fall back
-    // to a lookup on userId.
     $primary = '';
     $source = 'none';
+    $extras = [];
 
-    $customerEmail = trim((string) ($orderData['customerEmail'] ?? ''));
-    if (filter_var($customerEmail, FILTER_VALIDATE_EMAIL)) {
-        $primary = $customerEmail;
-        $source = 'customerEmail';
+    $clientUserId = trim((string) ($orderData['clientUserId'] ?? ''));
+    $clientId = trim((string) ($orderData['clientId'] ?? ''));
+
+    // When ordering for a client, the client gets the invoice as the primary recipient.
+    if ($clientUserId !== '') {
+        $clientUserEmail = opd_invoice_lookup_user_email($clientUserId);
+        if ($clientUserEmail !== '') {
+            $primary = $clientUserEmail;
+            $source = 'clientUserId';
+        }
+    }
+    if ($primary === '' && $clientId !== '') {
+        $clientRecordEmail = opd_invoice_lookup_client_email(
+            (string) ($orderData['userId'] ?? ''),
+            $clientId
+        );
+        if ($clientRecordEmail !== '') {
+            $primary = $clientRecordEmail;
+            $source = 'clientRecordEmail';
+        }
     }
 
+    // If not for a client, or no client email found, send to the user who placed the order.
+    if ($primary === '') {
+        $customerEmail = trim((string) ($orderData['customerEmail'] ?? ''));
+        if (filter_var($customerEmail, FILTER_VALIDATE_EMAIL)) {
+            $primary = $customerEmail;
+            $source = 'customerEmail';
+        }
+    }
     if ($primary === '') {
         $orderUserEmail = opd_invoice_lookup_user_email((string) ($orderData['userId'] ?? ''));
         if ($orderUserEmail !== '') {
@@ -160,28 +182,10 @@ function opd_resolve_invoice_recipient(array $orderData): array
         }
     }
 
-    // Additional recipients: billed-to client (when placing on behalf of a client).
-    $extras = [];
-    $clientUserEmail = opd_invoice_lookup_user_email((string) ($orderData['clientUserId'] ?? ''));
-    if ($clientUserEmail !== '' && strcasecmp($clientUserEmail, $primary) !== 0) {
-        $extras[] = $clientUserEmail;
-    }
-    $clientRecordEmail = opd_invoice_lookup_client_email(
-        (string) ($orderData['userId'] ?? ''),
-        (string) ($orderData['clientId'] ?? '')
-    );
-    if ($clientRecordEmail !== '' && strcasecmp($clientRecordEmail, $primary) !== 0 && !in_array(strtolower($clientRecordEmail), array_map('strtolower', $extras), true)) {
-        $extras[] = $clientRecordEmail;
-    }
+    // CC the billing email if different from primary
     $billingEmail = trim((string) ($orderData['billingEmail'] ?? ''));
-    if (filter_var($billingEmail, FILTER_VALIDATE_EMAIL) && strcasecmp($billingEmail, $primary) !== 0 && !in_array(strtolower($billingEmail), array_map('strtolower', $extras), true)) {
+    if (filter_var($billingEmail, FILTER_VALIDATE_EMAIL) && strcasecmp($billingEmail, $primary) !== 0) {
         $extras[] = $billingEmail;
-    }
-
-    // Final fallback: if no primary recipient but a billing email exists, use it.
-    if ($primary === '' && !empty($extras)) {
-        $primary = array_shift($extras);
-        $source = 'fallback';
     }
 
     return ['email' => $primary, 'source' => $source, 'extras' => $extras];

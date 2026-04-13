@@ -461,6 +461,7 @@ CREATE TABLE users (
   email VARCHAR(255),
   companyName VARCHAR(255),
   cellPhone VARCHAR(50),
+  ccEmail VARCHAR(255),
   address VARCHAR(255),
   address2 VARCHAR(255),
   city VARCHAR(120),

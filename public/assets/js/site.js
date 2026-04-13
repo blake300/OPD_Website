@@ -38,6 +38,8 @@ window.AccordionDropdown = (function () {
         return
       }
 
+      var leafOnly = !!opts.leafOnly
+
       nodes.forEach(function (top) {
         var sec = document.createElement('div'); sec.className = 'accdd-sec'
         var hdr = document.createElement('div'); hdr.className = 'accdd-top'
@@ -60,6 +62,15 @@ window.AccordionDropdown = (function () {
           return
         }
 
+        // If not leaf-only, parent labels are also selectable
+        if (!leafOnly) {
+          hdr.querySelector('.accdd-lbl').style.cursor = 'pointer'
+          hdr.querySelector('.accdd-lbl').addEventListener('click', function (e) {
+            e.stopPropagation()
+            doSelect(top.label)
+          })
+        }
+
         var secChildren = [], secGcWraps = []
         top.children.forEach(function (child) {
           var cDiv = document.createElement('div'); cDiv.className = 'accdd-child'
@@ -75,6 +86,17 @@ window.AccordionDropdown = (function () {
             cDiv.addEventListener('mouseleave', function () { input.value = committed ? committed.split(' > ').pop() : ''; input.style.color = '' })
             body.appendChild(cDiv)
             return
+          }
+
+          // If not leaf-only, child text is selectable directly
+          if (!leafOnly) {
+            cText.style.cursor = 'pointer'
+            cText.addEventListener('click', function (e) {
+              e.stopPropagation()
+              doSelect(top.label + ' > ' + child.label)
+            })
+            cText.addEventListener('mouseenter', function () { input.value = child.label; input.style.color = '#aaa' })
+            cText.addEventListener('mouseleave', function () { input.value = committed ? committed.split(' > ').pop() : ''; input.style.color = '' })
           }
 
           var gcW = document.createElement('div'); gcW.className = 'accdd-gcw'

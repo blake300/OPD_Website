@@ -275,16 +275,33 @@ function site_require_auth(): array
 
 function site_login(string $email, string $password): ?array
 {
-    // Check rate limiting first
-    $rateLimitIdentifiers = opd_login_rate_limit_identifiers($email);
+    // Accept email or 10-digit US cell phone as the identifier.
+    $identifier = trim($email);
+    $phone = opd_normalize_us_phone($identifier);
+    $isPhone = $phone !== null && !filter_var($identifier, FILTER_VALIDATE_EMAIL);
+
+    // Rate limit key: use normalized phone or lowercased email so variants collapse to one bucket.
+    $rateLimitKey = $isPhone ? $phone : strtolower($identifier);
+    $rateLimitIdentifiers = opd_login_rate_limit_identifiers($rateLimitKey);
     $rateLimitCheck = opd_check_rate_limits($rateLimitIdentifiers, 'customer_login');
     if (!$rateLimitCheck['allowed']) {
         return null;
     }
 
     $pdo = opd_db();
-    $stmt = $pdo->prepare('SELECT * FROM users WHERE email = ? LIMIT 1');
-    $stmt->execute([$email]);
+    if ($isPhone) {
+        // Normalize stored cellPhone values (which may contain spaces, dashes, parens, dots, or a leading +1)
+        // and compare against the 10-digit input or 11-digit (1+10) form.
+        $stmt = $pdo->prepare(
+            "SELECT * FROM users
+             WHERE REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(cellPhone,''),' ',''),'-',''),'(',''),')',''),'.',''),'+','') IN (?, ?)
+             LIMIT 1"
+        );
+        $stmt->execute([$phone, '1' . $phone]);
+    } else {
+        $stmt = $pdo->prepare('SELECT * FROM users WHERE email = ? LIMIT 1');
+        $stmt->execute([$identifier]);
+    }
     $user = $stmt->fetch();
 
     // SECURITY: Always verify password even if user doesn't exist (prevents timing attacks)
@@ -303,6 +320,18 @@ function site_login(string $email, string $password): ?array
 
     // Reset rate limit on successful login
     opd_reset_rate_limits_for_identifiers($rateLimitIdentifiers, 'customer_login');
+
+    // If the user signed in via their cell phone and we don't yet have a cellPhone
+    // on record, persist the normalized 10-digit number so it appears on their account page.
+    if ($isPhone && empty(trim((string) ($user['cellPhone'] ?? '')))) {
+        try {
+            $pdo->prepare('UPDATE users SET cellPhone = ?, updatedAt = ? WHERE id = ?')
+                ->execute([$phone, gmdate('Y-m-d H:i:s'), $user['id']]);
+            $user['cellPhone'] = $phone;
+        } catch (\Throwable $e) {
+            error_log('site_login: failed to auto-populate cellPhone: ' . $e->getMessage());
+        }
+    }
 
     site_start_session();
     session_regenerate_id(true);
@@ -550,6 +579,82 @@ function site_request_password_reset(string $email): array
         $emailBody = opd_email_shell($emailBody);
     }
     opd_send_email($user['email'], 'Reset Your Password - ' . opd_site_name(), $emailBody);
+
+    return ['ok' => true];
+}
+
+/**
+ * Request a password reset via SMS to the user's cellPhone.
+ * Always returns success-like response to prevent phone enumeration.
+ */
+function site_request_password_reset_sms(string $phone): array
+{
+    site_ensure_password_reset_table();
+    require_once __DIR__ . '/validation.php';
+    require_once __DIR__ . '/experttexting_service.php';
+
+    $normalized = opd_normalize_us_phone($phone);
+    if ($normalized === null) {
+        return ['error' => 'Cell phone must be 10 digits.'];
+    }
+
+    // Rate limit: max 5 reset requests per phone per hour
+    $rateLimitCheck = opd_check_rate_limit($normalized, 'password_reset');
+    if (!$rateLimitCheck['allowed']) {
+        return ['error' => 'Too many reset attempts. Please try again later.'];
+    }
+
+    $pdo = opd_db();
+    // Match stored cellPhone after stripping common formatting characters.
+    $stmt = $pdo->prepare(
+        "SELECT id, email, name, status, cellPhone
+         FROM users
+         WHERE REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(cellPhone,''),' ',''),'-',''),'(',''),')',''),'.',''),'+','') IN (?, ?)
+         AND status = ?
+         LIMIT 1"
+    );
+    $stmt->execute([$normalized, '1' . $normalized, 'active']);
+    $user = $stmt->fetch();
+
+    if (!$user) {
+        opd_record_failed_attempt($normalized, 'password_reset');
+        return ['ok' => true];
+    }
+
+    // Check for admin lock
+    $checkLock = $pdo->prepare('SELECT resetAdminLocked FROM users WHERE id = ? LIMIT 1');
+    $checkLock->execute([$user['id']]);
+    $lockRow = $checkLock->fetch();
+    if ($lockRow && !empty($lockRow['resetAdminLocked'])) {
+        return ['error' => 'Password reset is locked for this account. Please contact an administrator.'];
+    }
+
+    // Invalidate any existing tokens for this user
+    $pdo->prepare('UPDATE password_reset_tokens SET used = 1 WHERE userId = ? AND used = 0')->execute([$user['id']]);
+
+    // Generate token
+    $rawToken = bin2hex(random_bytes(32));
+    $tokenHash = hash('sha256', $rawToken);
+    $id = 'prt-' . bin2hex(random_bytes(16));
+    $now = gmdate('Y-m-d H:i:s');
+    $expiresAt = gmdate('Y-m-d H:i:s', strtotime('+30 minutes'));
+
+    $insert = $pdo->prepare(
+        'INSERT INTO password_reset_tokens (id, userId, tokenHash, used, expiresAt, createdAt)
+         VALUES (?, ?, ?, 0, ?, ?)'
+    );
+    $insert->execute([$id, $user['id'], $tokenHash, $expiresAt, $now]);
+
+    $resetUrl = opd_site_base_url() . '/reset-password.php?token=' . urlencode($rawToken);
+    $siteName = opd_site_name();
+    $smsBody = $siteName . ': Reset your password using this link (expires in 30 min): ' . $resetUrl
+        . ' If you did not request this, ignore this message.';
+
+    $result = experttexting_send_sms($normalized, $smsBody);
+    if (empty($result['ok'])) {
+        error_log('[password_reset_sms] Failed to send SMS: ' . json_encode($result));
+        // Don't leak the failure — still return ok to avoid enumeration.
+    }
 
     return ['ok' => true];
 }

@@ -1830,7 +1830,7 @@ if ($user) {
 
         const pathParts = parseAccountingPath(pathValue || '');
         const fragment = document.createDocumentFragment();
-        buildCascadingOptions(rootNodes, pathParts, 0, fragment);
+        buildCascadingOptions('location', rootNodes, pathParts, 0, fragment);
         sameDaySavedSelect.appendChild(fragment);
 
         const currentValue = joinAccountingPath(pathParts);
@@ -1942,8 +1942,10 @@ if ($user) {
         const nodes = Array.isArray(accountingStructure[category]) ? accountingStructure[category] : [];
 
         if (typeof AccordionDropdown !== 'undefined') {
+          const requireSub = getRequireSubSettings();
           const dd = AccordionDropdown.create(field, nodes, {
             value: currentValue,
+            leafOnly: !!requireSub[category],
             placeholder: 'Select ' + label.toLowerCase() + '...',
             onChange: function (path) {
               if (!isSignedIn) {

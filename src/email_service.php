@@ -38,7 +38,61 @@ function opd_create_mailer(): ?PHPMailer
 }
 
 /**
+ * Ensure the users.ccEmail column exists. No-op after the first successful check per request.
+ */
+function opd_ensure_cc_email_column(): void
+{
+    static $checked = false;
+    if ($checked) {
+        return;
+    }
+    try {
+        require_once __DIR__ . '/db_conn.php';
+        $pdo = opd_db();
+        $stmt = $pdo->prepare(
+            "SELECT COUNT(*) FROM information_schema.columns
+             WHERE table_schema = DATABASE() AND table_name = 'users' AND column_name = 'ccEmail'"
+        );
+        $stmt->execute();
+        if ((int) $stmt->fetchColumn() === 0) {
+            $pdo->exec("ALTER TABLE users ADD COLUMN ccEmail VARCHAR(255) NULL AFTER email");
+        }
+        $checked = true;
+    } catch (\Throwable $e) {
+        error_log('opd_ensure_cc_email_column failed: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Look up the ccEmail configured for a user identified by their primary email.
+ * Returns a valid email string or null.
+ */
+function opd_lookup_cc_email(string $primaryEmail): ?string
+{
+    $primary = trim($primaryEmail);
+    if ($primary === '') {
+        return null;
+    }
+    try {
+        opd_ensure_cc_email_column();
+        require_once __DIR__ . '/db_conn.php';
+        $pdo = opd_db();
+        $stmt = $pdo->prepare('SELECT ccEmail FROM users WHERE email = ? LIMIT 1');
+        $stmt->execute([$primary]);
+        $cc = (string) ($stmt->fetchColumn() ?: '');
+        $cc = trim($cc);
+        if ($cc === '' || strcasecmp($cc, $primary) === 0) {
+            return null;
+        }
+        return filter_var($cc, FILTER_VALIDATE_EMAIL) ? $cc : null;
+    } catch (\Throwable $e) {
+        return null;
+    }
+}
+
+/**
  * Send a generic email. Returns true on success, false on failure.
+ * Automatically Cc's the user's configured ccEmail (users.ccEmail) when one is set.
  */
 function opd_send_email(string $to, string $subject, string $htmlBody, string $plainBody = ''): bool
 {
@@ -49,6 +103,10 @@ function opd_send_email(string $to, string $subject, string $htmlBody, string $p
 
     try {
         $mail->addAddress($to);
+        $ccEmail = opd_lookup_cc_email($to);
+        if ($ccEmail !== null) {
+            $mail->addCC($ccEmail);
+        }
         $mail->Subject = $subject;
         $mail->Body = $htmlBody;
         $mail->AltBody = $plainBody ?: strip_tags($htmlBody);
