@@ -49,7 +49,7 @@ $csrf = site_csrf_token();
 
           <div id="acct-notification" class="notice" style="display:none;" role="alert"></div>
           <!-- Build marker: if this text is missing from View Source, the page is cached. -->
-          <div style="font-size:11px;color:#888;margin-bottom:6px;">Import build: v3-deepest-zip (2026-04-13)</div>
+          <div style="font-size:11px;color:#888;margin-bottom:6px;">Import build: v4-all-levels (2026-04-13)</div>
 
           <div id="accounting-hierarchy">
             <div class="hier-row">
@@ -536,22 +536,28 @@ $csrf = site_csrf_token();
 
                   const root = ensureNode(target, level1);
                   if (!root) return;
-                  let deepest = root;
+                  const touched = [root];
                   if (level2) {
                     root.children = root.children || [];
                     const child = ensureNode(root.children, level2);
                     if (child) {
-                      deepest = child;
+                      touched.push(child);
                       if (level3) {
                         child.children = child.children || [];
                         const grandchild = ensureNode(child.children, level3);
-                        if (grandchild) deepest = grandchild;
+                        if (grandchild) touched.push(grandchild);
                       }
                     }
                   }
+                  // Apply zip/coordinate to every level named in this row so
+                  // the parent, sub, and sub-sub location all carry the same
+                  // destination info (each level can be selected in checkout
+                  // and all should resolve to the same place).
                   if (category === 'location') {
-                    if (zip) deepest.zip = zip;
-                    if (coord) deepest.coordinate = coord;
+                    touched.forEach((node) => {
+                      if (zip) node.zip = zip;
+                      if (coord) node.coordinate = coord;
+                    });
                   }
                 });
                 loadStructure(structure);
