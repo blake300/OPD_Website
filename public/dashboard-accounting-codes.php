@@ -477,6 +477,10 @@ $csrf = site_csrf_token();
               }
 
               function mergeCategoryFromCsv(category, text, labels){
+                // Strip UTF-8 BOM that Excel adds when saving CSVs — without
+                // this the first column's header/value gets an invisible \uFEFF
+                // prefix and header detection and label matching fail silently.
+                if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
                 const rows = parseCsv(text);
                 if (!rows.length) throw new Error('CSV is empty.');
                 const dataRows = isHeaderRow(rows[0], labels) ? rows.slice(1) : rows;
@@ -509,9 +513,14 @@ $csrf = site_csrf_token();
                   // For locations, zip/coordinates apply to the deepest node
                   // named in the row — not just the top-level parent. This lets
                   // each sub-location keep its own ZIP and coordinates.
+                  // If a coordinate value containing a comma was saved without
+                  // quotes (e.g. "34.09,-118.40"), the parser splits it across
+                  // row[4] and row[5]+ — rejoin those trailing cells so the
+                  // coordinate still lands intact on the deepest node.
                   if (category === 'location') {
                     const zip = (row[3] || '').trim();
-                    const coord = (row[4] || '').trim();
+                    const coordCells = row.slice(4).map((c) => (c || '').trim()).filter((c) => c !== '');
+                    const coord = coordCells.join(',');
                     if (zip) deepest.zip = zip;
                     if (coord) deepest.coordinate = coord;
                   }
